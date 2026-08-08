@@ -5,7 +5,10 @@ import chroma from 'chroma-js';
 import { 
   generateAllPalettes, 
   getColorNameFromHex,
+  isValidHex,
 } from '@/lib/dynamic-palettes';
+  import {getColorName
+} from '@/lib/color-utils';
 import PaletteClient from './PaletteClient';
 
 interface ColorPalettePageProps {
@@ -14,7 +17,7 @@ interface ColorPalettePageProps {
   }>;
 }
 
-// ✅ Generate static paths
+// Generate static paths
 export function generateStaticParams() {
   const commonColors = [
     'ff0000', '00ff00', '0000ff', 'ffff00', 'ff00ff', '00ffff',
@@ -22,7 +25,8 @@ export function generateStaticParams() {
     '3b82f6', '22c55e', 'eab308', 'ec4899', 'f97316', '06b6d4',
     '6366f1', '14b8a6', 'f43f5e', 'f59e0b', '84cc16', '10b981',
     '0ea5e9', 'd946ef', 'fb7185', '1e293b', '4b5563', '34d399',
-    'fdba74', 'c4b5fd', '86efac', 'c2410c', '1f2937', 'fef3c7'
+    'fdba74', 'c4b5fd', '86efac', 'c2410c', '1f2937', 'fef3c7',
+    '2b7877', // Dark Teal
   ];
   
   return commonColors.map(hex => ({
@@ -30,7 +34,6 @@ export function generateStaticParams() {
   }));
 }
 
-// ✅ DYNAMIC METADATA - Runs on server
 export async function generateMetadata({ 
   params 
 }: ColorPalettePageProps): Promise<Metadata> {
@@ -45,12 +48,9 @@ export async function generateMetadata({
   
   const cleanHex = hex.toLowerCase();
   const fullHex = `#${cleanHex.toUpperCase()}`;
-  const colorName = getColorNameFromHex(cleanHex);
+  const colorName = getColorName(`#${cleanHex}`); // ✅ Add # prefix
   
-  // Generate SEO-friendly description
   const description = `Explore ${colorName} color palettes including shades, complementary, analogous, triadic, tetradic, and more. Perfect for designers and developers.`;
-  
-  // Generate keywords
   const keywords = [
     colorName,
     `${colorName} color`,
@@ -107,42 +107,95 @@ export async function generateMetadata({
 export default async function ColorPalettePage({ params }: ColorPalettePageProps) {
   const { hex } = await params;
   
+  // Validate hex format
   if (!hex || !/^[a-fA-F0-9]{6}$/i.test(hex)) {
     notFound();
   }
   
   const cleanHex = hex.toLowerCase();
   const fullHex = `#${cleanHex.toUpperCase()}`;
-  const colorName = getColorNameFromHex(cleanHex);
-  const palettes = generateAllPalettes(cleanHex);
   
+  // Validate color exists
   try {
     chroma(cleanHex);
   } catch {
     notFound();
   }
   
+  // Generate all palettes
+  let palettes;
+  let colorName;
+  
+  try {
+    // ✅ IMPORTANT: Pass with # prefix
+    const hexWithHash = `#${cleanHex}`;
+    palettes = generateAllPalettes(hexWithHash);
+    colorName = getColorName(hexWithHash);
+  } catch (error) {
+    console.error('Error generating palettes:', error);
+    notFound();
+  }
+  
+  // ALL palette types with icons
   const paletteTypes = [
-    { id: 'shades', label: 'Shades', icon: '🎨', colors: palettes.shades },
-    { id: 'complementary', label: 'Complementary', icon: '⚡', colors: palettes.complementary },
-    { id: 'analogous', label: 'Analogous', icon: '🌈', colors: palettes.analogous },
-    { id: 'triadic', label: 'Triadic', icon: '🔺', colors: palettes.triadic },
-    { id: 'tetradic', label: 'Tetradic', icon: '🔲', colors: palettes.tetradic },
-    { id: 'split-complementary', label: 'Split Complementary', icon: '🔀', colors: palettes['split-complementary'] },
-    { id: 'square', label: 'Square', icon: '⬜', colors: palettes.square },
-    { id: 'pastel', label: 'Pastel', icon: '🌸', colors: palettes.pastel },
-    { id: 'vibrant', label: 'Vibrant', icon: '💥', colors: palettes.vibrant },
-    { id: 'muted', label: 'Muted', icon: '🌫️', colors: palettes.muted },
-    { id: 'dark', label: 'Dark Shades', icon: '🌑', colors: palettes.dark },
-    { id: 'light', label: 'Light Tints', icon: '☀️', colors: palettes.light },
+    // Basic harmonies
+    { id: 'shades', label: 'Shades', colors: palettes.shades },
+    { id: 'complementary', label: 'Complementary',  colors: palettes.complementary },
+    { id: 'analogous', label: 'Analogous', colors: palettes.analogous },
+    { id: 'triadic', label: 'Triadic', colors: palettes.triadic },
+    { id: 'tetradic', label: 'Tetradic',  colors: palettes.tetradic },
+    { id: 'split-complementary', label: 'Split Complementary', colors: palettes['split-complementary'] },
+    { id: 'square', label: 'Square', colors: palettes.square },
+    
+    // Mood-based
+    { id: 'pastel', label: 'Pastel', colors: palettes.pastel },
+    { id: 'vibrant', label: 'Vibrant', colors: palettes.vibrant },
+    { id: 'muted', label: 'Muted', colors: palettes.muted },
+    { id: 'dark', label: 'Dark Shades',  colors: palettes.dark },
+    { id: 'light', label: 'Light Tints', colors: palettes.light },
+    { id: 'warm', label: 'Warm Palette', colors: palettes.warm },
+    { id: 'cool', label: 'Cool Palette', colors: palettes.cool },
+    
+    // Advanced harmonies
+    { id: 'monochromatic', label: 'Monochromatic', colors: palettes.monochromatic },
+    { id: 'compound', label: 'Compound',colors: palettes.compound },
+    { id: 'neutral', label: 'Neutral', colors: palettes.neutral },
+    { id: 'gradient', label: 'Gradient', colors: palettes.gradient },
+    
+    // Thematic
+    { id: 'neon', label: 'Neon', colors: palettes.neon },
+    { id: 'earth', label: 'Earth',  colors: palettes.earth },
+    { id: 'ocean', label: 'Ocean', colors: palettes.ocean },
+    { id: 'sunset', label: 'Sunset', colors: palettes.sunset },
+    { id: 'forest', label: 'Forest', colors: palettes.forest },
+    { id: 'vintage', label: 'Vintage', colors: palettes.vintage },
+    { id: 'modern', label: 'Modern', colors: palettes.modern },
+    
+    // Special combinations
+    { id: 'pastel-neon', label: 'Pastel Neon',  colors: palettes.pastelNeon },
+    { id: 'monochrome-dark', label: 'Dark Monochrome', colors: palettes.monochromeDark },
+    { id: 'monochrome-light', label: 'Light Monochrome', colors: palettes.monochromeLight },
+    { id: 'accent', label: 'Accent Palette', colors: palettes.accent },
+    { id: 'gradient-warm', label: 'Warm Gradient', colors: palettes.gradientWarm },
+    { id: 'gradient-cool', label: 'Cool Gradient', colors: palettes.gradientCool },
+    { id: 'split', label: 'Split', colors: palettes.split },
+    { id: 'double-split', label: 'Double Split', colors: palettes.doubleSplit },
+    { id: 'adjacent', label: 'Adjacent', colors: palettes.adjacent },
+    { id: 'alternating', label: 'Alternating', colors: palettes.alternating },
+    { id: 'rainbow', label: 'Rainbow', colors: palettes.rainbow },
   ];
+  
+  // Filter out any palette types that have undefined or empty colors
+  const validPaletteTypes = paletteTypes.filter(p => 
+    p.colors && Array.isArray(p.colors) && p.colors.length > 0
+  );
   
   return (
     <PaletteClient 
       hex={cleanHex}
       fullHex={fullHex}
       colorName={colorName}
-      paletteTypes={paletteTypes}
+      paletteTypes={validPaletteTypes}
     />
   );
 }

@@ -559,7 +559,7 @@ export default function ColorTools({
       </section>
 
       {/* Color Scales */}
-      <section className="mx-auto mt-16 max-w-7xl">
+      <section id="color-scales" className="mx-auto mt-16 max-w-7xl">
         <div className="glass rounded-[2rem] p-6 sm:p-8 bg-white/76 dark:bg-[#191a1e]/76 border border-[#101114]/9 dark:border-white/11 shadow-[0_24px_64px_rgba(19,20,24,0.09)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.35)] backdrop-blur-[18px]">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
@@ -592,7 +592,7 @@ export default function ColorTools({
       </section>
 
       {/* Image Palette Extractor */}
-      <section className="mx-auto mt-16 max-w-7xl">
+      <section id="image-palette" className="mx-auto mt-16 max-w-7xl">
         <div className="glass rounded-[2rem] p-6 sm:p-8 bg-white/76 dark:bg-[#191a1e]/76 border border-[#101114]/9 dark:border-white/11 shadow-[0_24px_64px_rgba(19,20,24,0.09)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.35)] backdrop-blur-[18px]">
           <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
             <div>

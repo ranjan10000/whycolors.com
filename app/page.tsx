@@ -138,29 +138,6 @@ export default function Home() {
     <div className="min-h-screen w-full bg-[#f7f7f4] text-[#101114] transition-colors dark:bg-[#0d0e10] dark:text-[#f7f7f4]">
       <div className="fixed top-[-13rem] left-[-12rem] h-96 w-96 rounded-full bg-[#ff896f] opacity-20 blur-[70px] pointer-events-none" />
       <div className="fixed right-[-13rem] bottom-[-14rem] h-96 w-96 rounded-full bg-[#7ad6ff] opacity-20 blur-[70px] pointer-events-none" />
-
-      <header className="w-full px-4 pt-4 sm:px-6 lg:px-10">
-        <nav className="glass mx-auto flex max-w-7xl items-center justify-between rounded-2xl px-4 py-3 sm:px-5 bg-white/76 dark:bg-[#191a1e]/76 border border-[#101114]/9 dark:border-white/11 shadow-[0_24px_64px_rgba(19,20,24,0.09)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.35)] backdrop-blur-[18px]">
-          <a href="#top" className="flex items-center gap-3 rounded-lg">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#101114] text-white dark:bg-[#f7f7f4] dark:text-[#101114]">
-              <Palette className="h-5 w-5" />
-            </span>
-            <span className="text-lg font-bold">whycolors.com</span>
-          </a>
-          <div className="hidden items-center gap-5 text-sm font-medium text-[#686b74] dark:text-[#a8abb4] md:flex">
-            <a href="#palette" className="hover:text-[#101114] dark:hover:text-[#f7f7f4]">
-              Palettes
-            </a>
-            <a href="#effects" className="hover:text-[#101114] dark:hover:text-[#f7f7f4]">
-              Effects
-            </a>
-            <a href="#contrast" className="hover:text-[#101114] dark:hover:text-[#f7f7f4]">
-              Accessibility
-            </a>
-          </div>
-        </nav>
-      </header>
-
       <main id="top" className="w-full px-4 pb-16 pt-12 sm:px-6 lg:px-10">
         <div className="mx-auto max-w-7xl">
           <div className="mb-10 max-w-3xl animate-[rise_0.65s_both]">
@@ -178,7 +155,7 @@ export default function Home() {
           </div>
 
           {/* Color Picker Section */}
-          <section className="mt-9 glass overflow-hidden rounded-[2rem] bg-white/76 dark:bg-[#191a1e]/76 border border-[#101114]/9 dark:border-white/11 shadow-[0_24px_64px_rgba(19,20,24,0.09)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.35)] backdrop-blur-[18px] animate-[rise_0.65s_both] delay-100">
+          <section id="color-picker" className="mt-9 glass overflow-hidden rounded-[2rem] bg-white/76 dark:bg-[#191a1e]/76 border border-[#101114]/9 dark:border-white/11 shadow-[0_24px_64px_rgba(19,20,24,0.09)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.35)] backdrop-blur-[18px] animate-[rise_0.65s_both] delay-100">
             <div className="grid lg:grid-cols-[1.05fr_0.95fr]">
               <div className="relative min-h-[360px] overflow-hidden bg-[#1a1a1d] p-6 sm:p-9">
                 <div
@@ -287,7 +264,7 @@ export default function Home() {
           </section>
 
           {/* Color Wheel */}
-          <section className="mt-9 glass overflow-hidden rounded-[2rem] bg-white/76 dark:bg-[#191a1e]/76 border border-[#101114]/9 dark:border-white/11 shadow-[0_24px_64px_rgba(19,20,24,0.09)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.35)] backdrop-blur-[18px] animate-[rise_0.65s_both] delay-100">
+          <section id="color-wheel" className="mt-9 glass overflow-hidden rounded-[2rem] bg-white/76 dark:bg-[#191a1e]/76 border border-[#101114]/9 dark:border-white/11 shadow-[0_24px_64px_rgba(19,20,24,0.09)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.35)] backdrop-blur-[18px] animate-[rise_0.65s_both] delay-100">
             <div className="p-6 sm:p-9">
               <div className="flex flex-col items-center gap-6">
                 <div className="w-full max-w-3xl">

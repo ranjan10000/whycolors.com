@@ -175,7 +175,7 @@ export async function generateMetadata({ params }: ColorPageProps): Promise<Meta
   ].join(', ');
   
   return {
-    title: `${fullHex} ${colorName} - Color Details | Color Tools`,
+    title: `${fullHex} ${colorName} - Color Details | WhyColors.com`,
     description: description,
     keywords: keywords,
     

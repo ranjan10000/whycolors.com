@@ -1,10 +1,10 @@
 import Link from 'next/link';
-import { getColorCache } from '@/lib/color-cache';
+import { getColorPageColors   } from '@/lib/color-cache.server';
 import { getColorName } from '@/lib/color-utils';
 import ColorClient from './ColorClient';
 
 export default function ColorPage() {
-  const allColors = getColorCache();
+  const allColors = getColorPageColors ();
   const displayColors = allColors.slice(0, 24);
   
   return <ColorClient initialColors={displayColors} totalColors={allColors.length} />;
