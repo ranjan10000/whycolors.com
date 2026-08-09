@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Sun, Moon, Palette, Menu, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 const navLinks = [
   { href: '#palette', label: 'Palettes' },
   { href: '#effects', label: 'Effects' },
-  { href: '#contrast', label: 'Contrast checker' },
+  { href: '#contrast', label: 'Contrast Checker' },
   { href: '#color-wheel', label: 'Color Wheel' },
   { href: '#color-picker', label: 'Color Picker' },
   { href: '#gradient', label: 'Gradient' },
@@ -20,57 +21,54 @@ export default function Header() {
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Close mobile menu on resize to desktop
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768) {
-        setMobileMenuOpen(false);
+  // Handle navigation click - works on both home and other pages
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    setMobileMenuOpen(false);
+
+    const targetId = href.replace('#', '');
+    
+    if (pathname === '/') {
+      // On home page - scroll to section
+      const element = document.getElementById(targetId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Update URL without page reload
+        window.history.pushState(null, '', href);
+      } else {
+        // If element not found, try to find it after a small delay (for lazy loaded content)
+        setTimeout(() => {
+          const el = document.getElementById(targetId);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 300);
       }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Close mobile menu on escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMobileMenuOpen(false);
-    };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, []);
-
-  // Prevent scroll when mobile menu is open
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = 'unset';
+      // On other pages - navigate to home with hash
+      window.location.href = `/${href}`;
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [mobileMenuOpen]);
+  };
 
   if (!mounted) {
     return (
-      <header className="sticky top-0 z-50 bg-white dark:bg-[#131322] border-b border-gray-200 dark:border-white/10">
+      <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#131322]/90 backdrop-blur-xl border-b border-gray-200 dark:border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] flex items-center justify-center">
                 <Palette className="w-5 h-5 text-white" />
               </div>
               <h1 className="text-lg font-bold text-gray-800 dark:text-white">
                 Why<span className="text-[#7c3aed]">Colors</span>
               </h1>
-            </Link>
-            <div className="w-9 h-9" />
+            </div>
           </div>
         </div>
       </header>
@@ -82,7 +80,7 @@ export default function Header() {
       <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#131322]/90 backdrop-blur-xl border-b border-gray-200 dark:border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
+            {/* Logo - Link to home */}
             <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] flex items-center justify-center">
                 <Palette className="w-5 h-5 text-white" />
@@ -92,17 +90,25 @@ export default function Header() {
               </h1>
             </Link>
 
-            {/* Desktop Navigation - Hidden on mobile */}
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-1 lg:gap-2">
-              {navLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  className="px-3 py-2 text-sm font-medium text-[#686b74] dark:text-[#a8abb4] hover:text-[#101114] dark:hover:text-[#f7f7f4] hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-all whitespace-nowrap"
-                >
-                  {link.label}
-                </a>
-              ))}
+              {navLinks.map((link) => {
+                const isActive = pathname === '/' && window.location.hash === link.href;
+                return (
+                  <a
+                    key={link.href}
+                    href={pathname === '/' ? link.href : `/${link.href}`}
+                    onClick={(e) => handleNavClick(e, link.href)}
+                    className={`px-3 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
+                      isActive
+                        ? 'text-[#7c3aed] dark:text-[#a78bfa] bg-purple-50 dark:bg-purple-900/20'
+                        : 'text-[#686b74] dark:text-[#a8abb4] hover:text-[#101114] dark:hover:text-[#f7f7f4] hover:bg-gray-100 dark:hover:bg-white/5'
+                    }`}
+                  >
+                    {link.label}
+                  </a>
+                );
+              })}
             </nav>
 
             {/* Right side - Theme toggle + Mobile menu button */}
@@ -153,8 +159,8 @@ export default function Header() {
             {navLinks.map((link) => (
               <a
                 key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
+                href={pathname === '/' ? link.href : `/${link.href}`}
+                onClick={(e) => handleNavClick(e, link.href)}
                 className="px-4 py-3 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-[#7c3aed] dark:hover:text-[#a78bfa] hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-all"
               >
                 {link.label}

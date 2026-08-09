@@ -14,16 +14,17 @@ const footerLinks = {
     { label: 'Image Palette', href: '#image-palette' },
   ],
   resources: [
-    { label: 'Accessibility', href: '#contrast' },
-    { label: 'Color Theory', href: '#color-theory' },
-    { label: 'Blog', href: '/blog' },
-    { label: 'Documentation', href: '/docs' },
+    // { label: 'Accessibility', href: '#contrast' },
+    // { label: 'Color Theory', href: '#color-theory' },
+    // { label: 'Blog', href: '/blog' },
+    // { label: 'Documentation', href: '/docs' },
   ],
   company: [
     { label: 'About', href: '/about' },
     { label: 'Contact', href: '/contact' },
     { label: 'Privacy Policy', href: '/privacy' },
     { label: 'Terms of Service', href: '/terms' },
+    //  { label: 'Blog', href: '/blog' },
   ],
 };
 
@@ -74,7 +75,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Resources Links */}
+          {/* Resources Links
           <div>
             <h3 className="text-sm font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-[#7c3aed]" />
@@ -92,7 +93,7 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
-          </div>
+          </div> */}
 
           {/* Company Links */}
           <div>
