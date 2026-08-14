@@ -215,17 +215,6 @@ export default function PaletteClient({
           </div>
         ))}
       </div>
-      
-      {/* Footer */}
-      <div className={`mt-6 sm:mt-8 p-3 sm:p-4 rounded-xl text-center border ${
-        isDark
-          ? 'bg-[#1a1a2e]/50 border-[#2d2d4a]/50'
-          : 'bg-gray-100/50 border-gray-200/50'
-      }`}>
-        <p className={`text-[10px] sm:text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-          ✦ Click any color to copy • {viewMode === 'grid' ? 'Grid view' : 'Gradient strip view'} • Powered by chroma-js
-        </p>
-      </div>
     </div>
   );
 }

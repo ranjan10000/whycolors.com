@@ -183,6 +183,12 @@ export default async function ColorPalettePage({ params }: ColorPalettePageProps
     { id: 'adjacent', label: 'Adjacent', colors: palettes.adjacent },
     { id: 'alternating', label: 'Alternating', colors: palettes.alternating },
     { id: 'rainbow', label: 'Rainbow', colors: palettes.rainbow },
+
+    { id: 'tintShadeScale', label: 'Tint & Shade Scale (10 colors)', colors: palettes.tintShadeScale },
+  { id: 'uiPalette', label: 'UI Palette', colors: palettes.uiPalette },
+  { id: 'clash', label: 'Clash Palette', colors: palettes.clash },
+  { id: 'saturationScale', label: 'Saturation Scale', colors: palettes.saturationScale },
+
   ];
   
   // Filter out any palette types that have undefined or empty colors
