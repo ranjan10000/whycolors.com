@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { Copy, Sparkles, ImageUp, Download, Contrast } from "lucide-react";
+import ImageColorExtractor from "./ImageColorExtractor";
 
 interface ColorFormat {
   hex: string;
@@ -674,6 +675,12 @@ export default function ColorTools({
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section id="image-color-extractor" className="mx-auto mt-16 max-w-7xl">
+        <div className="glass rounded-[2rem] p-6 sm:p-8 bg-white/76 dark:bg-[#191a1e]/76 border border-[#101114]/9 dark:border-white/11 shadow-[0_24px_64px_rgba(19,20,24,0.09)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.35)] backdrop-blur-[18px]">
+         <ImageColorExtractor />
         </div>
       </section>
     </>

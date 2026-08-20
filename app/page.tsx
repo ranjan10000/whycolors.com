@@ -7,6 +7,7 @@ import ColorWheel from "./homepage/ColorWheel";
 import ColorInfo from "./homepage/ColorInfo";
 import ColorTools from "./homepage/ColorTools";
 import ContrastChecker from "./homepage/ContrastChecker";
+import ImageColorExtractor from "./homepage/ImageColorExtractor";
 
 type ColorFormat = {
   hex: string;

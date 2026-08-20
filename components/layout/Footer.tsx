@@ -12,6 +12,8 @@ const footerLinks = {
     { label: 'Gradient Generator', href: '#gradient' },
     { label: 'Color Scales', href: '#color-scales' },
     { label: 'Image Palette', href: '#image-palette' },
+     { label: 'Image Color Extractor', href: '#image-color-extractor' },
+    
   ],
   resources: [
     // { label: 'Accessibility', href: '#contrast' },

@@ -65,9 +65,9 @@ export default function Header() {
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] flex items-center justify-center">
                 <Palette className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-lg font-bold text-gray-800 dark:text-white">
+              <div className="text-lg font-bold text-gray-800 dark:text-white">
                 Why<span className="text-[#7c3aed]">Colors</span>
-              </h1>
+              </div>
             </div>
           </div>
         </div>

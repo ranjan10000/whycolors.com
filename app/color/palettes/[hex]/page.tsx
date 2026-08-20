@@ -70,10 +70,10 @@ export async function generateMetadata({
       title: `${colorName} Color Palettes (${fullHex})`,
       description: `Explore ${colorName} color palettes including shades, complementary, and harmonious color combinations.`,
       url: `https://www.whycolors.com/color/palettes/${cleanHex}`,
-      siteName: 'Color Tools',
+      siteName: 'WhyColors',
       images: [
         {
-          url: `https://www.whycolors.com/api/og/color?hex=${cleanHex}`,
+          url: `https://www.whycolors.com/api/og/palette?hex=${cleanHex}`,
           width: 1200,
           height: 630,
           alt: `${colorName} Color Palettes`,
@@ -85,7 +85,7 @@ export async function generateMetadata({
       card: 'summary_large_image',
       title: `${colorName} Color Palettes (${fullHex})`,
       description: `Explore ${colorName} color palettes including shades, complementary, and harmonious color combinations.`,
-      images: [`https://www.whycolors.com/api/og/color?hex=${cleanHex}`],
+      images: [`https://www.whycolors.com/api/og/palette?hex=${cleanHex}`],
     },
     alternates: {
       canonical: `https://www.whycolors.com/color/palettes/${cleanHex}`,

@@ -175,15 +175,15 @@ export async function generateMetadata({ params }: ColorPageProps): Promise<Meta
   ].join(', ');
   
   return {
-    title: `${fullHex} ${colorName} - Color Details | WhyColors.com`,
+    title: `${fullHex} ${colorName} - Shades, Palettes & Color Details`,
     description: description,
     keywords: keywords,
     
     openGraph: {
-      title: `${fullHex} ${colorName} - Color Details`,
+      title: `${fullHex} ${colorName} - Shades, Palettes & Color Details`,
       description: `Explore ${fullHex} (${colorName}) with conversions, shades, tints, harmonies, and similar colors.`,
       url: `https://www.whycolors.com/color/${cleanHex}`,
-      siteName: 'Color Tools',
+      siteName: 'WhyColors',
       images: [
         {
           url: `https://www.whycolors.com/api/og/color?hex=${cleanHex}`,
@@ -197,7 +197,7 @@ export async function generateMetadata({ params }: ColorPageProps): Promise<Meta
     
     twitter: {
       card: 'summary_large_image',
-      title: `${fullHex} ${colorName} - Color Details`,
+      title: `${fullHex} ${colorName} - Shades, Palettes & Color Details`,
       description: `Explore ${fullHex} (${colorName}) with conversions, shades, tints, harmonies, and similar colors.`,
       images: [`https://www.whycolors.com/api/og/color?hex=${cleanHex}`],
     },

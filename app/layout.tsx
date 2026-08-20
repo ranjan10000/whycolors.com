@@ -9,8 +9,8 @@ import Footer from '@/components/layout/Footer';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'WhyColors - Color tools for designers',
-  description: 'Color tools for designers',
+  title: 'WhyColors - Explore Every Color Shade & Palette',
+  description: 'Find the perfect color codes for your next project. Our color tools include a powerful color picker, interactive color wheel, detailed color chart, and complete HTML color names reference. Get Hex, RGB, HSL, and OKLCH values instantly. Start picking colors today!',
 };
 
 export default function RootLayout({
