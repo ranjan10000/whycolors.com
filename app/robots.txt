@@ -1,5 +1,3 @@
 User-Agent: *
-Disallow: /_next/
-Disallow: /_static/
 
 Sitemap: https://www.whycolors.com/sitemap.xml
