@@ -7,14 +7,15 @@ import { Sun, Moon, Palette, Menu, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 const navLinks = [
-  { href: '#palette', label: 'Palettes' },
-  { href: '#effects', label: 'Effects' },
-  { href: '#contrast', label: 'Contrast Checker' },
-  { href: '#color-wheel', label: 'Color Wheel' },
   { href: '#color-picker', label: 'Color Picker' },
+  { href: '#color-wheel', label: 'Color Wheel' },
+  { href: '#palette', label: 'Palettes' },
   { href: '#gradient', label: 'Gradient' },
+  { href: '#effects', label: 'Effects' },
   { href: '#color-scales', label: 'Color Scales' },
   { href: '#image-palette', label: 'Image Palette' },
+  { href: '#contrast', label: 'Contrast Checker' },
+
 ];
 
 export default function Header() {

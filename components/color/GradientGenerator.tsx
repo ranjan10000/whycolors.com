@@ -233,7 +233,7 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
                   gradientType === type
                     ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
                     : isDark
-                      ? 'bg-[#2d2d4a]/50 border-white/10 text-gray-400 hover:text-white hover:bg-[#2d2d4a]'
+                      ? 'bg-[#2d2d4a]/50 border-white/10 text-gray-200 hover:text-white hover:bg-[#2d2d4a]'
                       : 'bg-gray-50 border-gray-200 text-gray-600 hover:text-gray-800 hover:bg-gray-100'
                 }`}
               >
@@ -258,7 +258,7 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
                       direction === dir.value
                         ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
                         : isDark
-                          ? 'bg-[#2d2d4a]/50 border-white/10 text-gray-400 hover:text-white hover:bg-[#2d2d4a]'
+                          ? 'bg-[#2d2d4a]/50 border-white/10 text-gray-200 hover:text-white hover:bg-[#2d2d4a]'
                           : 'bg-gray-50 border-gray-200 text-gray-600 hover:text-gray-800 hover:bg-gray-100'
                     }`}
                   >

@@ -495,7 +495,7 @@ export default function ColorWheel({ hex, onColorChange }: ColorWheelProps) {
                       style={{ backgroundColor: swatchColor }}
                     />
                     <span className={`text-[10px] font-mono mt-1.5 truncate w-full text-center ${
-                      isDark ? 'text-gray-400' : 'text-gray-500'
+                      isDark ? 'text-gray-200' : 'text-gray-500'
                     }`}>
                       {hexValue}
                     </span>
@@ -518,7 +518,7 @@ export default function ColorWheel({ hex, onColorChange }: ColorWheelProps) {
                 : 'bg-gray-50 border-gray-200'
             }`}>
               <div className="flex items-center justify-between text-xs">
-                <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>
+                <span className={isDark ? 'text-gray-200' : 'text-gray-500'}>
                   Selected Output:
                 </span>
                 <span className={`font-mono font-medium ${

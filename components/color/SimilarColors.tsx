@@ -86,7 +86,7 @@ export default function SimilarColors({ hex, onColorSelect }: SimilarColorsProps
           </h3>
         </div>
         <span className={`text-[11px] font-medium tracking-wider uppercase ${
-          isDark ? 'text-white/40' : 'text-gray-400'
+          isDark ? 'text-white' : 'text-gray-600'
         }`}>
           Click to Copy
         </span>
@@ -155,15 +155,15 @@ export default function SimilarColors({ hex, onColorSelect }: SimilarColorsProps
               <div className="mt-2.5 w-full text-center space-y-0.5">
                 <span className={`text-xs font-semibold transition-colors block truncate ${
                   isDark
-                    ? 'text-white/80 group-hover:text-white'
+                    ? 'text-white group-hover:text-white'
                     : 'text-gray-700 group-hover:text-gray-900'
                 }`}>
                   {label}
                 </span>
                 <span className={`text-[11px] font-mono transition-colors block tracking-wider ${
                   isDark
-                    ? 'text-white/40 group-hover:text-[#a78bfa]'
-                    : 'text-gray-400 group-hover:text-[#7c3aed]'
+                    ? 'text-white group-hover:text-[#a78bfa]'
+                    : 'text-gray-600 group-hover:text-[#7c3aed]'
                 }`}>
                   {color}
                 </span>

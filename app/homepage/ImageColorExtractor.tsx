@@ -300,11 +300,7 @@ export default function ImageColorExtractor() {
     isImageLoaded && lastColorData.hex !== "#FFFFFF";
 
   return (
-    <div className="bg-white rounded-xl shadow-2xl p-6 md:p-8 space-y-8 mx-auto my-10 max-w-[95%] md:max-w-6xl">
-      <h2 className="text-2xl md:text-3xl font-extrabold text-gray-800 border-b pb-4">
-        Image Color Extractor & Palette Builder
-      </h2>
-
+    <div className="bg-white rounded-xl shadow-2xl p-4 md:p-8 space-y-8 mx-auto my-10 max-w-[95%] md:max-w-6xl">
       {/* Upload Section */}
       <div className="space-y-4">
         <h2 className="text-lg md:text-xl font-bold text-gray-700">

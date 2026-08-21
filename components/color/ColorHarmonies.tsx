@@ -107,7 +107,7 @@ export default function ColorHarmonies({ hex, onColorSelect }: ColorHarmoniesPro
           </h3>
         </div>
         <span className={`text-[11px] font-medium tracking-wider uppercase ${
-          isDark ? 'text-white/40' : 'text-gray-400'
+          isDark ? 'text-white' : 'text-gray-600'
         }`}>
           Click Swatch to Copy
         </span>
@@ -129,13 +129,13 @@ export default function ColorHarmonies({ hex, onColorSelect }: ColorHarmoniesPro
               <div className="flex items-center justify-between mb-3.5">
                 <span className={`text-xs font-semibold transition-colors ${
                   isDark
-                    ? 'text-white/80 group-hover:text-white'
+                    ? 'text-white group-hover:text-white'
                     : 'text-gray-700 group-hover:text-gray-900'
                 }`}>
                   {name}
                 </span>
                 <span className={`text-[10px] font-mono ${
-                  isDark ? 'text-white/30' : 'text-gray-400'
+                  isDark ? 'text-white' : 'text-gray-600'
                 }`}>
                   {colors.length} Colors
                 </span>
@@ -182,8 +182,8 @@ export default function ColorHarmonies({ hex, onColorSelect }: ColorHarmoniesPro
                       {/* HEX Label */}
                       <span className={`text-[10px] font-mono transition-colors mt-1.5 tracking-tighter ${
                         isDark
-                          ? 'text-white/50 group-hover/swatch:text-[#a78bfa]'
-                          : 'text-gray-400 group-hover/swatch:text-[#7c3aed]'
+                          ? 'text-white group-hover/swatch:text-[#a78bfa]'
+                          : 'text-gray-600 group-hover/swatch:text-[#7c3aed]'
                       }`}>
                         {colorItem.hex}
                       </span>

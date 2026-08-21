@@ -107,7 +107,7 @@ export default function ShadesPage() {
         
         {/* Shades */}
         <div className="mb-6">
-          <h3 className={`text-sm font-medium mb-3 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <h3 className={`text-sm font-medium mb-3 ${isDark ? 'text-gray-200' : 'text-gray-600'}`}>
             Shades (Darker)
           </h3>
           <div className="flex flex-wrap gap-1">
@@ -147,7 +147,7 @@ export default function ShadesPage() {
         
         {/* Tints */}
         <div>
-          <h3 className={`text-sm font-medium mb-3 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <h3 className={`text-sm font-medium mb-3 ${isDark ? 'text-gray-200' : 'text-gray-600'}`}>
             Tints (Lighter)
           </h3>
           <div className="flex flex-wrap gap-1">

@@ -28,26 +28,26 @@ interface ColorPageProps {
  * Generate static paths for ALL 7,800 colors at build time
  * Uses cached data from color-cache (generated only once)
  */
-export function generateStaticParams() {
-  try {
-    const colors = getColors();
-    console.log(`📦 Generating ${colors.length} static color paths`);
+// export function generateStaticParams() {
+//   try {
+//     const colors = getColors();
+//     console.log(`📦 Generating ${colors.length} static color paths`);
     
-    return colors.map(hex => ({
-      hex: hex.toLowerCase()
-    }));
-  } catch (error) {
-    console.error('Error generating color params:', error);
-    // Fallback to common colors if cache fails
-    const fallbackColors = [
-      'ff0000', '00ff00', '0000ff', 'ffff00', 'ff00ff', '00ffff',
-      '000000', 'ffffff', '808080', 'ffa500', 'ffc0cb', '8b5cf6'
-    ];
-    return fallbackColors.map(hex => ({
-      hex: hex.toLowerCase()
-    }));
-  }
-}
+//     return colors.map(hex => ({
+//       hex: hex.toLowerCase()
+//     }));
+//   } catch (error) {
+//     console.error('Error generating color params:', error);
+//     // Fallback to common colors if cache fails
+//     const fallbackColors = [
+//       'ff0000', '00ff00', '0000ff', 'ffff00', 'ff00ff', '00ffff',
+//       '000000', 'ffffff', '808080', 'ffa500', 'ffc0cb', '8b5cf6'
+//     ];
+//     return fallbackColors.map(hex => ({
+//       hex: hex.toLowerCase()
+//     }));
+//   }
+// }
 
 // ============ ROUTE CONFIG ============
 

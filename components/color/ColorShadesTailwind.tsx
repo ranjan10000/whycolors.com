@@ -3,6 +3,8 @@
 
 import { useState } from 'react';
 import { hexToRgbArray, rgbToHex } from '@/lib/color-utils';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Check, Copy } from 'lucide-react';
 
 interface ColorShadesProps {
   hex: string;
@@ -10,6 +12,7 @@ interface ColorShadesProps {
 
 export default function ColorShadesTailwind({ hex }: ColorShadesProps) {
   const [copiedHex, setCopiedHex] = useState<string | null>(null);
+  const { isDark } = useTheme();
 
   // Normalize hex input
   const cleanHex = hex.startsWith('#') ? hex : `#${hex}`;
@@ -49,85 +52,144 @@ export default function ColorShadesTailwind({ hex }: ColorShadesProps) {
     };
   });
 
+  // Helper to determine text color based on background
+  const getTextColor = (hexColor: string) => {
+    const rgb = hexToRgbArray(hexColor);
+    if (!rgb) return '#ffffff';
+    const [r, g, b] = rgb;
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? '#1a1a1a' : '#ffffff';
+  };
+
   return (
     <div className="space-y-6">
       {/* Toast Notification */}
       {copiedHex && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-purple-50 border border-purple-200 text-purple-700 text-xs px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg">
-          <svg className="w-3.5 h-3.5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-          </svg>
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 text-xs px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all duration-300 ${
+          isDark 
+            ? 'bg-[#1a1a2e]/90 border border-[#8b5cf6]/30 text-purple-300' 
+            : 'bg-white/90 border border-purple-200 text-purple-700'
+        }`}>
+          <Check className="w-3.5 h-3.5 text-purple-500" aria-hidden="true" />
           <span>Copied <strong className="font-mono">{copiedHex.toUpperCase()}</strong></span>
         </div>
       )}
 
       {/* Tints Section */}
       <div>
-        <div className="flex justify-between items-center mb-3">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-600">Tints (Lighter)</h4>
-          <span className="text-[10px] text-gray-400 font-medium">+White</span>
+        <div className={`flex justify-between items-center mb-3 ${
+          isDark ? 'border-white/5' : 'border-gray-100'
+        }`}>
+          <h4 className={`text-xs font-semibold uppercase tracking-wider ${
+            isDark ? 'text-gray-300' : 'text-gray-500'
+          }`}>
+            Tints (Lighter)
+          </h4>
+          <span className={`text-[10px] font-medium ${
+            isDark ? 'text-gray-400' : 'text-gray-400'
+          }`}>
+            +White
+          </span>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-          {tints.map((item, index) => (
-            <button
-              key={`tint-${index}`}
-              onClick={() => copyToClipboard(item.hex)}
-              className="group flex flex-col items-center gap-1.5"
-            >
-              <div
-                className="w-full aspect-square rounded-lg border border-gray-200 shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg group-hover:border-purple-300 relative overflow-hidden"
-                style={{ backgroundColor: item.hex }}
+          {tints.map((item, index) => {
+            const textColor = getTextColor(item.hex);
+            return (
+              <button
+                key={`tint-${index}`}
+                onClick={() => copyToClipboard(item.hex)}
+                className="group flex flex-col items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-lg"
+                aria-label={`Copy tint ${item.hex}`}
               >
-                <div className="w-full h-full flex items-center justify-center">
-                  {copiedHex === item.hex ? (
-                    <svg className="w-4 h-4 text-gray-700 drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : (
-                    <span className="text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity text-gray-700 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm">
-                      +{item.percentage}%
-                    </span>
-                  )}
+                <div
+                  className={`w-full aspect-square rounded-lg border shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg ${
+                    isDark ? 'border-white/10 hover:border-purple-500/50' : 'border-gray-200 hover:border-purple-300'
+                  } relative overflow-hidden`}
+                  style={{ backgroundColor: item.hex }}
+                >
+                  <div className="w-full h-full flex items-center justify-center">
+                    {copiedHex === item.hex ? (
+                      <Check className="w-4 h-4 drop-shadow" style={{ color: textColor }} />
+                    ) : (
+                      <span 
+                        className="text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 rounded-full shadow-sm backdrop-blur-sm"
+                        style={{ 
+                          color: textColor,
+                          backgroundColor: textColor === '#ffffff' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.8)'
+                        }}
+                      >
+                        +{item.percentage}%
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <span className="text-[10px] text-gray-500 group-hover:text-purple-600 font-mono uppercase transition-colors">{item.hex}</span>
-            </button>
-          ))}
+                <span className={`text-[10px] font-mono uppercase transition-colors ${
+                  isDark ? 'text-gray-200 group-hover:text-purple-400' : 'text-gray-600 group-hover:text-purple-600'
+                }`}>
+                  {item.hex}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Shades Section */}
       <div>
-        <div className="flex justify-between items-center mb-3">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-600">Shades (Darker)</h4>
-          <span className="text-[10px] text-gray-400 font-medium">+Black</span>
+        <div className={`flex justify-between items-center mb-3 ${
+          isDark ? 'border-white/5' : 'border-gray-100'
+        }`}>
+          <h4 className={`text-xs font-semibold uppercase tracking-wider ${
+            isDark ? 'text-gray-300' : 'text-gray-500'
+          }`}>
+            Shades (Darker)
+          </h4>
+          <span className={`text-[10px] font-medium ${
+            isDark ? 'text-gray-400' : 'text-gray-400'
+          }`}>
+            +Black
+          </span>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-          {shades.map((item, index) => (
-            <button
-              key={`shade-${index}`}
-              onClick={() => copyToClipboard(item.hex)}
-              className="group flex flex-col items-center gap-1.5"
-            >
-              <div
-                className="w-full aspect-square rounded-lg border border-gray-200 shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg group-hover:border-purple-300 relative overflow-hidden"
-                style={{ backgroundColor: item.hex }}
+          {shades.map((item, index) => {
+            const textColor = getTextColor(item.hex);
+            return (
+              <button
+                key={`shade-${index}`}
+                onClick={() => copyToClipboard(item.hex)}
+                className="group flex flex-col items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-lg"
+                aria-label={`Copy shade ${item.hex}`}
               >
-                <div className="w-full h-full flex items-center justify-center">
-                  {copiedHex === item.hex ? (
-                    <svg className="w-4 h-4 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : (
-                    <span className="text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity text-white bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm">
-                      +{item.percentage}%
-                    </span>
-                  )}
+                <div
+                  className={`w-full aspect-square rounded-lg border shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg ${
+                    isDark ? 'border-white/10 hover:border-purple-500/50' : 'border-gray-200 hover:border-purple-300'
+                  } relative overflow-hidden`}
+                  style={{ backgroundColor: item.hex }}
+                >
+                  <div className="w-full h-full flex items-center justify-center">
+                    {copiedHex === item.hex ? (
+                      <Check className="w-4 h-4 drop-shadow" style={{ color: textColor }} />
+                    ) : (
+                      <span 
+                        className="text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 rounded-full shadow-sm backdrop-blur-sm"
+                        style={{ 
+                          color: textColor,
+                          backgroundColor: textColor === '#ffffff' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.8)'
+                        }}
+                      >
+                        +{item.percentage}%
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <span className="text-[10px] text-gray-500 group-hover:text-purple-600 font-mono uppercase transition-colors">{item.hex}</span>
-            </button>
-          ))}
+                <span className={`text-[10px] font-mono uppercase transition-colors ${
+                  isDark ? 'text-gray-200 group-hover:text-purple-400' : 'text-gray-600 group-hover:text-purple-600'
+                }`}>
+                  {item.hex}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -79,7 +79,7 @@ export default function ColorShades({ hex }: ColorShadesProps) {
           <h3 className={`text-base font-semibold tracking-wide ${
             isDark ? 'text-white/90' : 'text-gray-800'
           }`}>Color Variations</h3>
-          <p className={`text-xs mt-0.5 ${isDark ? 'text-white/40' : 'text-gray-500'}`}>
+          <p className={`text-xs mt-0.5 ${isDark ? 'text-white' : 'text-gray-500'}`}>
             Click any swatch to copy value
           </p>
         </div>
@@ -102,9 +102,9 @@ export default function ColorShades({ hex }: ColorShadesProps) {
       <div className="space-y-3">
         <div className="flex justify-between items-center">
           <h4 className={`text-xs font-semibold uppercase tracking-wider ${
-            isDark ? 'text-gray-400' : 'text-gray-500'
+            isDark ? 'text-gray-200' : 'text-gray-500'
           }`}>Tints (Lighter)</h4>
-          <span className={`text-[10px] font-mono ${isDark ? 'text-white/30' : 'text-gray-400'}`}>
+          <span className={`text-[10px] font-mono ${isDark ? 'text-white' : 'text-gray-400'}`}>
             +White Mix
           </span>
         </div>
@@ -153,8 +153,8 @@ export default function ColorShades({ hex }: ColorShadesProps) {
                 </div>
                 <span className={`text-[11px] font-mono uppercase transition-colors mt-2 ${
                   isDark 
-                    ? 'text-white/50 group-hover:text-[#a78bfa]' 
-                    : 'text-gray-500 group-hover:text-purple-600'
+                    ? 'text-white group-hover:text-[#a78bfa]' 
+                    : 'text-gray-600 group-hover:text-purple-600'
                 }`}>
                   {item.hex}
                 </span>
@@ -168,9 +168,9 @@ export default function ColorShades({ hex }: ColorShadesProps) {
       <div className="space-y-3">
         <div className="flex justify-between items-center">
           <h4 className={`text-xs font-semibold uppercase tracking-wider ${
-            isDark ? 'text-gray-400' : 'text-gray-500'
+            isDark ? 'text-gray-200' : 'text-gray-500'
           }`}>Shades (Darker)</h4>
-          <span className={`text-[10px] font-mono ${isDark ? 'text-white/30' : 'text-gray-400'}`}>
+          <span className={`text-[10px] font-mono ${isDark ? 'text-white' : 'text-gray-400'}`}>
             +Black Mix
           </span>
         </div>
@@ -213,8 +213,8 @@ export default function ColorShades({ hex }: ColorShadesProps) {
                 </div>
                 <span className={`text-[11px] font-mono uppercase transition-colors mt-2 ${
                   isDark 
-                    ? 'text-white/50 group-hover:text-[#a78bfa]' 
-                    : 'text-gray-500 group-hover:text-purple-600'
+                    ? 'text-white group-hover:text-[#a78bfa]' 
+                    : 'text-gray-600 group-hover:text-purple-600'
                 }`}>
                   {item.hex}
                 </span>

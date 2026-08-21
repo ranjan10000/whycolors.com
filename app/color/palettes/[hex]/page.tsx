@@ -18,21 +18,21 @@ interface ColorPalettePageProps {
 }
 
 // Generate static paths
-export function generateStaticParams() {
-  const commonColors = [
-    'ff0000', '00ff00', '0000ff', 'ffff00', 'ff00ff', '00ffff',
-    '000000', 'ffffff', 'ffa500', 'ffc0cb', '8b5cf6', 'ef4444',
-    '3b82f6', '22c55e', 'eab308', 'ec4899', 'f97316', '06b6d4',
-    '6366f1', '14b8a6', 'f43f5e', 'f59e0b', '84cc16', '10b981',
-    '0ea5e9', 'd946ef', 'fb7185', '1e293b', '4b5563', '34d399',
-    'fdba74', 'c4b5fd', '86efac', 'c2410c', '1f2937', 'fef3c7',
-    '2b7877', // Dark Teal
-  ];
+// export function generateStaticParams() {
+//   const commonColors = [
+//     'ff0000', '00ff00', '0000ff', 'ffff00', 'ff00ff', '00ffff',
+//     '000000', 'ffffff', 'ffa500', 'ffc0cb', '8b5cf6', 'ef4444',
+//     '3b82f6', '22c55e', 'eab308', 'ec4899', 'f97316', '06b6d4',
+//     '6366f1', '14b8a6', 'f43f5e', 'f59e0b', '84cc16', '10b981',
+//     '0ea5e9', 'd946ef', 'fb7185', '1e293b', '4b5563', '34d399',
+//     'fdba74', 'c4b5fd', '86efac', 'c2410c', '1f2937', 'fef3c7',
+//     '2b7877', // Dark Teal
+//   ];
   
-  return commonColors.map(hex => ({
-    hex: hex
-  }));
-}
+//   return commonColors.map(hex => ({
+//     hex: hex
+//   }));
+// }
 
 export async function generateMetadata({ 
   params 

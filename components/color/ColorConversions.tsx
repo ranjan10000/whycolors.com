@@ -83,13 +83,13 @@ export default function ColorConversions({ hex }: ColorConversionsProps) {
             Color Formats
           </h3>
         </div>
-        <span className={`text-xs font-mono ${isDark ? 'text-white/40' : 'text-[#686b74]'}`}>
+        <span className={`text-xs font-mono ${isDark ? 'text-white' : 'text-[#686b74]'}`}>
           5 Formats
         </span>
       </div>
 
       {/* Conversion Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {conversions.map(({ label, subLabel, value }) => {
           const isCopied = copied === label;
           const isValid = value !== '—';
@@ -119,7 +119,7 @@ export default function ColorConversions({ hex }: ColorConversionsProps) {
                     </span>
                   </div>
                   <p className={`text-[11px] font-normal ${
-                    isDark ? 'text-white/50' : 'text-[#686b74]'
+                    isDark ? 'text-white' : 'text-[#686b74]'
                   }`}>
                     {subLabel}
                   </p>
