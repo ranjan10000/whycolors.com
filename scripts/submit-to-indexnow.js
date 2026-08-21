@@ -3,7 +3,7 @@ const path = require('path');
 const axios = require('axios');
 const xml2js = require('xml2js');
 
-const API_KEY = '144ec9e5106a4a95bfea36bc7dfe47d3';
+const API_KEY = '17a4110cedb34ae9aae6b7b16c03cef9';
 const HOST = 'www.whycolors.com';
 const BATCH_SIZE = 10000;
 const SITE_URL = `https://${HOST}`;

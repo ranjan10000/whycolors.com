@@ -89,8 +89,8 @@ const Neumorphism: React.FC<NeumorphismProps> = ({ color, onCopy: parentOnCopy, 
     const opacityValue = opacity / 100;
     
     if (neoDark) {
-      const darkShade = 'rgba(23,25,29,${opacityValue})';
-      const lightShade = 'rgba(49,52,58,${opacityValue})';
+      const darkShade = `rgba(23,25,29,${opacityValue})`;
+      const lightShade = `rgba(49,52,58,${opacityValue})`;
       
       if (shape === 'pressed') {
         return `inset ${depth}px ${depth}px ${blur}px ${darkShade}, inset -${depth}px -${depth}px ${blur}px ${lightShade}`;
@@ -162,7 +162,7 @@ const Neumorphism: React.FC<NeumorphismProps> = ({ color, onCopy: parentOnCopy, 
     setConfig(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  // Range input component (reusable)
+  // Range input component (reusable) - Only Thumb Changed
   const RangeInput = useCallback(({ 
     id, label, value, min, max, step = 1, unit = '', onChange 
   }: { 
@@ -193,7 +193,28 @@ const Neumorphism: React.FC<NeumorphismProps> = ({ color, onCopy: parentOnCopy, 
           step={step}
           value={value}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(Number(e.target.value))}
-          className="w-full h-2 rounded-full appearance-none cursor-pointer bg-gradient-to-r from-purple-400 to-purple-600 dark:from-purple-500 dark:to-purple-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-purple-500 dark:[&::-webkit-slider-thumb]:border-purple-400 [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-purple-500 dark:[&::-moz-range-thumb]:border-purple-400 [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:cursor-pointer"
+          className="w-full h-2 rounded-full appearance-none cursor-pointer bg-gradient-to-r from-purple-400 to-purple-600 dark:from-purple-500 dark:to-purple-700 
+            [&::-webkit-slider-thumb]:appearance-none 
+            [&::-webkit-slider-thumb]:w-8 [&::-webkit-slider-thumb]:h-8 
+            [&::-webkit-slider-thumb]:rounded-full 
+            [&::-webkit-slider-thumb]:bg-white 
+            [&::-webkit-slider-thumb]:shadow-lg 
+            [&::-webkit-slider-thumb]:border-2 
+            [&::-webkit-slider-thumb]:border-purple-500 
+            dark:[&::-webkit-slider-thumb]:border-purple-400 
+            [&::-webkit-slider-thumb]:transition-all 
+            [&::-webkit-slider-thumb]:hover:scale-110 
+            [&::-webkit-slider-thumb]:cursor-pointer 
+            [&::-moz-range-thumb]:w-8 [&::-moz-range-thumb]:h-8 
+            [&::-moz-range-thumb]:rounded-full 
+            [&::-moz-range-thumb]:bg-white 
+            [&::-moz-range-thumb]:shadow-lg 
+            [&::-moz-range-thumb]:border-2 
+            [&::-moz-range-thumb]:border-purple-500 
+            dark:[&::-moz-range-thumb]:border-purple-400 
+            [&::-moz-range-thumb]:transition-all 
+            [&::-moz-range-thumb]:hover:scale-110 
+            [&::-moz-range-thumb]:cursor-pointer"
         />
       </div>
     </div>
@@ -339,24 +360,25 @@ const Neumorphism: React.FC<NeumorphismProps> = ({ color, onCopy: parentOnCopy, 
             <Contrast className="h-4 w-4" />
             {neoDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           </button>
-{/* CSS Code Display */}
-<div className="mt-5 rounded-2xl border border-[#101114]/9 dark:border-white/11 bg-[rgba(127,127,127,0.08)] p-3">
-  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-    <div className="min-w-0 flex-1 overflow-x-auto custom-scrollbar">
-      <code className="block text-xs font-mono whitespace-pre text-gray-800 dark:text-gray-200">
-        {neoCSSDisplay}
-      </code>
-    </div>
-    <button
-      className="self-end sm:self-center shrink-0 flex items-center justify-center rounded-lg p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-      type="button"
-      onClick={() => handleCopy(neoCSSDisplay)}
-      aria-label="Copy neumorphism CSS"
-    >
-      <Copy className="h-4 w-4" />
-    </button>
-  </div>
-</div>
+          
+          {/* CSS Code Display */}
+          <div className="mt-5 rounded-2xl border border-[#101114]/9 dark:border-white/11 bg-[rgba(127,127,127,0.08)] p-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="min-w-0 flex-1 overflow-x-auto custom-scrollbar">
+                <code className="block text-xs font-mono whitespace-pre text-gray-800 dark:text-gray-200">
+                  {neoCSSDisplay}
+                </code>
+              </div>
+              <button
+                className="self-end sm:self-center shrink-0 flex items-center justify-center rounded-lg p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                type="button"
+                onClick={() => handleCopy(neoCSSDisplay)}
+                aria-label="Copy neumorphism CSS"
+              >
+                <Copy className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </div>
       </article>
     </div>

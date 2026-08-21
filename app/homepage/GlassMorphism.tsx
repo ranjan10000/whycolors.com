@@ -88,7 +88,7 @@ box-shadow: 0 ${depth}px ${depth * 2}px ${shadowColor};`;
     setConfig(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  // Reusable Range Input Component
+  // Reusable Range Input Component - Only Thumb Changed
   const RangeInput = useCallback(({ 
     id, label, value, min, max, step = 1, unit = '', onChange 
   }: { 
@@ -119,7 +119,28 @@ box-shadow: 0 ${depth}px ${depth * 2}px ${shadowColor};`;
           step={step}
           value={value}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(Number(e.target.value))}
-          className="w-full h-1.5 sm:h-2 rounded-full appearance-none cursor-pointer bg-gradient-to-r from-purple-400 to-purple-600 dark:from-purple-500 dark:to-purple-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 sm:[&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-4 sm:[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-purple-500 dark:[&::-webkit-slider-thumb]:border-purple-400 [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 sm:[&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-4 sm:[&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-purple-500 dark:[&::-moz-range-thumb]:border-purple-400 [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:cursor-pointer"
+          className="w-full h-1.5 sm:h-2 rounded-full appearance-none cursor-pointer bg-gradient-to-r from-purple-400 to-purple-600 dark:from-purple-500 dark:to-purple-700 
+            [&::-webkit-slider-thumb]:appearance-none 
+            [&::-webkit-slider-thumb]:w-8 [&::-webkit-slider-thumb]:h-8 
+            [&::-webkit-slider-thumb]:rounded-full 
+            [&::-webkit-slider-thumb]:bg-white 
+            [&::-webkit-slider-thumb]:shadow-lg 
+            [&::-webkit-slider-thumb]:border-2 
+            [&::-webkit-slider-thumb]:border-purple-500 
+            dark:[&::-webkit-slider-thumb]:border-purple-400 
+            [&::-webkit-slider-thumb]:transition-all 
+            [&::-webkit-slider-thumb]:hover:scale-110 
+            [&::-webkit-slider-thumb]:cursor-pointer 
+            [&::-moz-range-thumb]:w-8 [&::-moz-range-thumb]:h-8 
+            [&::-moz-range-thumb]:rounded-full 
+            [&::-moz-range-thumb]:bg-white 
+            [&::-moz-range-thumb]:shadow-lg 
+            [&::-moz-range-thumb]:border-2 
+            [&::-moz-range-thumb]:border-purple-500 
+            dark:[&::-moz-range-thumb]:border-purple-400 
+            [&::-moz-range-thumb]:transition-all 
+            [&::-moz-range-thumb]:hover:scale-110 
+            [&::-moz-range-thumb]:cursor-pointer"
         />
       </div>
     </div>
@@ -222,7 +243,7 @@ box-shadow: 0 ${depth}px ${depth * 2}px ${shadowColor};`;
               onChange={(val) => updateConfig('depth', val)}
             />
 
-            {/* Border Radius Control - New! */}
+            {/* Border Radius Control */}
             <RangeInput
               id="glass-radius"
               label="Border Radius"
@@ -233,7 +254,7 @@ box-shadow: 0 ${depth}px ${depth * 2}px ${shadowColor};`;
               onChange={(val) => updateConfig('borderRadius', val)}
             />
 
-            {/* Border Opacity Control - New! */}
+            {/* Border Opacity Control */}
             <RangeInput
               id="glass-border"
               label="Border Opacity"
@@ -245,28 +266,28 @@ box-shadow: 0 ${depth}px ${depth * 2}px ${shadowColor};`;
             />
           </div>
 
-       {/* CSS Code Display - Glassmorphism Responsive */}
-<div className="mt-4 sm:mt-5 rounded-xl sm:rounded-2xl border border-[#101114]/9 dark:border-white/11 bg-[rgba(127,127,127,0.08)] p-2.5 sm:p-3.5">
-  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
-    {/* Horizontal Scroll for Multi-line CSS */}
-    <div className="min-w-0 flex-1 overflow-x-auto custom-scrollbar">
-      <code className="block text-[11px] sm:text-xs font-mono leading-relaxed whitespace-pre text-gray-800 dark:text-gray-200">
-        {glassCSSDisplay}
-      </code>
-    </div>
+          {/* CSS Code Display - Glassmorphism Responsive */}
+          <div className="mt-4 sm:mt-5 rounded-xl sm:rounded-2xl border border-[#101114]/9 dark:border-white/11 bg-[rgba(127,127,127,0.08)] p-2.5 sm:p-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+              {/* Horizontal Scroll for Multi-line CSS */}
+              <div className="min-w-0 flex-1 overflow-x-auto custom-scrollbar">
+                <code className="block text-[11px] sm:text-xs font-mono leading-relaxed whitespace-pre text-gray-800 dark:text-gray-200">
+                  {glassCSSDisplay}
+                </code>
+              </div>
 
-    {/* Responsive Copy Button */}
-    <button
-      className="self-end sm:self-center shrink-0 flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 sm:p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 transition-all"
-      type="button"
-      onClick={() => handleCopy(glassCSSDisplay)}
-      aria-label="Copy glass CSS"
-    >
-      <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-      <span className="text-[10px] font-medium sm:hidden">Copy</span>
-    </button>
-  </div>
-</div>
+              {/* Responsive Copy Button */}
+              <button
+                className="self-end sm:self-center shrink-0 flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 sm:p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 transition-all"
+                type="button"
+                onClick={() => handleCopy(glassCSSDisplay)}
+                aria-label="Copy glass CSS"
+              >
+                <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="text-[10px] font-medium sm:hidden">Copy</span>
+              </button>
+            </div>
+          </div>
         </div>
       </article>
     </div>

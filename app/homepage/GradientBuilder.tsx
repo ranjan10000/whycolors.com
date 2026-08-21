@@ -178,7 +178,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = ({
     </div>
   ), [getComplementaryColor]);
 
-  // Range input component
+  // Range input component - Only Thumb Changed
   const RangeInput = useCallback(({ 
     id, label, value, min, max, step = 1, unit = '', onChange 
   }: { 
@@ -209,7 +209,28 @@ const GradientBuilder: React.FC<GradientBuilderProps> = ({
           step={step}
           value={value}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(Number(e.target.value))}
-          className="w-full h-1.5 sm:h-2 rounded-full appearance-none cursor-pointer bg-gradient-to-r from-purple-400 to-purple-600 dark:from-purple-500 dark:to-purple-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 sm:[&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-4 sm:[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-purple-500 dark:[&::-webkit-slider-thumb]:border-purple-400 [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 sm:[&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-4 sm:[&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-purple-500 dark:[&::-moz-range-thumb]:border-purple-400 [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:cursor-pointer"
+          className="w-full h-1.5 sm:h-2 rounded-full appearance-none cursor-pointer bg-gradient-to-r from-purple-400 to-purple-600 dark:from-purple-500 dark:to-purple-700 
+            [&::-webkit-slider-thumb]:appearance-none 
+            [&::-webkit-slider-thumb]:w-8 [&::-webkit-slider-thumb]:h-8 
+            [&::-webkit-slider-thumb]:rounded-full 
+            [&::-webkit-slider-thumb]:bg-white 
+            [&::-webkit-slider-thumb]:shadow-lg 
+            [&::-webkit-slider-thumb]:border-2 
+            [&::-webkit-slider-thumb]:border-purple-500 
+            dark:[&::-webkit-slider-thumb]:border-purple-400 
+            [&::-webkit-slider-thumb]:transition-all 
+            [&::-webkit-slider-thumb]:hover:scale-110 
+            [&::-webkit-slider-thumb]:cursor-pointer 
+            [&::-moz-range-thumb]:w-8 [&::-moz-range-thumb]:h-8 
+            [&::-moz-range-thumb]:rounded-full 
+            [&::-moz-range-thumb]:bg-white 
+            [&::-moz-range-thumb]:shadow-lg 
+            [&::-moz-range-thumb]:border-2 
+            [&::-moz-range-thumb]:border-purple-500 
+            dark:[&::-moz-range-thumb]:border-purple-400 
+            [&::-moz-range-thumb]:transition-all 
+            [&::-moz-range-thumb]:hover:scale-110 
+            [&::-moz-range-thumb]:cursor-pointer"
         />
       </div>
     </div>
