@@ -256,7 +256,7 @@ export default function ColorChart({
       
       {/* Premium Header */}
       <div className="flex flex-wrap items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-2">
           <div className={`p-2.5 rounded-xl ${
             isDark ? 'bg-violet-500/20' : 'bg-violet-500/10'
           }`}>

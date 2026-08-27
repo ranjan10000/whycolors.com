@@ -104,7 +104,7 @@ export default function ColorShades({ hex }: ColorShadesProps) {
           <h4 className={`text-xs font-semibold uppercase tracking-wider ${
             isDark ? 'text-gray-200' : 'text-gray-500'
           }`}>Tints (Lighter)</h4>
-          <span className={`text-[10px] font-mono ${isDark ? 'text-white' : 'text-gray-400'}`}>
+          <span className={`text-[10px] font-mono ${isDark ? 'text-white' : 'text-black'}`}>
             +White Mix
           </span>
         </div>
@@ -170,7 +170,7 @@ export default function ColorShades({ hex }: ColorShadesProps) {
           <h4 className={`text-xs font-semibold uppercase tracking-wider ${
             isDark ? 'text-gray-200' : 'text-gray-500'
           }`}>Shades (Darker)</h4>
-          <span className={`text-[10px] font-mono ${isDark ? 'text-white' : 'text-gray-400'}`}>
+          <span className={`text-[10px] font-mono ${isDark ? 'text-white' : 'text-black'}`}>
             +Black Mix
           </span>
         </div>

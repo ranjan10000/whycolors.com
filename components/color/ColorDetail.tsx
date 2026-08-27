@@ -440,7 +440,7 @@ export default function ColorDetail({ hex: initialHex, colorName: propColorName 
 
         {/* Interactive Color Wheel Section */}
         <section 
-          className={`border rounded-2xl p-6 shadow-sm ${
+          className={`border rounded-2xl p-4 shadow-sm ${
             isDark ? 'bg-[#131322]/80 border-white/10' : 'bg-white/90 border-gray-200'
           }`}
           aria-labelledby="color-wheel-title"
@@ -485,7 +485,7 @@ export default function ColorDetail({ hex: initialHex, colorName: propColorName 
         {/* Detailed Modular Sections */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <section 
-            className={`border rounded-2xl p-6 shadow-sm ${
+            className={`border rounded-2xl p-4 shadow-sm ${
               isDark ? 'bg-[#131322]/80 border-white/10' : 'bg-white/90 border-gray-200'
             }`}
             aria-labelledby="conversions-title"
@@ -500,7 +500,7 @@ export default function ColorDetail({ hex: initialHex, colorName: propColorName 
           </section>
 
           <section 
-            className={`border rounded-2xl p-6 shadow-sm ${
+            className={`border rounded-2xl p-4 shadow-sm ${
               isDark ? 'bg-[#131322]/80 border-white/10' : 'bg-white/90 border-gray-200'
             }`}
             aria-labelledby="shades-title"
@@ -516,7 +516,7 @@ export default function ColorDetail({ hex: initialHex, colorName: propColorName 
         </div>
         
         <section 
-          className={`border rounded-2xl p-6 shadow-sm ${
+          className={`border rounded-2xl p-4 shadow-sm ${
             isDark ? 'bg-[#131322]/80 border-white/10' : 'bg-white/90 border-gray-200'
           }`}
           aria-labelledby="tailwind-title"
@@ -531,7 +531,7 @@ export default function ColorDetail({ hex: initialHex, colorName: propColorName 
         </section>
 
         <section 
-          className={`border rounded-2xl p-6 shadow-sm ${
+          className={`border rounded-2xl p-4 shadow-sm ${
             isDark ? 'bg-[#131322]/80 border-white/10' : 'bg-white/90 border-gray-200'
           }`}
           aria-labelledby="harmonies-title"
@@ -543,7 +543,7 @@ export default function ColorDetail({ hex: initialHex, colorName: propColorName 
         </section>
 
         <section 
-          className={`border rounded-2xl p-6 shadow-sm ${
+          className={`border rounded-2xl p-4 shadow-sm ${
             isDark ? 'bg-[#131322]/80 border-white/10' : 'bg-white/90 border-gray-200'
           }`}
           aria-labelledby="similar-title"
@@ -555,7 +555,7 @@ export default function ColorDetail({ hex: initialHex, colorName: propColorName 
         </section>
 
         <section 
-          className={`border rounded-2xl p-6 shadow-sm ${
+          className={`border rounded-2xl p-4 shadow-sm ${
             isDark ? 'bg-[#131322]/80 border-white/10' : 'bg-white/90 border-gray-200'
           }`}
           aria-labelledby="gradient-title"

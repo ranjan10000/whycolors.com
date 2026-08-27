@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Copy, Check, Plus, Trash2 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -38,11 +38,12 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
     const g = 255 - parseInt(clean.substring(2, 4), 16);
     const b = 255 - parseInt(clean.substring(4, 6), 16);
 
-    const toHex = (num: number) => num.toString(16).padStart(2, '0');
+    const toHex = (num: number) => Math.max(0, Math.min(255, num)).toString(16).padStart(2, '0');
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
   }, [baseColor]);
 
-  const getMiddleColor = (color1: string, color2: string): string => {
+  // Get middle color function
+  const getMiddleColor = useCallback((color1: string, color2: string): string => {
     const c1 = color1.replace('#', '');
     const c2 = color2.replace('#', '');
     
@@ -58,16 +59,14 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
     const g = Math.round((g1 + g2) / 2);
     const b = Math.round((b1 + b2) / 2);
     
-    const toHex = (num: number) => num.toString(16).padStart(2, '0');
+    const toHex = (num: number) => Math.max(0, Math.min(255, num)).toString(16).padStart(2, '0');
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
-  };
+  }, []);
 
   // State
   const [direction, setDirection] = useState('to right');
   const [gradientType, setGradientType] = useState<'linear' | 'radial' | 'conic'>('linear');
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  
-  // Initialize color stops
   const [colorStops, setColorStops] = useState<ColorStop[]>([
     { id: '1', color: baseColor, position: 0 },
     { id: '2', color: complementaryColor, position: 100 },
@@ -81,51 +80,91 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
     ]);
   }, [baseColor, complementaryColor]);
 
-  // Add a new color stop
-  const addStop = () => {
+  // Add a new color stop - FIXED: No duplicate positions
+  const addStop = useCallback(() => {
     if (colorStops.length >= 5) return;
     const newId = Date.now().toString();
-    const lastPosition = colorStops[colorStops.length - 1]?.position || 100;
-    const newPosition = Math.min(100, lastPosition);
+    
+    // Sort stops by position
+    const sortedStops = [...colorStops].sort((a, b) => a.position - b.position);
+    
+    // Find largest gap between consecutive stops
+    let maxGap = 0;
+    let insertIndex = 0;
+    
+    for (let i = 0; i < sortedStops.length - 1; i++) {
+      const gap = sortedStops[i + 1].position - sortedStops[i].position;
+      if (gap > maxGap) {
+        maxGap = gap;
+        insertIndex = i;
+      }
+    }
+    
+    // Calculate new position at the middle of the largest gap
+    const pos1 = sortedStops[insertIndex].position;
+    const pos2 = sortedStops[insertIndex + 1].position;
+    const newPosition = Math.round((pos1 + pos2) / 2);
+    
+    // Get colors from the stops around the gap
+    const color1 = sortedStops[insertIndex].color;
+    const color2 = sortedStops[insertIndex + 1].color;
+    const midColor = getMiddleColor(color1, color2);
 
-    setColorStops([
-      ...colorStops,
-      { id: newId, color: '#3B82F6', position: newPosition },
+    setColorStops(prev => [
+      ...prev,
+      { id: newId, color: midColor, position: newPosition },
     ]);
-  };
+  }, [colorStops, getMiddleColor]);
 
   // Remove a color stop
-  const removeStop = (id: string) => {
+  const removeStop = useCallback((id: string) => {
     if (colorStops.length <= 2) return;
-    setColorStops(colorStops.filter((stop) => stop.id !== id));
-  };
+    setColorStops(prev => prev.filter((stop) => stop.id !== id));
+  }, [colorStops.length]);
 
   // Update stop attributes
-  const updateStop = (id: string, key: 'color' | 'position', value: string | number) => {
-    setColorStops(
-      colorStops.map((stop) => (stop.id === id ? { ...stop, [key]: value } : stop))
+  const updateStop = useCallback((id: string, key: 'color' | 'position', value: string | number) => {
+    setColorStops(prev =>
+      prev.map((stop) => {
+        if (stop.id === id) {
+          return { ...stop, [key]: value };
+        }
+        return stop;
+      })
     );
-  };
+  }, []);
 
   // Build active gradient CSS
   const activeGradientCSS = useMemo(() => {
+    if (colorStops.length === 0) {
+      return `linear-gradient(to right, ${baseColor}, ${complementaryColor})`;
+    }
+    
+    // Sort stops by position
     const sortedStops = [...colorStops].sort((a, b) => a.position - b.position);
     const stopsString = sortedStops
       .map((stop) => `${stop.color} ${stop.position}%`)
       .join(', ');
 
+    let gradient = '';
     if (gradientType === 'radial') {
-      return `radial-gradient(circle at center, ${stopsString})`;
+      gradient = `radial-gradient(circle at center, ${stopsString})`;
+    } else if (gradientType === 'conic') {
+      gradient = `conic-gradient(from 0deg at 50% 50%, ${stopsString})`;
+    } else {
+      gradient = `linear-gradient(${direction}, ${stopsString})`;
     }
-    if (gradientType === 'conic') {
-      return `conic-gradient(from 0deg at 50% 50%, ${stopsString})`;
-    }
-    return `linear-gradient(${direction}, ${stopsString})`;
-  }, [colorStops, direction, gradientType]);
+    
+    return gradient;
+  }, [colorStops, direction, gradientType, baseColor, complementaryColor]);
 
+  // Preset gradients
   const presetGradients = useMemo(() => {
+    if (colorStops.length < 2) return [];
+    
     const c1 = colorStops[0]?.color || baseColor;
     const c2 = colorStops[colorStops.length - 1]?.color || complementaryColor;
+    const midColor = getMiddleColor(c1, c2);
 
     return [
       { 
@@ -146,7 +185,7 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
       { 
         id: 'tri-blend', 
         name: 'Three-Stop Linear', 
-        css: `linear-gradient(${direction}, ${c1}, ${getMiddleColor(c1, c2)}, ${c2})` 
+        css: `linear-gradient(${direction}, ${c1}, ${midColor}, ${c2})` 
       },
       { 
         id: 'radial-corner', 
@@ -270,7 +309,7 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
           )}
         </div>
 
-        {/* Right Column */}
+        {/* Right Column - Responsive Color Stops */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <label className={`text-xs font-semibold uppercase tracking-wider ${
@@ -297,53 +336,70 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
             {colorStops.map((stop) => (
               <div
                 key={stop.id}
-                className={`flex items-center gap-2 p-2 rounded-xl border ${
+                className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 rounded-xl border ${
                   isDark 
                     ? 'bg-[#2d2d4a]/40 border-white/5' 
                     : 'bg-gray-50 border-gray-200'
                 }`}
               >
-                <input
-                  type="color"
-                  value={stop.color}
-                  onChange={(e) => updateStop(stop.id, 'color', e.target.value)}
-                  className="w-7 h-7 rounded-lg border-0 bg-transparent cursor-pointer flex-shrink-0"
-                />
-                <input
-                  type="text"
-                  value={stop.color.toUpperCase()}
-                  onChange={(e) => updateStop(stop.id, 'color', e.target.value)}
-                  className={`w-20 text-xs font-mono text-center py-1 rounded border ${
-                    isDark 
-                      ? 'bg-[#1a1a2e] border-white/10 text-gray-200' 
-                      : 'bg-white border-gray-200 text-gray-700'
-                  }`}
-                />
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={stop.position}
-                  onChange={(e) => updateStop(stop.id, 'position', Number(e.target.value))}
-                  className={`flex-1 cursor-pointer ${
-                    isDark ? 'accent-[#8b5cf6]' : 'accent-[#7c3aed]'
-                  }`}
-                />
-                <span className={`text-xs font-mono w-8 text-right ${
-                  isDark ? 'text-gray-400' : 'text-gray-500'
-                }`}>
-                  {stop.position}%
-                </span>
-                {colorStops.length > 2 && (
-                  <button
-                    onClick={() => removeStop(stop.id)}
-                    className={`p-1 transition ${
-                      isDark ? 'text-gray-500 hover:text-red-400' : 'text-gray-400 hover:text-red-500'
+                {/* Color Picker + Hex Input */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={stop.color}
+                    onChange={(e) => updateStop(stop.id, 'color', e.target.value)}
+                    className="w-7 h-7 rounded-lg border-0 bg-transparent cursor-pointer flex-shrink-0"
+                  />
+                  <input
+                    type="text"
+                    value={stop.color.toUpperCase()}
+                    onChange={(e) => updateStop(stop.id, 'color', e.target.value)}
+                    className={`flex-1 sm:w-20 text-xs font-mono text-center py-1 rounded border ${
+                      isDark 
+                        ? 'bg-[#1a1a2e] border-white/10 text-gray-200' 
+                        : 'bg-white border-gray-200 text-gray-700'
                     }`}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                  />
+                  {colorStops.length > 2 && (
+                    <button
+                      onClick={() => removeStop(stop.id)}
+                      className={`p-1 transition sm:hidden ${
+                        isDark ? 'text-gray-500 hover:text-red-400' : 'text-gray-400 hover:text-red-500'
+                      }`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Slider + Percentage + Delete */}
+                <div className="flex items-center gap-2 flex-1">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={stop.position}
+                    onChange={(e) => updateStop(stop.id, 'position', Number(e.target.value))}
+                    className={`flex-1 cursor-pointer ${
+                      isDark ? 'accent-[#8b5cf6]' : 'accent-[#7c3aed]'
+                    }`}
+                  />
+                  <span className={`text-xs font-mono w-8 text-right flex-shrink-0 ${
+                    isDark ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
+                    {stop.position}%
+                  </span>
+                  {colorStops.length > 2 && (
+                    <button
+                      onClick={() => removeStop(stop.id)}
+                      className={`p-1 transition hidden sm:block ${
+                        isDark ? 'text-gray-500 hover:text-red-400' : 'text-gray-400 hover:text-red-500'
+                      }`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -351,50 +407,52 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
       </div>
 
       {/* Preset Gradients */}
-      <div className="space-y-3">
-        <h3 className={`text-sm font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-          Preset Variations
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {presetGradients.map(({ id, name, css }) => (
-            <div
-              key={id}
-              className={`rounded-xl p-3 space-y-2.5 transition shadow-sm hover:shadow-md group ${
-                isDark 
-                  ? 'bg-[#1a1a2e] border border-[#2d2d4a] hover:border-white/20' 
-                  : 'bg-white border border-gray-200 hover:border-[#7c3aed]/30'
-              }`}
-            >
+      {presetGradients.length > 0 && (
+        <div className="space-y-3">
+          <h3 className={`text-sm font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+            Preset Variations
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {presetGradients.map(({ id, name, css }) => (
               <div
-                className={`w-full h-28 rounded-lg border shadow-inner transition-all duration-300 group-hover:scale-[1.01] ${
-                  isDark ? 'border-white/10' : 'border-gray-200'
+                key={id}
+                className={`rounded-xl p-3 space-y-2.5 transition shadow-sm hover:shadow-md group ${
+                  isDark 
+                    ? 'bg-[#1a1a2e] border border-[#2d2d4a] hover:border-white/20' 
+                    : 'bg-white border border-gray-200 hover:border-[#7c3aed]/30'
                 }`}
-                style={{ background: css }}
-              />
-              <div className="flex items-center justify-between">
-                <span className={`text-xs font-medium ${
-                  isDark ? 'text-gray-300' : 'text-gray-600'
-                }`}>{name}</span>
-                <button
-                  onClick={() => handleCopy(css, id)}
-                  className={`p-1.5 rounded-lg transition ${
-                    isDark 
-                      ? 'hover:bg-[#2d2d4a] text-gray-400 hover:text-white' 
-                      : 'hover:bg-gray-100 text-gray-400 hover:text-[#7c3aed]'
+              >
+                <div
+                  className={`w-full h-28 rounded-lg border shadow-inner transition-all duration-300 group-hover:scale-[1.01] ${
+                    isDark ? 'border-white/10' : 'border-gray-200'
                   }`}
-                  title="Copy CSS code"
-                >
-                  {copiedId === id ? (
-                    <Check className={`w-4 h-4 ${isDark ? 'text-green-400' : 'text-green-500'}`} />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
-                </button>
+                  style={{ background: css }}
+                />
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs font-medium ${
+                    isDark ? 'text-gray-300' : 'text-gray-600'
+                  }`}>{name}</span>
+                  <button
+                    onClick={() => handleCopy(css, id)}
+                    className={`p-1.5 rounded-lg transition ${
+                      isDark 
+                        ? 'hover:bg-[#2d2d4a] text-gray-400 hover:text-white' 
+                        : 'hover:bg-gray-100 text-gray-400 hover:text-[#7c3aed]'
+                    }`}
+                    title="Copy CSS code"
+                  >
+                    {copiedId === id ? (
+                      <Check className={`w-4 h-4 ${isDark ? 'text-green-400' : 'text-green-500'}`} />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
