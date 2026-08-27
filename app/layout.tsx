@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ColorProvider } from '@/context/ColorContext';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import Script from "next/script";
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -21,6 +22,30 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} antialiased`}>
+          {/* ✅ Google AdSense Script */}
+        {process.env.NODE_ENV === "production" && (
+          <Script
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2253099061976861"
+            strategy="afterInteractive"
+            crossOrigin="anonymous"
+            id="adsense-script"
+          />
+        )}
+
+        {/* ✅ Google Analytics Script */}
+ <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-6QBRT1WGDP"
+          strategy="afterInteractive"
+          id="gtag-script"
+        />
+          <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-6QBRT1WGDP');
+          `}
+        </Script>
         {/* ✅ ThemeProvider must wrap everything that uses theme */}
         <ThemeProvider>
           <ColorProvider>

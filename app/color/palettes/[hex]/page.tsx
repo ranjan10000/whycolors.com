@@ -63,7 +63,7 @@ export async function generateMetadata({
   ].join(', ');
   
   return {
-    title: `${colorName} Color Palettes (${fullHex}) - Color Palettes`,
+    title: `${colorName} Color Palettes (${fullHex})`,
     description: description,
     keywords: keywords,
     openGraph: {

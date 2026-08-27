@@ -18,3 +18,639 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+
+
+
+
+/* ========================================
+   BLOG CONTENT STYLES
+   Light + Dark Theme
+   ======================================== */
+
+/* ========================================
+   THEME COLOR TOKENS
+   ======================================== */
+
+:root {
+  /* -------------------------------
+     Light Theme
+     ------------------------------- */
+
+  --prose-body: #374151;
+  --prose-headings: #111827;
+  --prose-h1: #111827;
+  --prose-h4: #374151;
+
+  --prose-link: #2563eb;
+  --prose-link-hover: #1d4ed8;
+
+  --prose-bold: #111827;
+  --prose-italic: #4b5563;
+
+  --prose-border: #e5e7eb;
+  --prose-marker: #2563eb;
+
+  /* Blockquote */
+  --prose-bg-quote: #f8fafc;
+  --prose-border-quote: #3b82f6;
+
+  /* Inline Code */
+  --prose-bg-inline-code: #f3f4f6;
+  --prose-text-inline-code: #1f2937;
+  --prose-border-inline-code: #e5e7eb;
+
+  /* Code Block */
+  --prose-bg-pre: #1e293b;
+  --prose-text-pre: #f1f5f9;
+
+  /* Tables */
+  --prose-table-header-bg: #f8fafc;
+  --prose-table-border: #d1d5db;
+  --prose-table-even-bg: #f9fafb;
+  --prose-table-hover-bg: #f3f4f6;
+
+  /* Images */
+  --prose-image-shadow: rgba(0, 0, 0, 0.1);
+}
+
+
+/* ========================================
+   DARK THEME
+   ======================================== */
+
+.dark {
+  --prose-body: #f3f4f6;
+  --prose-headings: #ffffff;
+  --prose-h1: #ffffff;
+  --prose-h4: #ffffff;
+
+  --prose-link: #60a5fa;
+  --prose-link-hover: #93c5fd;
+
+  --prose-bold: #ffffff;
+  --prose-italic: #e5e7eb;
+
+  --prose-border: #374151;
+  --prose-marker: #60a5fa;
+
+  /* Blockquote */
+  --prose-bg-quote: #1f2937;
+  --prose-border-quote: #60a5fa;
+
+  /* Inline Code */
+  --prose-bg-inline-code: #374151;
+  --prose-text-inline-code: #f9fafb;
+  --prose-border-inline-code: #4b5563;
+
+  /* Code Block */
+  --prose-bg-pre: #111827;
+  --prose-text-pre: #f3f4f6;
+
+  /* Tables */
+  --prose-table-header-bg: #1f2937;
+  --prose-table-border: #4b5563;
+  --prose-table-even-bg: #111827;
+  --prose-table-hover-bg: #1f2937;
+
+  /* Images */
+  --prose-image-shadow: rgba(0, 0, 0, 0.35);
+}
+
+
+/* ========================================
+   BASE PROSE
+   ======================================== */
+
+.prose {
+  max-width: 100%;
+  color: var(--prose-body);
+  line-height: 1.8;
+}
+
+
+/* ========================================
+   HEADINGS
+   ======================================== */
+
+.prose h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin-top: 2.5rem;
+  margin-bottom: 1.25rem;
+  color: var(--prose-h1);
+  line-height: 1.3;
+}
+
+.prose h2 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  color: var(--prose-headings);
+  line-height: 1.3;
+
+  border-bottom: 2px solid var(--prose-border);
+  padding-bottom: 0.5rem;
+}
+
+.prose h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: var(--prose-headings);
+  line-height: 1.4;
+}
+
+.prose h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--prose-h4);
+  line-height: 1.5;
+}
+
+
+/* ========================================
+   PARAGRAPHS
+   ======================================== */
+
+.prose p {
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+  line-height: 1.8;
+  color: var(--prose-body);
+}
+
+.prose p:first-child {
+  margin-top: 0;
+}
+
+/* Prevent unwanted prose default spacing */
+.prose > * + * {
+  margin-top: 0;
+}
+
+/* Heading → content spacing */
+.prose h2 + * {
+  margin-top: 0.75rem;
+}
+
+.prose h3 + * {
+  margin-top: 0.5rem;
+}
+
+.prose h4 + * {
+  margin-top: 0.5rem;
+}
+
+/* List → paragraph */
+.prose ul + p,
+.prose ol + p {
+  margin-top: 1rem;
+}
+
+/* Paragraph → list */
+.prose p + ul,
+.prose p + ol {
+  margin-top: 1rem;
+}
+
+
+/* ========================================
+   LISTS
+   ======================================== */
+
+.prose ul {
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+  padding-left: 1.75rem;
+  list-style-type: disc;
+}
+
+.prose ul ul {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  list-style-type: circle;
+}
+
+.prose ul ul ul {
+  list-style-type: square;
+}
+
+.prose ol {
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+  padding-left: 1.75rem;
+  list-style-type: decimal;
+}
+
+.prose li {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-left: 0.25rem;
+
+  line-height: 1.8;
+  color: var(--prose-body);
+}
+
+.prose ul li::marker,
+.prose ol li::marker {
+  color: var(--prose-marker);
+  font-weight: 600;
+}
+
+
+/* ========================================
+   BOLD
+   ======================================== */
+
+.prose strong,
+.prose b {
+  font-weight: 700;
+  color: var(--prose-bold);
+  text-decoration: none !important;
+}
+
+
+/* ========================================
+   ITALIC
+   ======================================== */
+
+.prose em,
+.prose i {
+  font-style: italic;
+  color: var(--prose-italic);
+  text-decoration: none !important;
+}
+
+
+/* ========================================
+   BLOCKQUOTES
+   ======================================== */
+
+.prose blockquote {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+
+  border-left: 4px solid var(--prose-border-quote);
+
+  background-color: var(--prose-bg-quote);
+
+  padding: 1rem 1.5rem;
+
+  border-radius: 0.5rem;
+
+  font-style: italic;
+  color: var(--prose-italic);
+}
+
+.prose blockquote p {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--prose-italic);
+}
+
+
+/* ========================================
+   INLINE CODE
+   ======================================== */
+
+.prose code {
+  display: inline-block;
+
+  background-color: var(--prose-bg-inline-code);
+  color: var(--prose-text-inline-code);
+
+  border: 1px solid var(--prose-border-inline-code);
+
+  padding: 0.2rem 0.4rem;
+
+  border-radius: 0.25rem;
+
+  font-size: 0.875rem;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    "Liberation Mono",
+    "Courier New",
+    monospace;
+
+  line-height: 1.4;
+}
+
+/* Prevent inline styles from affecting code blocks */
+.prose pre code {
+  display: block;
+}
+
+
+/* ========================================
+   CODE BLOCKS
+   ======================================== */
+
+.prose pre {
+  background-color: var(--prose-bg-pre);
+  color: var(--prose-text-pre);
+
+  padding: 1.25rem;
+
+  border-radius: 0.5rem;
+
+  overflow-x: auto;
+
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+
+  line-height: 1.7;
+}
+
+.prose pre code {
+  background-color: transparent;
+  color: inherit;
+
+  border: 0;
+
+  padding: 0;
+
+  font-size: 0.875rem;
+}
+
+
+/* ========================================
+   LINKS
+   ======================================== */
+
+.prose a {
+  color: var(--prose-link);
+
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  transition:
+    color 0.2s ease-in-out,
+    opacity 0.2s ease-in-out;
+}
+
+.prose a:hover {
+  color: var(--prose-link-hover);
+}
+
+
+/* ========================================
+   IMAGES
+   ======================================== */
+
+.prose img {
+  display: block;
+
+  max-width: 100%;
+  height: auto;
+
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+
+  border-radius: 0.5rem;
+
+  box-shadow:
+    0 4px 6px -1px var(--prose-image-shadow);
+}
+
+
+/* ========================================
+   TABLES
+   ======================================== */
+
+.prose table {
+  width: 100%;
+
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+
+  border-collapse: collapse;
+
+  font-size: 0.95rem;
+
+  border-radius: 0.5rem;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.prose table th {
+  border: 1px solid var(--prose-table-border);
+
+  padding: 0.75rem 1rem;
+
+  text-align: left;
+
+  font-weight: 600;
+
+  color: var(--prose-headings);
+
+  background-color: var(--prose-table-header-bg);
+}
+
+.prose table td {
+  border: 1px solid var(--prose-table-border);
+
+  padding: 0.75rem 1rem;
+
+  text-align: left;
+
+  color: var(--prose-body);
+
+  background-color: transparent;
+}
+
+.prose table tr:nth-child(even) {
+  background-color: var(--prose-table-even-bg);
+}
+
+.prose table tr:hover {
+  background-color: var(--prose-table-hover-bg);
+}
+
+
+/* ========================================
+   HORIZONTAL RULE
+   ======================================== */
+
+.prose hr {
+  border: 0;
+
+  border-top: 2px solid var(--prose-border);
+
+  margin-top: 2.5rem;
+  margin-bottom: 2.5rem;
+}
+
+
+/* ========================================
+   SMALL TEXT / SUBTEXT
+   ======================================== */
+
+.prose small {
+  color: var(--prose-italic);
+}
+
+
+/* ========================================
+   DEFINITION / MARK
+   ======================================== */
+
+.prose mark {
+  background-color: #fef08a;
+  color: #111827;
+
+  padding: 0.1rem 0.25rem;
+
+  border-radius: 0.2rem;
+}
+
+.dark .prose mark {
+  background-color: #854d0e;
+  color: #fefce8;
+}
+
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 640px) {
+  .prose {
+    font-size: 0.95rem;
+    line-height: 1.75;
+  }
+
+  .prose h1 {
+    font-size: 1.75rem;
+    line-height: 1.3;
+
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  .prose h2 {
+    font-size: 1.5rem;
+    line-height: 1.35;
+
+    margin-top: 2rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .prose h3 {
+    font-size: 1.25rem;
+    line-height: 1.4;
+
+    margin-top: 1.75rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .prose h4 {
+    font-size: 1.1rem;
+  }
+
+  .prose p {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    line-height: 1.75;
+  }
+
+  .prose ul,
+  .prose ol {
+    padding-left: 1.25rem;
+  }
+
+  .prose li {
+    line-height: 1.75;
+  }
+
+  .prose table {
+    display: block;
+
+    width: 100%;
+
+    overflow-x: auto;
+
+    font-size: 0.85rem;
+
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .prose table th,
+  .prose table td {
+    padding: 0.5rem 0.75rem;
+
+    white-space: nowrap;
+  }
+
+  .prose blockquote {
+    padding: 0.85rem 1rem;
+
+    margin-top: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .prose pre {
+    padding: 1rem;
+
+    font-size: 0.8rem;
+
+    border-radius: 0.4rem;
+  }
+
+  .prose code {
+    font-size: 0.8rem;
+  }
+
+  .prose img {
+    margin-top: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+}
+
+
+/* ========================================
+   DARK MODE — EXTRA OVERRIDES
+   ======================================== */
+
+.dark .prose {
+  color: var(--prose-body);
+}
+
+.dark .prose p,
+.dark .prose li {
+  color: var(--prose-body);
+}
+
+.dark .prose h1,
+.dark .prose h2,
+.dark .prose h3,
+.dark .prose h4 {
+  color: var(--prose-headings);
+}
+
+.dark .prose table td {
+  color: var(--prose-body);
+}
+
+.dark .prose table th {
+  color: var(--prose-headings);
+}
+
+.dark .prose a {
+  color: var(--prose-link);
+}
+
+.dark .prose a:hover {
+  color: var(--prose-link-hover);
+}

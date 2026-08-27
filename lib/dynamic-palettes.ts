@@ -72,16 +72,50 @@ function safeSetHue(base: chroma.Color, hue: number): string {
 
 // ============ SHADE GENERATION ============
 
-export function generateShades(hex: string, count: number = 9): string[] {
+export function generateShades(
+  hex: string,
+  count: number = 9
+): string[] {
   const color = chroma(normalizeHex(hex));
+  const baseLightness = color.get('hsl.l');
+
+  const darkCount = Math.floor((count - 1) / 2);
+  const lightCount = count - 1 - darkCount;
+
+  const minLightness = 0.05;
+  const maxLightness = 0.95;
+
   const shades: string[] = [];
-  for (let i = 0; i < count; i++) {
-    const lightness = 10 + (i / (count - 1)) * 85;
-    shades.push(color.set('hsl.l', lightness / 100).hex());
+
+  // Dark shades
+  for (let i = 0; i < darkCount; i++) {
+    const t = (i + 1) / (darkCount + 1);
+    const lightness =
+      minLightness +
+      (baseLightness - minLightness) * t;
+
+    shades.push(
+      color.set('hsl.l', lightness).hex()
+    );
   }
+
+  // Exact BASE
+  shades.push(color.hex());
+
+  // Light shades
+  for (let i = 0; i < lightCount; i++) {
+    const t = (i + 1) / (lightCount + 1);
+    const lightness =
+      baseLightness +
+      (maxLightness - baseLightness) * t;
+
+    shades.push(
+      color.set('hsl.l', lightness).hex()
+    );
+  }
+
   return shades;
 }
-
 // ============ COLOR NAMES ============
 
 let colorNamesCache: string[] | null = null;
@@ -154,23 +188,43 @@ export function getColorNameFromHex(hex: string): string {
 
 export function generateComplementary(hex: string): string[] {
   const color = chroma(normalizeHex(hex));
+
+  const base = color;
+  const complementary = color.set('hsl.h', '+180');
+
   return [
-    hex,
-    color.set('hsl.h', '+180').hex(),
-    color.set('hsl.h', '+180').brighten(0.5).hex(),
-    color.brighten(0.5).hex(),
-    color.set('hsl.h', '+180').darken(0.5).hex()
+    base.brighten(0.5).hex(),          // LIGHT
+    complementary.brighten(0.5).hex(), // LIFT
+    base.hex(),                        // BASE
+    base.darken(0.5).hex(),            // DEPTH
+    complementary.darken(0.5).hex()    // ANCHOR
   ];
 }
 
-export function generateAnalogous(hex: string, count: number = 5): string[] {
+export function generateAnalogous(
+  hex: string,
+  count: number = 5
+): string[] {
   const color = chroma(normalizeHex(hex));
   const colors: string[] = [];
-  const step = 30 / (count - 1);
+
+  const baseHue = color.get('hsl.h');
+
+  if (count === 1) {
+    return [color.hex()];
+  }
+
+  const step = 60 / (count - 1);
+
   for (let i = 0; i < count; i++) {
     const offset = -30 + i * step;
-    colors.push(color.set('hsl.h', `${offset}`).hex());
+    const hue = (baseHue + offset + 360) % 360;
+
+    colors.push(
+      color.set('hsl.h', hue).hex()
+    );
   }
+
   return colors;
 }
 

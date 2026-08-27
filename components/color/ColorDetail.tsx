@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useColor } from '@/context/ColorContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { 
@@ -22,6 +22,8 @@ import SimilarColors from './SimilarColors';
 import GradientGenerator from './GradientGenerator';
 import ColorShadesTailwind from './ColorShadesTailwind';
 import ColorDynamicFAQ from './ColorDynamicFAQ';
+import ColorChart from './ColorChart';
+import SocialShare from './SocialShare';
 
 interface ColorDetailProps {
   hex: string;
@@ -56,6 +58,18 @@ export default function ColorDetail({ hex: initialHex, colorName: propColorName 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Handle color selection from ColorChart
+  const handleColorHistorySelect = useCallback((hex: string) => {
+    // Clean the hex value
+    const cleanHex = hex.replace('#', '').toLowerCase();
+    
+    // Update the color
+    setColor(cleanHex);
+    
+    // Update the input field
+    setInputValue(`#${cleanHex.toUpperCase()}`);
+  }, [setColor]);
 
   // Handle initial color load
   useEffect(() => {
@@ -174,44 +188,55 @@ export default function ColorDetail({ hex: initialHex, colorName: propColorName 
     >
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Breadcrumb Navigation */}
-        <nav 
-          className={`flex items-center gap-2 text-xs md:text-sm font-medium ${
-            isDark ? 'text-gray-400' : 'text-gray-500'
-          }`}
-          aria-label="Breadcrumb"
-        >
-          <Link 
-            href="/" 
-            className={`transition-colors flex items-center gap-1.5 p-1 rounded-md ${
-              isDark ? 'hover:text-white hover:bg-white/5' : 'hover:text-gray-700 hover:bg-gray-100'
-            }`}
-            aria-label="Home"
-          >
-            <Home className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Home</span>
-          </Link>
-          <ChevronRight className={`w-3.5 h-3.5 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} aria-hidden="true" />
-          <Link 
-            href="/color" 
-            className={`transition-colors p-1 rounded-md ${
-              isDark ? 'hover:text-white hover:bg-white/5' : 'hover:text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            Color Studio
-          </Link>
-          <ChevronRight className={`w-3.5 h-3.5 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} aria-hidden="true" />
-          <div 
-            className={`flex items-center gap-2 px-2.5 py-1 rounded-full ${
-              isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-100 border-gray-200 text-gray-700'
-            } border`}
-            aria-current="page"
-          >
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: fullHex }} aria-hidden="true" />
-            <span className="font-mono">{fullHex}</span>
-          </div>
-        </nav>
+       {/* Breadcrumb Navigation with Social Share */}
+<nav 
+  className={`flex items-center justify-between gap-2 text-xs md:text-sm font-medium ${
+    isDark ? 'text-gray-400' : 'text-gray-500'
+  }`}
+  aria-label="Breadcrumb"
+>
+  {/* Left side - Breadcrumb */}
+  <div className="flex items-center gap-2 flex-wrap">
+    <Link 
+      href="/" 
+      className={`transition-colors flex items-center gap-1.5 p-1 rounded-md ${
+        isDark ? 'hover:text-white hover:bg-white/5' : 'hover:text-gray-700 hover:bg-gray-100'
+      }`}
+      aria-label="Home"
+    >
+      <Home className="w-3.5 h-3.5" aria-hidden="true" />
+      <span>Home</span>
+    </Link>
+    <ChevronRight className={`w-3.5 h-3.5 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} aria-hidden="true" />
+    <Link 
+      href="/color" 
+      className={`transition-colors p-1 rounded-md ${
+        isDark ? 'hover:text-white hover:bg-white/5' : 'hover:text-gray-700 hover:bg-gray-100'
+      }`}
+    >
+      Color Studio
+    </Link>
+    <ChevronRight className={`w-3.5 h-3.5 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} aria-hidden="true" />
+    <div 
+      className={`flex items-center gap-2 px-2.5 py-1 rounded-full ${
+        isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-100 border-gray-200 text-gray-700'
+      } border`}
+      aria-current="page"
+    >
+      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: fullHex }} aria-hidden="true" />
+      <span className="font-mono">{fullHex}</span>
+    </div>
+  </div>
 
+  {/* Right side - Social Share */}
+  <div className="flex-shrink-0">
+    <SocialShare 
+      hex={hex} 
+      colorName={colorName} 
+      isDark={isDark} 
+    />
+  </div>
+</nav>
         {/* Hero Banner Header */}
         <header 
           className={`relative overflow-hidden backdrop-blur-xl border rounded-2xl p-6 sm:p-8 shadow-lg transition-all duration-300 ${
@@ -450,6 +475,13 @@ export default function ColorDetail({ hex: initialHex, colorName: propColorName 
           <ColorWheel hex={hex} onColorChange={handleColorWheelChange} />
         </section>
 
+        {/* ColorChart Component */}
+        <ColorChart 
+          currentHex={hex}
+          isDark={isDark}
+          onColorSelect={handleColorHistorySelect}
+        />
+
         {/* Detailed Modular Sections */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <section 
@@ -534,11 +566,11 @@ export default function ColorDetail({ hex: initialHex, colorName: propColorName 
           <GradientGenerator hex={hex} />
         </section>
 
- <ColorDynamicFAQ 
-        hex={hex}
-        colorName={colorName}
-        isDark={isDark}
-      />
+        <ColorDynamicFAQ 
+          hex={hex}
+          colorName={colorName}
+          isDark={isDark}
+        />
       </div>
     </div>
   );

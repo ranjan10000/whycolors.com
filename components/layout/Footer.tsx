@@ -26,7 +26,7 @@ const footerLinks = {
     { label: 'Contact', href: '/contact' },
     { label: 'Privacy Policy', href: '/privacy' },
     { label: 'Terms of Service', href: '/terms' },
-    //  { label: 'Blog', href: '/blog' },
+    { label: 'Blog', href: '/blog' },
   ],
 };
 
