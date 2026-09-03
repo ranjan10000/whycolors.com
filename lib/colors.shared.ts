@@ -9,9 +9,16 @@ export function rgbToHex(r: number, g: number, b: number): string {
   return `#${generateHexColor(r, g, b)}`;
 }
 
+// Optimized to support both 3-digit (#FFF) and 6-digit (#FFFFFF) Hex codes
 export function hexToRgb(hex: string): [number, number, number] | null {
-  const clean = hex.replace(/^#/, '');
+  let clean = hex.replace(/^#/, '');
+  
+  if (/^[a-fA-F0-9]{3}$/.test(clean)) {
+    clean = clean.split('').map(char => char + char).join('');
+  }
+  
   if (!/^[a-fA-F0-9]{6}$/.test(clean)) return null;
+  
   return [
     parseInt(clean.substring(0, 2), 16),
     parseInt(clean.substring(2, 4), 16),
@@ -19,9 +26,12 @@ export function hexToRgb(hex: string): [number, number, number] | null {
   ];
 }
 
+// Safety-fixed HSL conversion
 export function hslToRgb(h: number, s: number, l: number): [number, number, number] {
-  s /= 100;
-  l /= 100;
+  h = ((h % 360) + 360) % 360;
+  s = Math.max(0, Math.min(100, s)) / 100;
+  l = Math.max(0, Math.min(100, l)) / 100;
+
   const c = (1 - Math.abs(2 * l - 1)) * s;
   const x = c * (1 - Math.abs((h / 60) % 2 - 1));
   const m = l - c / 2;
@@ -46,13 +56,6 @@ export function adjustBrightness(r: number, g: number, b: number, amount: number
   const newG = Math.max(0, Math.min(255, g + amount));
   const newB = Math.max(0, Math.min(255, b + amount));
   return generateHexColor(newR, newG, newB);
-}
-
-export function generateRandomColor(): string {
-  const r = Math.floor(Math.random() * 256);
-  const g = Math.floor(Math.random() * 256);
-  const b = Math.floor(Math.random() * 256);
-  return generateHexColor(r, g, b);
 }
 
 export function getNamedColors(): string[] {
@@ -99,15 +102,14 @@ export function getColorFamilies(): string[] {
   ];
 }
 
-export function generateAllColors(count: number = 15000): string[] {
+export function generateAllColors(count: number = 20000): string[] {
   const colors: Set<string> = new Set();
   const safeAdd = (color: string) => {
+    if (colors.size >= count) return;
     if (/^[a-fA-F0-9]{6}$/.test(color)) {
       colors.add(color.toLowerCase());
     }
   };
-
-  console.log(`🔄 Generating ${count} colors...`);
 
   // 1. All 3-digit hex combinations (4,096 colors)
   const chars = '0123456789abcdef';
@@ -133,7 +135,7 @@ export function generateAllColors(count: number = 15000): string[] {
     }
   }
 
-  // 3. Extended color wheel (every 5 degrees)
+  // 3. Extended color wheel
   for (let i = 0; i < 360; i += 5) {
     const rgb1 = hslToRgb(i, 90, 50);
     safeAdd(generateHexColor(rgb1[0], rgb1[1], rgb1[2]));
@@ -174,45 +176,52 @@ export function generateAllColors(count: number = 15000): string[] {
   }
 
   // 6. High-contrast colors
-  for (let i = 0; i < 500; i++) {
-    const r = Math.random() > 0.5 ? 255 : 0;
-    const g = Math.random() > 0.5 ? 255 : 0;
-    const b = Math.random() > 0.5 ? 255 : 0;
-    safeAdd(generateHexColor(r, g, b));
+  const contrastValues = [0, 32, 64, 96, 128, 160, 192, 224, 255];
+  for (const r of contrastValues) {
+    for (const g of contrastValues) {
+      for (const b of contrastValues) {
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        if (max - min >= 128) {
+          safeAdd(generateHexColor(r, g, b));
+        }
+      }
+    }
   }
 
-  // 7. Random colors to reach target
-  let attempts = 0;
-  while (colors.size < count && attempts < count * 3) {
-    safeAdd(generateRandomColor());
-    attempts++;
+  // 7. Systematic HSL palette with early break
+  for (let h = 0; h < 360; h += 3) {
+    if (colors.size >= count) break;
+    for (let s = 20; s <= 100; s += 10) {
+      for (let l = 10; l <= 90; l += 10) {
+        const [r, g, b] = hslToRgb(h, s, l);
+        safeAdd(generateHexColor(r, g, b));
+      }
+    }
   }
 
-  const result = Array.from(colors).slice(0, count);
-  console.log(`✅ Generated ${result.length} unique colors`);
-  return result;
+  return Array.from(colors).slice(0, count);
 }
 
-// ============ CACHED COLOR GENERATION ============
-
+// Cached colors helper
 let cachedColors: string[] | null = null;
+let cachedCount = 0;
 
-export function getCachedColors(count: number = 15000): string[] {
-  if (!cachedColors) {
+export function getCachedColors(count: number = 20000): string[] {
+  if (!cachedColors || cachedCount !== count) {
     cachedColors = generateAllColors(count);
+    cachedCount = count;
   }
   return cachedColors;
 }
 
-// ============ GET COLOR NAMES ============
-
+// Generate human-readable names
 export function generateColorName(hex: string): string {
   const rgb = hexToRgb(hex);
   if (!rgb) return hex.toUpperCase();
   
   const [r, g, b] = rgb;
   
-  // Helper to detect color family
   let baseName = '';
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
@@ -224,7 +233,6 @@ export function generateColorName(hex: string): string {
     return 'gray';
   }
   
-  // Determine dominant color
   if (r > g && r > b) baseName = 'red';
   else if (g > r && g > b) baseName = 'green';
   else if (b > r && b > g) baseName = 'blue';
@@ -233,7 +241,6 @@ export function generateColorName(hex: string): string {
   else if (g > r && b > r) baseName = 'cyan';
   else baseName = 'mixed';
   
-  // Add modifier
   const avg = (r + g + b) / 3;
   const saturation = diff / 255;
   

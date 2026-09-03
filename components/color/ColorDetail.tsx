@@ -10,6 +10,7 @@ import {
   hexToCmyk,
   getContrastColor,
   getColorName,
+  getColorFamily,   // ✅ Added
   isValidHex,
 } from '@/lib/color-utils';
 import { Copy, Check, Home, ChevronRight, Sparkles, Sliders, Palette, Layers, RefreshCw, Loader2, Moon, Sun } from 'lucide-react';
@@ -36,7 +37,7 @@ interface ColorDetailProps {
   contrast?: string;
 }
 
-export default function ColorDetail({ hex: initialHex, colorName: propColorName }: ColorDetailProps) {
+export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
   const { currentColor, setColor, recentColors, isLoading, setIsLoading } = useColor();
   const { isDark, toggleTheme } = useTheme();
   const [copied, setCopied] = useState(false);
@@ -46,7 +47,10 @@ export default function ColorDetail({ hex: initialHex, colorName: propColorName 
 
   const hex = currentColor;
   const fullHex = `#${hex.toUpperCase()}`;
-  const colorName = propColorName || getColorName(hex);
+
+  // ✅ Dynamic - updates when hex changes
+  const colorName = useMemo(() => getColorName(hex), [hex]);
+  const colorFamily = useMemo(() => getColorFamily(hex) || 'Color', [hex]);
   
   const rgb = useMemo(() => hexToRgb(hex), [hex]);
   const hsl = useMemo(() => hexToHsl(hex), [hex]);
@@ -61,13 +65,8 @@ export default function ColorDetail({ hex: initialHex, colorName: propColorName 
 
   // Handle color selection from ColorChart
   const handleColorHistorySelect = useCallback((hex: string) => {
-    // Clean the hex value
     const cleanHex = hex.replace('#', '').toLowerCase();
-    
-    // Update the color
     setColor(cleanHex);
-    
-    // Update the input field
     setInputValue(`#${cleanHex.toUpperCase()}`);
   }, [setColor]);
 
@@ -188,55 +187,54 @@ export default function ColorDetail({ hex: initialHex, colorName: propColorName 
     >
       <div className="max-w-7xl mx-auto space-y-8">
         
-       {/* Breadcrumb Navigation with Social Share */}
-<nav 
-  className={`flex items-center justify-between gap-2 text-xs md:text-sm font-medium ${
-    isDark ? 'text-gray-400' : 'text-gray-500'
-  }`}
-  aria-label="Breadcrumb"
->
-  {/* Left side - Breadcrumb */}
-  <div className="flex items-center gap-2 flex-wrap">
-    <Link 
-      href="/" 
-      className={`transition-colors flex items-center gap-1.5 p-1 rounded-md ${
-        isDark ? 'hover:text-white hover:bg-white/5' : 'hover:text-gray-700 hover:bg-gray-100'
-      }`}
-      aria-label="Home"
-    >
-      <Home className="w-3.5 h-3.5" aria-hidden="true" />
-      <span>Home</span>
-    </Link>
-    <ChevronRight className={`w-3.5 h-3.5 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} aria-hidden="true" />
-    <Link 
-      href="/color" 
-      className={`transition-colors p-1 rounded-md ${
-        isDark ? 'hover:text-white hover:bg-white/5' : 'hover:text-gray-700 hover:bg-gray-100'
-      }`}
-    >
-      Color Studio
-    </Link>
-    <ChevronRight className={`w-3.5 h-3.5 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} aria-hidden="true" />
-    <div 
-      className={`flex items-center gap-2 px-2.5 py-1 rounded-full ${
-        isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-100 border-gray-200 text-gray-700'
-      } border`}
-      aria-current="page"
-    >
-      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: fullHex }} aria-hidden="true" />
-      <span className="font-mono">{fullHex}</span>
-    </div>
-  </div>
+        {/* Breadcrumb Navigation with Social Share */}
+        <nav 
+          className={`flex items-center justify-between gap-2 text-xs md:text-sm font-medium ${
+            isDark ? 'text-gray-400' : 'text-gray-500'
+          }`}
+          aria-label="Breadcrumb"
+        >
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link 
+              href="/" 
+              className={`transition-colors flex items-center gap-1.5 p-1 rounded-md ${
+                isDark ? 'hover:text-white hover:bg-white/5' : 'hover:text-gray-700 hover:bg-gray-100'
+              }`}
+              aria-label="Home"
+            >
+              <Home className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Home</span>
+            </Link>
+            <ChevronRight className={`w-3.5 h-3.5 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} aria-hidden="true" />
+            <Link 
+              href="/color" 
+              className={`transition-colors p-1 rounded-md ${
+                isDark ? 'hover:text-white hover:bg-white/5' : 'hover:text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              Color Studio
+            </Link>
+            <ChevronRight className={`w-3.5 h-3.5 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} aria-hidden="true" />
+            <div 
+              className={`flex items-center gap-2 px-2.5 py-1 rounded-full ${
+                isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-100 border-gray-200 text-gray-700'
+              } border`}
+              aria-current="page"
+            >
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: fullHex }} aria-hidden="true" />
+              <span className="font-mono">{fullHex}</span>
+            </div>
+          </div>
 
-  {/* Right side - Social Share */}
-  <div className="flex-shrink-0">
-    <SocialShare 
-      hex={hex} 
-      colorName={colorName} 
-      isDark={isDark} 
-    />
-  </div>
-</nav>
+          <div className="flex-shrink-0">
+            <SocialShare 
+              hex={hex} 
+              colorName={colorName} 
+              isDark={isDark} 
+            />
+          </div>
+        </nav>
+
         {/* Hero Banner Header */}
         <header 
           className={`relative overflow-hidden backdrop-blur-xl border rounded-2xl p-6 sm:p-8 shadow-lg transition-all duration-300 ${
@@ -333,13 +331,22 @@ export default function ColorDetail({ hex: initialHex, colorName: propColorName 
                   </div>
                 </div>
 
+                {/* ✅ H1 with dynamic color name */}
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
+                  {colorName}
+                  <span className="ml-3 text-sm sm:text-base font-mono font-normal text-gray-500 dark:text-gray-400">
+                    #{hex.toUpperCase()}
+                  </span>
+                </h1>
+
+                {/* ✅ Dynamic color family badge */}
                 <div className="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap">
                   <span className={`px-3.5 py-1 border rounded-full text-xs font-semibold tracking-wide backdrop-blur-md ${
                     isDark 
                       ? 'bg-white/10 border-white/10 text-gray-200' 
                       : 'bg-gray-100 border-gray-200 text-gray-700'
                   }`}>
-                    {colorName}
+                    {colorFamily} Family
                   </span>
                 </div>
               </div>

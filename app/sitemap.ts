@@ -22,6 +22,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/sitemap-conversions.xml`,
       lastModified: new Date(),
     },
+     {
+      url: `${baseUrl}/sitemap-shades.xml`,
+      lastModified: new Date(),
+    },
   ];
 
   return sitemaps;

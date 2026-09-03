@@ -6,10 +6,10 @@ import { getCachedColors, generateAllColors } from './colors.shared';
 const CACHE_FILE = path.join(process.cwd(), 'public', 'colors-cache.json');
 let MEMORY_CACHE: string[] | null = null;
 
-const TOTAL_COLORS = 15000;
-const COLOR_PAGE_COUNT = 10000;  // Changed from 7500 to 10000
-const PALETTE_PAGE_COUNT = 5000;  // Changed from 7500 to 5000
-
+const TOTAL_COLORS = 20000;
+const COLOR_PAGE_COUNT = 15000;  // Changed from 7500 to 15000
+const PALETTE_PAGE_COUNT = 10000;  // Changed from 7500 to 10000
+const SHADE_PAGE_COUNT = 5000;  // Changed from 2500 to 5000
 export function getColors(): string[] {
   if (MEMORY_CACHE) {
     return MEMORY_CACHE;
@@ -22,6 +22,7 @@ export function getColors(): string[] {
       if (Array.isArray(loadedColors) && loadedColors.length > 0) {
         MEMORY_CACHE = loadedColors;
         console.log(`✅ Loaded ${MEMORY_CACHE.length} colors from cache`);
+        console.log(`✅ Loaded ${MEMORY_CACHE.length} colors in total memory cache`);
         return MEMORY_CACHE;
       }
     }
@@ -50,12 +51,17 @@ export function getColors(): string[] {
 
 export function getColorPageColors(): string[] {
   const allColors = getColors();
-  return allColors.slice(0, COLOR_PAGE_COUNT);  // Now returns first 10,000
+  return allColors.slice(0, COLOR_PAGE_COUNT);  // Now returns first 15,000
 }
 
 export function getPalettePageColors(): string[] {
   const allColors = getColors();
-  return allColors.slice(COLOR_PAGE_COUNT, TOTAL_COLORS);  // Returns remaining 5,000
+  return allColors.slice(PALETTE_PAGE_COUNT, TOTAL_COLORS);  // Returns remaining 5,000
+}
+
+export function getShadePageColors(): string[] {
+  const allColors = getColors();
+  return allColors.slice(SHADE_PAGE_COUNT, TOTAL_COLORS);  // Returns remaining 5,000
 }
 
 // Clear cache (useful for development)

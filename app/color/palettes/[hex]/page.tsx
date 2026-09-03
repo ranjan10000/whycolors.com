@@ -7,8 +7,7 @@ import {
   getColorNameFromHex,
   isValidHex,
 } from '@/lib/dynamic-palettes';
-  import {getColorName
-} from '@/lib/color-utils';
+import { getColorName } from '@/lib/color-utils';
 import PaletteClient from './PaletteClient';
 
 interface ColorPalettePageProps {
@@ -16,23 +15,6 @@ interface ColorPalettePageProps {
     hex: string;
   }>;
 }
-
-// Generate static paths
-// export function generateStaticParams() {
-//   const commonColors = [
-//     'ff0000', '00ff00', '0000ff', 'ffff00', 'ff00ff', '00ffff',
-//     '000000', 'ffffff', 'ffa500', 'ffc0cb', '8b5cf6', 'ef4444',
-//     '3b82f6', '22c55e', 'eab308', 'ec4899', 'f97316', '06b6d4',
-//     '6366f1', '14b8a6', 'f43f5e', 'f59e0b', '84cc16', '10b981',
-//     '0ea5e9', 'd946ef', 'fb7185', '1e293b', '4b5563', '34d399',
-//     'fdba74', 'c4b5fd', '86efac', 'c2410c', '1f2937', 'fef3c7',
-//     '2b7877', // Dark Teal
-//   ];
-  
-//   return commonColors.map(hex => ({
-//     hex: hex
-//   }));
-// }
 
 export async function generateMetadata({ 
   params 
@@ -48,7 +30,7 @@ export async function generateMetadata({
   
   const cleanHex = hex.toLowerCase();
   const fullHex = `#${cleanHex.toUpperCase()}`;
-  const colorName = getColorName(`#${cleanHex}`); // ✅ Add # prefix
+  const colorName = getColorName(`#${cleanHex}`);
   
   const description = `Explore ${colorName} color palettes including shades, complementary, analogous, triadic, tetradic, and more. Perfect for designers and developers.`;
   const keywords = [
@@ -127,7 +109,6 @@ export default async function ColorPalettePage({ params }: ColorPalettePageProps
   let colorName;
   
   try {
-    // ✅ IMPORTANT: Pass with # prefix
     const hexWithHash = `#${cleanHex}`;
     palettes = generateAllPalettes(hexWithHash);
     colorName = getColorName(hexWithHash);
@@ -140,10 +121,10 @@ export default async function ColorPalettePage({ params }: ColorPalettePageProps
   const paletteTypes = [
     // Basic harmonies
     { id: 'shades', label: 'Shades', colors: palettes.shades },
-    { id: 'complementary', label: 'Complementary',  colors: palettes.complementary },
+    { id: 'complementary', label: 'Complementary', colors: palettes.complementary },
     { id: 'analogous', label: 'Analogous', colors: palettes.analogous },
     { id: 'triadic', label: 'Triadic', colors: palettes.triadic },
-    { id: 'tetradic', label: 'Tetradic',  colors: palettes.tetradic },
+    { id: 'tetradic', label: 'Tetradic', colors: palettes.tetradic },
     { id: 'split-complementary', label: 'Split Complementary', colors: palettes['split-complementary'] },
     { id: 'square', label: 'Square', colors: palettes.square },
     
@@ -151,20 +132,20 @@ export default async function ColorPalettePage({ params }: ColorPalettePageProps
     { id: 'pastel', label: 'Pastel', colors: palettes.pastel },
     { id: 'vibrant', label: 'Vibrant', colors: palettes.vibrant },
     { id: 'muted', label: 'Muted', colors: palettes.muted },
-    { id: 'dark', label: 'Dark Shades',  colors: palettes.dark },
+    { id: 'dark', label: 'Dark Shades', colors: palettes.dark },
     { id: 'light', label: 'Light Tints', colors: palettes.light },
     { id: 'warm', label: 'Warm Palette', colors: palettes.warm },
     { id: 'cool', label: 'Cool Palette', colors: palettes.cool },
     
     // Advanced harmonies
     { id: 'monochromatic', label: 'Monochromatic', colors: palettes.monochromatic },
-    { id: 'compound', label: 'Compound',colors: palettes.compound },
+    { id: 'compound', label: 'Compound', colors: palettes.compound },
     { id: 'neutral', label: 'Neutral', colors: palettes.neutral },
     { id: 'gradient', label: 'Gradient', colors: palettes.gradient },
     
     // Thematic
     { id: 'neon', label: 'Neon', colors: palettes.neon },
-    { id: 'earth', label: 'Earth',  colors: palettes.earth },
+    { id: 'earth', label: 'Earth', colors: palettes.earth },
     { id: 'ocean', label: 'Ocean', colors: palettes.ocean },
     { id: 'sunset', label: 'Sunset', colors: palettes.sunset },
     { id: 'forest', label: 'Forest', colors: palettes.forest },
@@ -172,7 +153,7 @@ export default async function ColorPalettePage({ params }: ColorPalettePageProps
     { id: 'modern', label: 'Modern', colors: palettes.modern },
     
     // Special combinations
-    { id: 'pastel-neon', label: 'Pastel Neon',  colors: palettes.pastelNeon },
+    { id: 'pastel-neon', label: 'Pastel Neon', colors: palettes.pastelNeon },
     { id: 'monochrome-dark', label: 'Dark Monochrome', colors: palettes.monochromeDark },
     { id: 'monochrome-light', label: 'Light Monochrome', colors: palettes.monochromeLight },
     { id: 'accent', label: 'Accent Palette', colors: palettes.accent },
@@ -183,12 +164,10 @@ export default async function ColorPalettePage({ params }: ColorPalettePageProps
     { id: 'adjacent', label: 'Adjacent', colors: palettes.adjacent },
     { id: 'alternating', label: 'Alternating', colors: palettes.alternating },
     { id: 'rainbow', label: 'Rainbow', colors: palettes.rainbow },
-
     { id: 'tintShadeScale', label: 'Tint & Shade Scale (10 colors)', colors: palettes.tintShadeScale },
-  { id: 'uiPalette', label: 'UI Palette', colors: palettes.uiPalette },
-  { id: 'clash', label: 'Clash Palette', colors: palettes.clash },
-  { id: 'saturationScale', label: 'Saturation Scale', colors: palettes.saturationScale },
-
+    { id: 'uiPalette', label: 'UI Palette', colors: palettes.uiPalette },
+    { id: 'clash', label: 'Clash Palette', colors: palettes.clash },
+    { id: 'saturationScale', label: 'Saturation Scale', colors: palettes.saturationScale },
   ];
   
   // Filter out any palette types that have undefined or empty colors
@@ -196,12 +175,47 @@ export default async function ColorPalettePage({ params }: ColorPalettePageProps
     p.colors && Array.isArray(p.colors) && p.colors.length > 0
   );
   
+  // ✅ RETURN WITH H1
   return (
-    <PaletteClient 
-      hex={cleanHex}
-      fullHex={fullHex}
-      colorName={colorName}
-      paletteTypes={validPaletteTypes}
-    />
+    <div className="min-h-screen">
+      
+      {/* ✅ HERO SECTION WITH H1 - Server Rendered for SEO */}
+      <div className="bg-gradient-to-b from-white to-gray-50 dark:from-[#090911] dark:to-[#0d0d1a] border-b border-gray-200 dark:border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+          <div className="flex items-center gap-4 sm:gap-6">
+            {/* Color Swatch */}
+            <div 
+              className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-xl shadow-lg border-2 border-white dark:border-gray-700 flex-shrink-0"
+              style={{ backgroundColor: fullHex }}
+            />
+            <div>
+              {/* ✅ H1 - Main heading for SEO */}
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white">
+                {colorName} Color Palettes
+              </h1>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
+                <span className="text-sm font-mono bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg text-gray-600 dark:text-gray-300">
+                  {fullHex}
+                </span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {validPaletteTypes.length} Palettes
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                Explore harmonious color palettes for {colorName}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* ✅ Client Component */}
+      <PaletteClient 
+        hex={cleanHex}
+        fullHex={fullHex}
+        colorName={colorName}
+        paletteTypes={validPaletteTypes}
+      />
+    </div>
   );
 }
