@@ -1,13 +1,13 @@
 // app/color/palettes/[hex]/page.tsx
 import { notFound } from 'next/navigation';
-import type { Metadata } from 'next';
+import type { Metadata,Viewport } from 'next';
 import chroma from 'chroma-js';
 import { 
   generateAllPalettes, 
   getColorNameFromHex,
   isValidHex,
 } from '@/lib/dynamic-palettes';
-import { getColorName } from '@/lib/color-utils';
+import { getColorName ,sanitizeHex} from '@/lib/color-utils';
 import PaletteClient from './PaletteClient';
 
 interface ColorPalettePageProps {
@@ -16,75 +16,158 @@ interface ColorPalettePageProps {
   }>;
 }
 
+// ============ METADATA GENERATION - PALETTE ============
+
+
+// ============ METADATA GENERATION ============
 export async function generateMetadata({ 
   params 
 }: ColorPalettePageProps): Promise<Metadata> {
+  try {
+    const { hex } = await params;
+    
+    const sanitized = sanitizeHex(hex);
+    if (!sanitized) {
+      return {
+        title: 'Color Palette Not Found',
+        description: 'The requested color palette could not be found.',
+        robots: { index: false, follow: false },
+      };
+    }
+    
+    const cleanHex = sanitized.toLowerCase();
+    
+    if (!isValidHex(cleanHex)) {
+      return {
+        title: 'Invalid Color',
+        description: 'The requested color format is invalid.',
+        robots: { index: false, follow: false },
+      };
+    }
+    
+    const fullHex = `#${cleanHex.toUpperCase()}`;
+    const colorName = getColorName(cleanHex) || 'Unknown Color';
+    
+    const description = `Explore ${colorName} color palettes including shades, complementary, analogous, triadic, and harmonious combinations.`;
+    const keywords = [
+      colorName,
+      `${colorName} color`,
+      `${colorName} palette`,
+      `${fullHex} color`,
+      'color palette',
+      'color harmonies',
+      'color wheel',
+      'design colors',
+      'complementary colors',
+      'analogous colors',
+      'triadic colors',
+      'color combinations'
+    ].join(', ');
+    
+    const title = `${colorName} Color Palettes (${fullHex})`;
+    
+    return {
+      title,
+      description,
+      keywords,
+      openGraph: {
+        title,
+        description: `Explore ${colorName} color palettes including shades, complementary, and harmonious color combinations.`,
+        url: `https://www.whycolors.com/color/palettes/${cleanHex}`,
+        siteName: 'WhyColors',
+        images: [
+          {
+            url: `https://www.whycolors.com/api/og/palette?hex=${cleanHex}`,
+            width: 1200,
+            height: 630,
+            alt: `${colorName} Color Palettes`,
+            type: 'image/png',
+          },
+        ],
+        type: 'website',
+        locale: 'en_US',
+      },
+      
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description: `Explore ${colorName} color palettes including shades, complementary, and harmonious color combinations.`,
+        images: [`https://www.whycolors.com/api/og/palette?hex=${cleanHex}`],
+        site: '@whycolors',
+        creator: '@whycolors',
+      },
+      
+      alternates: {
+        canonical: `https://www.whycolors.com/color/palettes/${cleanHex}`,
+      },
+      
+      robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+          'max-video-preview': -1,
+          'max-image-preview': 'large',
+          'max-snippet': -1,
+        },
+      },
+      
+      category: 'color',
+      applicationName: 'WhyColors',
+      referrer: 'origin-when-cross-origin',
+      
+      other: {
+        'application/ld+json': JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'ColorPalette',
+          name: `${colorName} Color Palette`,
+          description: `A collection of ${colorName} color palettes including complementary and harmonious colors.`,
+          url: `https://www.whycolors.com/color/palettes/${cleanHex}`,
+          image: `https://www.whycolors.com/api/og/palette?hex=${cleanHex}`,
+        }),
+      },
+    };
+    
+  } catch (error) {
+    console.error('Error generating palette metadata:', error);
+    return {
+      title: 'Color Palettes',
+      description: 'Explore color palettes, harmonies, and combinations.',
+      robots: { index: true, follow: true },
+    };
+  }
+}
+
+// ============ VIEWPORT GENERATION ============
+// ✅ ADD THIS
+export async function generateViewport({ 
+  params 
+}: ColorPalettePageProps): Promise<Viewport> {
   const { hex } = await params;
   
-  if (!hex || !/^[a-fA-F0-9]{6}$/i.test(hex)) {
+  const sanitized = sanitizeHex(hex);
+  if (!sanitized || !isValidHex(sanitized)) {
     return {
-      title: 'Color Not Found',
-      description: 'The requested color palette could not be found.'
+      themeColor: '#000000',
+      width: 'device-width',
+      initialScale: 1,
+      maximumScale: 5,
     };
   }
   
-  const cleanHex = hex.toLowerCase();
+  const cleanHex = sanitized.toLowerCase();
   const fullHex = `#${cleanHex.toUpperCase()}`;
-  const colorName = getColorName(`#${cleanHex}`);
-  
-  const description = `Explore ${colorName} color palettes including shades, complementary, analogous, triadic, tetradic, and more. Perfect for designers and developers.`;
-  const keywords = [
-    colorName,
-    `${colorName} color`,
-    `${colorName} palette`,
-    `${fullHex} color`,
-    'color palette',
-    'color harmonies',
-    'color wheel',
-    'design colors'
-  ].join(', ');
   
   return {
-    title: `${colorName} Color Palettes (${fullHex})`,
-    description: description,
-    keywords: keywords,
-    openGraph: {
-      title: `${colorName} Color Palettes (${fullHex})`,
-      description: `Explore ${colorName} color palettes including shades, complementary, and harmonious color combinations.`,
-      url: `https://www.whycolors.com/color/palettes/${cleanHex}`,
-      siteName: 'WhyColors',
-      images: [
-        {
-          url: `https://www.whycolors.com/api/og/palette?hex=${cleanHex}`,
-          width: 1200,
-          height: 630,
-          alt: `${colorName} Color Palettes`,
-        },
-      ],
-      type: 'website',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${colorName} Color Palettes (${fullHex})`,
-      description: `Explore ${colorName} color palettes including shades, complementary, and harmonious color combinations.`,
-      images: [`https://www.whycolors.com/api/og/palette?hex=${cleanHex}`],
-    },
-    alternates: {
-      canonical: `https://www.whycolors.com/color/palettes/${cleanHex}`,
-    },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
-      },
-    },
+    themeColor: fullHex,
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
   };
 }
+
+
 
 export default async function ColorPalettePage({ params }: ColorPalettePageProps) {
   const { hex } = await params;
@@ -136,6 +219,17 @@ export default async function ColorPalettePage({ params }: ColorPalettePageProps
     { id: 'light', label: 'Light Tints', colors: palettes.light },
     { id: 'warm', label: 'Warm Palette', colors: palettes.warm },
     { id: 'cool', label: 'Cool Palette', colors: palettes.cool },
+
+    // ✅ NEW DESIGN PALETTES
+  { id: 'quietLuxury', label: 'Quiet Luxury', colors: palettes.quietLuxury },
+  { id: 'gothicNoir', label: 'Gothic Noir', colors: palettes.gothicNoir },
+  { id: 'cozyCampfire', label: 'Cozy Campfire', colors: palettes.cozyCampfire },
+  { id: 'lavenderLullaby', label: 'Lavender Lullaby', colors: palettes.lavenderLullaby },
+  
+  // ✅ NEW MAKEUP PALETTES
+  { id: 'softGlam', label: 'Soft Glam', colors: palettes.softGlam },
+  { id: 'berryMartini', label: 'Berry Martini', colors: palettes.berryMartini },
+  { id: 'neutrals', label: 'Neutrals', colors: palettes.neutrals },
     
     // Advanced harmonies
     { id: 'monochromatic', label: 'Monochromatic', colors: palettes.monochromatic },
@@ -168,6 +262,53 @@ export default async function ColorPalettePage({ params }: ColorPalettePageProps
     { id: 'uiPalette', label: 'UI Palette', colors: palettes.uiPalette },
     { id: 'clash', label: 'Clash Palette', colors: palettes.clash },
     { id: 'saturationScale', label: 'Saturation Scale', colors: palettes.saturationScale },
+
+      // ============ CAFE & FLAVORS (Food/Culinary Vibes) ============
+  { id: 'vanillaLatte', label: 'Vanilla Latte', colors: palettes.vanillaLatte },
+  { id: 'saltedCaramel', label: 'Salted Caramel', colors: palettes.saltedCaramel },
+  { id: 'matchaLatte', label: 'Matcha Latte', colors: palettes.matchaLatte },
+  { id: 'berryBlast', label: 'Berry Blast', colors: palettes.berryBlast },
+  { id: 'honeyAlmond', label: 'Honey Almond', colors: palettes.honeyAlmond },
+  { id: 'mocha', label: 'Mocha', colors: palettes.mocha },
+
+  // ============ COSMIC & DREAMY (Sci-Fi/Fantasy Vibes) ============
+  { id: 'stardust', label: 'Stardust', colors: palettes.stardust },
+  { id: 'cyberpunkNight', label: 'Cyberpunk Night', colors: palettes.cyberpunkNight },
+  { id: 'moonlitSilver', label: 'Moonlit Silver', colors: palettes.moonlitSilver },
+  { id: 'auroraBorealis', label: 'Aurora Borealis', colors: palettes.auroraBorealis },
+  { id: 'galaxy', label: 'Galaxy', colors: palettes.galaxy },
+  { id: 'dreamscape', label: 'Dreamscape', colors: palettes.dreamscape },
+
+    
+  // ============ VINTAGE & EDITORIAL (Classy/Aesthetic Vibes) ============
+  { id: 'velvetRomance', label: 'Velvet Romance', colors: palettes.velvetRomance },
+  { id: 'antiqueParchment', label: 'Antique Parchment', colors: palettes.antiqueParchment },
+  { id: 'retroFunk', label: 'Retro Funk', colors: palettes.retroFunk },
+  { id: 'desertOasis', label: 'Desert Oasis', colors: palettes.desertOasis },
+  { id: 'vintageRose', label: 'Vintage Rose', colors: palettes.vintageRose },
+  { id: 'editorial', label: 'Editorial', colors: palettes.editorial },
+
+  // ============ TECH & FUNCTIONAL (UI Extensions) ============
+  { id: 'glassmorphism', label: 'Glassmorphism Bases', colors: palettes.glassmorphism },
+  { id: 'retroTerminal', label: 'Retro Terminal', colors: palettes.retroTerminal },
+  { id: 'accessibleHighContrast', label: 'High Contrast (A11y)', colors: palettes.accessibleHighContrast },
+  { id: 'brandIdentity', label: 'Brand Identity', colors: palettes.brandIdentity },
+  { id: 'neubrutalism', label: 'Neubrutalism', colors: palettes.neubrutalism },
+  { id: 'darkModeUI', label: 'Dark Mode UI', colors: palettes.darkModeUI },
+
+   // ============ NEW PALETTES ============
+  { id: 'cyberLime', label: 'Cyber Lime / Brat', colors: palettes.cyberLime },
+  { id: 'nordicScandi', label: 'Nordic Scandi', colors: palettes.nordicScandi },
+  { id: 'industrialConcrete', label: 'Industrial Concrete', colors: palettes.industrialConcrete },
+  { id: 'mediterranean', label: 'Mediterranean Villa', colors: palettes.mediterranean },
+  { id: 'springBloom', label: 'Spring Bloom', colors: palettes.springBloom },
+  { id: 'autumnWhimsy', label: 'Autumn Whimsy', colors: palettes.autumnWhimsy },
+  { id: 'winterSolstice', label: 'Winter Solstice', colors: palettes.winterSolstice },
+  { id: 'synthwave80s', label: 'Synthwave 80s', colors: palettes.synthwave80s },
+  { id: 'kawaiiPastel', label: 'Kawaii Pastel', colors: palettes.kawaiiPastel },
+  { id: 'renaissance', label: 'Renaissance Oil', colors: palettes.renaissance },
+  { id: 'popArt', label: '60s Pop Art', colors: palettes.popArt },
+
   ];
   
   // Filter out any palette types that have undefined or empty colors

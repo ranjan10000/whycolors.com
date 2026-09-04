@@ -1,6 +1,6 @@
 // app/color/[hex]/page.tsx
 import { notFound } from 'next/navigation';
-import type { Metadata } from 'next';
+import type { Metadata , Viewport  } from 'next';
 import { getColors } from '@/lib/color-cache';
 import { 
   getColorName, 
@@ -112,110 +112,180 @@ export default async function ColorPage({ params }: ColorPageProps) {
 
 // ============ METADATA GENERATION ============
 
+// ============ METADATA GENERATION ============
 export async function generateMetadata({ params }: ColorPageProps): Promise<Metadata> {
+  try {
+    const { hex } = await params;
+    
+    // Validate hex for metadata
+    const sanitized = sanitizeHex(hex);
+    if (!sanitized) {
+      return {
+        title: 'Invalid Color',
+        description: 'The requested color could not be found.',
+        robots: {
+          index: false,
+          follow: false,
+        },
+      };
+    }
+    
+    const cleanHex = sanitized.toLowerCase();
+    
+    // Check if it's a valid color
+    if (!isValidHex(cleanHex)) {
+      return {
+        title: 'Invalid Color',
+        description: 'The requested color format is invalid.',
+        robots: { 
+          index: false, 
+          follow: false 
+        },
+      };
+    }
+    
+    // Get color information for metadata with fallbacks
+    const colorName = getColorName(cleanHex) || 'Unknown Color';
+    const colorFamily = getColorFamily(cleanHex) || 'Unknown';
+    const fullHex = `#${cleanHex.toUpperCase()}`;
+    const rgb = hexToRgb(cleanHex);
+    const hsl = hexToHsl(cleanHex);
+
+    // Build rich description
+    const descriptionParts = [
+      `Explore ${colorName} (${fullHex})`,
+      rgb ? `RGB: ${rgb}` : '',
+      hsl ? `HSL: ${hsl}` : '',
+      `Part of the ${colorFamily} color family`,
+    ].filter(Boolean);
+    
+    const description = descriptionParts.join(' • ');
+    
+    // Generate keywords
+    const keywords = [
+      colorName,
+      fullHex,
+      cleanHex,
+      `${colorName} color`,
+      `color ${fullHex}`,
+      colorFamily,
+      'color code',
+      'hex color',
+      'color converter',
+      'color palette',
+      'color harmonies',
+      'shades',
+      'tints',
+      'similar colors'
+    ].join(', ');
+    
+    // Generate title
+    const title = `${fullHex} ${colorName} - Color Details, HEX, RGB, Shades & Gradients`;
+    
+    return {
+      title,
+      description,
+      keywords,
+      openGraph: {
+        title,
+        description: `Explore ${colorName} (${fullHex}) with conversions, shades, tints, harmonies, and similar colors.`,
+        url: `https://www.whycolors.com/color/${cleanHex}`,
+        siteName: 'WhyColors',
+        images: [
+          {
+            url: `https://www.whycolors.com/api/og/color?hex=${cleanHex}`,
+            width: 1200,
+            height: 630,
+            alt: `${colorName} Color ${fullHex}`,
+            type: 'image/png',
+          },
+        ],
+        type: 'website',
+        locale: 'en_US',
+      },
+      
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description: `Explore ${colorName} (${fullHex}) with conversions, shades, tints, harmonies, and similar colors.`,
+        images: [`https://www.whycolors.com/api/og/color?hex=${cleanHex}`],
+        site: '@whycolors',
+        creator: '@whycolors',
+      },
+      
+      alternates: {
+        canonical: `https://www.whycolors.com/color/${cleanHex}`,
+      },
+      
+      robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+          'max-video-preview': -1,
+          'max-image-preview': 'large',
+          'max-snippet': -1,
+        },
+      },
+      
+      // Additional metadata
+      category: 'color',
+      applicationName: 'WhyColors',
+      referrer: 'origin-when-cross-origin',
+      
+      // Structured data for rich snippets
+      other: {
+        'application/ld+json': JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'Color',
+          name: colorName,
+          color: fullHex,
+          description: `${colorName} is a ${colorFamily} color with hex code ${fullHex}.`,
+          url: `https://www.whycolors.com/color/${cleanHex}`,
+          image: `https://www.whycolors.com/api/og/color?hex=${cleanHex}`,
+        }),
+      },
+    };
+    
+  } catch (error) {
+    // Handle any unexpected errors
+    console.error('Error generating metadata:', error);
+    return {
+      title: 'Color Details',
+      description: 'Explore color information, conversions, and harmonies.',
+      robots: {
+        index: true,
+        follow: true,
+      },
+    };
+  }
+}
+
+// ============ VIEWPORT GENERATION ============
+// ✅ THEME COLOR MOVED HERE
+export async function generateViewport({ 
+  params 
+}: ColorPageProps): Promise<Viewport> {
   const { hex } = await params;
   
-  // Validate hex for metadata
   const sanitized = sanitizeHex(hex);
-  if (!sanitized) {
+  if (!sanitized || !isValidHex(sanitized)) {
     return {
-      title: 'Invalid Color',
-      description: 'The requested color could not be found.',
-      robots: {
-        index: false,
-        follow: false,
-      },
+      themeColor: '#000000',
+      width: 'device-width',
+      initialScale: 1,
+      maximumScale: 5,
     };
   }
   
   const cleanHex = sanitized.toLowerCase();
-  
-  // Check if it's a valid color
-  if (!isValidHex(cleanHex)) {
-    return {
-      title: 'Invalid Color',
-      robots: { index: false, follow: false },
-    };
-  }
-  
-  // Get color information for metadata
-  const colorName = getColorName(cleanHex);
-  const colorFamily = getColorFamily(cleanHex);
   const fullHex = `#${cleanHex.toUpperCase()}`;
-  const rgb = hexToRgb(cleanHex);
-  const hsl = hexToHsl(cleanHex);
-  
-  // Build rich description
-  const descriptionParts = [
-    `Explore ${fullHex} (${colorName})`,
-    rgb ? `RGB: ${rgb}` : '',
-    hsl ? `HSL: ${hsl}` : '',
-    `Part of the ${colorFamily} color family`,
-    'View conversions, shades, tints, harmonies, and similar colors.'
-  ].filter(Boolean);
-  
-  const description = descriptionParts.join(' • ');
-  
-  // Generate keywords
-  const keywords = [
-    colorName,
-    fullHex,
-    cleanHex,
-    `${colorName} color`,
-    `color ${fullHex}`,
-    colorFamily,
-    'color code',
-    'hex color',
-    'color converter',
-    'color palette',
-    'color harmonies',
-    'shades',
-    'tints',
-    'similar colors'
-  ].join(', ');
   
   return {
-    title: `${fullHex} ${colorName} - Shades, Palettes & Color Details`,
-    description: description,
-    keywords: keywords,
-    
-    openGraph: {
-      title: `${fullHex} ${colorName} - Shades, Palettes & Color Details`,
-      description: `Explore ${fullHex} (${colorName}) with conversions, shades, tints, harmonies, and similar colors.`,
-      url: `https://www.whycolors.com/color/${cleanHex}`,
-      siteName: 'WhyColors',
-      images: [
-        {
-          url: `https://www.whycolors.com/api/og/color?hex=${cleanHex}`,
-          width: 1200,
-          height: 630,
-          alt: `${colorName} Color ${fullHex}`,
-        },
-      ],
-      type: 'website',
-    },
-    
-    twitter: {
-      card: 'summary_large_image',
-      title: `${fullHex} ${colorName} - Shades, Palettes & Color Details`,
-      description: `Explore ${fullHex} (${colorName}) with conversions, shades, tints, harmonies, and similar colors.`,
-      images: [`https://www.whycolors.com/api/og/color?hex=${cleanHex}`],
-    },
-    
-    alternates: {
-      canonical: `https://www.whycolors.com/color/${cleanHex}`,
-    },
-    
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
-      },
-    },
+    themeColor: fullHex,      // ✅ Theme color here
+    width: 'device-width',    // ✅ Viewport settings
+    initialScale: 1,
+    maximumScale: 5,
   };
 }

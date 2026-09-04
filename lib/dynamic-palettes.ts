@@ -780,6 +780,127 @@ export function generateGradientCool(hex: string, count: number = 5): string[] {
   }
   return colors;
 }
+// ============ MAKEUP PALETTES ============
+
+// 5. Soft Glam - Natural, elegant, everyday
+export function generateSoftGlam(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(h, s * 0.5, Math.min(1, l * 1.3), 'hsl').hex(), // light shimmer
+    chroma((h + 10) % 360, s * 0.6, l * 0.7, 'hsl').hex(), // mid tone
+    chroma((h + 20) % 360, s * 0.4, Math.min(1, l * 1.5), 'hsl').hex(), // highlight
+    chroma(h, s * 0.3, l * 0.4, 'hsl').hex(), // crease shade
+    chroma((h + 30) % 360, s * 0.7, l * 0.6, 'hsl').hex(), // accent
+  ];
+}
+
+// 6. Berry Martini - Deep berry, plummy, bold
+export function generateBerryMartini(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 20) % 360, s * 0.9, l * 0.8, 'hsl').hex(), // bright berry
+    chroma((h - 20 + 360) % 360, s * 0.8, l * 0.5, 'hsl').hex(), // deep berry
+    chroma((h + 40) % 360, s * 0.6, l * 0.9, 'hsl').hex(), // light berry
+    chroma((h + 60) % 360, s * 0.5, l * 0.3, 'hsl').hex(), // dark plum
+  ];
+}
+
+// 7. Neutrals - Everyday natural shades
+export function generateNeutrals(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(h, s * 0.1, Math.min(1, l * 1.4), 'hsl').hex(), // light neutral
+    chroma(h, s * 0.2, l * 0.8, 'hsl').hex(), // mid neutral
+    chroma(h, s * 0.05, l * 0.5, 'hsl').hex(), // grayish
+    chroma(h, s * 0.15, l * 0.3, 'hsl').hex(), // dark neutral
+  ];
+}
+
+// lib/dynamic-palettes.ts - Add these new functions
+
+// ============ DESIGN & AESTHETIC PALETTES ============
+
+// 1. Quiet Luxury - Minimalist, high-end, neutral tones
+export function generateQuietLuxury(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  // Muted, sophisticated tones
+  return [
+    hex,
+    chroma(h, s * 0.2, l * 0.9, 'hsl').hex(), // soft neutral
+    chroma((h + 20) % 360, s * 0.3, l * 0.7, 'hsl').hex(), // muted accent
+    chroma(h, s * 0.1, l * 0.3, 'hsl').hex(), // deep neutral
+    chroma((h + 40) % 360, s * 0.15, l * 0.5, 'hsl').hex(), // earthy
+  ];
+}
+
+// 2. Gothic Noir - Dark, dramatic, mysterious
+export function generateGothicNoir(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(h, s, Math.min(1, l * 0.3), 'hsl').hex(), // very dark
+    chroma((h + 180) % 360, s * 0.5, l * 0.2, 'hsl').hex(), // dark complement
+    chroma(h, s * 0.3, l * 0.6, 'hsl').hex(), // muted mid-tone
+    chroma((h + 90) % 360, s * 0.2, l * 0.1, 'hsl').hex(), // deep shadow
+  ];
+}
+
+// 3. Cozy Campfire - Warm, inviting, rustic
+export function generateCozyCampfire(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  // Warm, earthy tones
+  return [
+    hex,
+    chroma((h + 30) % 360, s * 0.8, l * 0.8, 'hsl').hex(), // warm glow
+    chroma((h + 60) % 360, s * 0.6, l * 0.4, 'hsl').hex(), // earthy
+    chroma((h + 15) % 360, s * 0.7, l * 0.9, 'hsl').hex(), // warm light
+    chroma((h + 45) % 360, s * 0.5, l * 0.3, 'hsl').hex(), // deep warmth
+  ];
+}
+
+// 4. Lavender Lullaby - Soft, calming, dreamy
+export function generateLavenderLullaby(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  // Soft, pastel, dreamy tones
+  return [
+    hex,
+    chroma((h + 20) % 360, s * 0.3, Math.min(1, l * 1.2), 'hsl').hex(), // light pastel
+    chroma((h + 40) % 360, s * 0.2, Math.min(1, l * 1.4), 'hsl').hex(), // very light
+    chroma((h + 180) % 360, s * 0.3, l * 0.9, 'hsl').hex(), // soft complement
+    chroma((h + 60) % 360, s * 0.25, l * 0.95, 'hsl').hex(), // dreamy
+  ];
+}
 
 // ============ NEW PALETTES ============
 
@@ -845,10 +966,603 @@ export function generateSaturationScale(hex: string, count: number = 5): string[
   return colors;
 }
 
-// 5. Seasonal Palettes
-// ============ FIXED: Seasonal Palettes ============
+// ============ CAFE & FLAVORS (Food/Culinary Vibes) ============
+
+// 1. Vanilla Latte - Warm, creamy, comforting
+export function generateVanillaLatte(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(h, s * 0.3, Math.min(1, l * 1.4), 'hsl').hex(), // creamy white
+    chroma((h + 20) % 360, s * 0.4, l * 0.8, 'hsl').hex(), // warm beige
+    chroma((h + 10) % 360, s * 0.2, l * 0.6, 'hsl').hex(), // caramel
+    chroma((h + 30) % 360, s * 0.5, l * 0.3, 'hsl').hex(), // espresso
+  ];
+}
+
+// 2. Salted Caramel - Sweet, salty, warm
+export function generateSaltedCaramel(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 30) % 360, s * 0.8, l * 1.2, 'hsl').hex(), // golden caramel
+    chroma((h + 15) % 360, s * 0.6, l * 0.5, 'hsl').hex(), // deep caramel
+    chroma((h + 45) % 360, s * 0.4, l * 0.9, 'hsl').hex(), // butterscotch
+    chroma((h + 60) % 360, s * 0.3, l * 0.3, 'hsl').hex(), // dark toffee
+  ];
+}
+
+// 3. Matcha Latte - Earthy, green, calming
+export function generateMatchaLatte(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 120) % 360, s * 0.4, l * 0.7, 'hsl').hex(), // matcha green
+    chroma((h + 100) % 360, s * 0.3, Math.min(1, l * 1.3), 'hsl').hex(), // matcha cream
+    chroma((h + 140) % 360, s * 0.5, l * 0.4, 'hsl').hex(), // deep matcha
+    chroma((h + 90) % 360, s * 0.2, l * 0.9, 'hsl').hex(), // light green
+  ];
+}
+
+// 4. Berry Blast - Fruity, vibrant, refreshing
+export function generateBerryBlast(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 40) % 360, s * 0.9, l * 0.8, 'hsl').hex(), // raspberry
+    chroma((h + 20) % 360, s * 0.8, l * 1.1, 'hsl').hex(), // strawberry
+    chroma((h + 60) % 360, s * 0.7, l * 0.6, 'hsl').hex(), // blueberry
+    chroma((h + 80) % 360, s * 0.6, l * 0.9, 'hsl').hex(), // blackberry
+  ];
+}
+
+// 5. Honey Almond - Warm, nutty, golden
+export function generateHoneyAlmond(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 30) % 360, s * 0.5, l * 1.3, 'hsl').hex(), // honey
+    chroma((h + 15) % 360, s * 0.3, l * 0.8, 'hsl').hex(), // almond
+    chroma((h + 45) % 360, s * 0.4, l * 0.5, 'hsl').hex(), // toasted almond
+    chroma((h + 60) % 360, s * 0.2, l * 0.4, 'hsl').hex(), // walnut
+  ];
+}
+
+// 6. Mocha - Rich, chocolatey, deep
+export function generateMocha(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 10) % 360, s * 0.6, l * 0.7, 'hsl').hex(), // milk chocolate
+    chroma((h + 20) % 360, s * 0.4, l * 0.4, 'hsl').hex(), // dark chocolate
+    chroma((h + 30) % 360, s * 0.3, l * 0.9, 'hsl').hex(), // cream
+    chroma((h + 40) % 360, s * 0.5, l * 0.5, 'hsl').hex(), // mocha
+  ];
+}
 
 
+// ============ COSMIC & DREAMY (Sci-Fi/Fantasy Vibes) ============
+
+// 7. Stardust - Sparkling, celestial, magical
+export function generateStardust(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 180) % 360, s * 0.2, Math.min(1, l * 1.6), 'hsl').hex(), // starlight
+    chroma((h + 240) % 360, s * 0.3, l * 0.8, 'hsl').hex(), // twilight
+    chroma((h + 300) % 360, s * 0.4, l * 0.6, 'hsl').hex(), // nebula
+    chroma((h + 60) % 360, s * 0.1, Math.min(1, l * 1.5), 'hsl').hex(), // moonbeam
+  ];
+}
+
+// 8. Cyberpunk Night - Neon, dark, futuristic
+export function generateCyberpunkNight(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 180) % 360, s * 0.9, l * 0.3, 'hsl').hex(), // cyan
+    chroma((h + 300) % 360, s * 0.8, l * 0.4, 'hsl').hex(), // magenta
+    chroma((h + 60) % 360, s * 0.5, l * 0.1, 'hsl').hex(), // neon green
+    chroma((h + 240) % 360, s * 0.7, l * 0.2, 'hsl').hex(), // blue
+  ];
+}
+
+// 9. Moonlit Silver - Mystical, silvery, ethereal
+export function generateMoonlitSilver(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 200) % 360, s * 0.1, Math.min(1, l * 1.5), 'hsl').hex(), // silver
+    chroma((h + 180) % 360, s * 0.2, l * 0.7, 'hsl').hex(), // moon gray
+    chroma((h + 160) % 360, s * 0.3, Math.min(1, l * 1.3), 'hsl').hex(), // mist
+    chroma((h + 220) % 360, s * 0.4, l * 0.3, 'hsl').hex(), // midnight
+  ];
+}
+
+// 10. Aurora Borealis - Magical, flowing, colorful
+export function generateAuroraBorealis(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 120) % 360, s * 0.7, l * 0.6, 'hsl').hex(), // aurora green
+    chroma((h + 180) % 360, s * 0.6, l * 0.7, 'hsl').hex(), // aurora blue
+    chroma((h + 240) % 360, s * 0.5, l * 0.8, 'hsl').hex(), // aurora purple
+    chroma((h + 300) % 360, s * 0.4, l * 0.9, 'hsl').hex(), // aurora pink
+  ];
+}
+
+// 11. Galaxy - Deep space, cosmic, mysterious
+export function generateGalaxy(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 240) % 360, s * 0.8, l * 0.15, 'hsl').hex(), // deep space
+    chroma((h + 300) % 360, s * 0.6, l * 0.5, 'hsl').hex(), // nebula purple
+    chroma((h + 180) % 360, s * 0.5, l * 0.3, 'hsl').hex(), // cosmic blue
+    chroma((h + 60) % 360, s * 0.3, l * 0.6, 'hsl').hex(), // starlight
+  ];
+}
+
+// 12. Dreamscape - Surreal, ethereal, floating
+export function generateDreamscape(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 60) % 360, s * 0.2, Math.min(1, l * 1.4), 'hsl').hex(), // dreamy pink
+    chroma((h + 120) % 360, s * 0.3, l * 0.8, 'hsl').hex(), // ethereal green
+    chroma((h + 180) % 360, s * 0.2, Math.min(1, l * 1.3), 'hsl').hex(), // misty blue
+    chroma((h + 240) % 360, s * 0.1, l * 0.9, 'hsl').hex(), // soft purple
+  ];
+}
+
+// ============ VINTAGE & EDITORIAL (Classy/Aesthetic Vibes) ============
+
+// 1. Velvet Romance - Rich, luxurious, passionate
+export function generateVelvetRomance(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 10) % 360, s * 0.9, l * 0.6, 'hsl').hex(), // deep velvet
+    chroma((h + 20) % 360, s * 0.7, l * 0.8, 'hsl').hex(), // soft romance
+    chroma((h + 40) % 360, s * 0.5, l * 0.9, 'hsl').hex(), // dusty rose
+    chroma((h + 60) % 360, s * 0.3, Math.min(1, l * 1.2), 'hsl').hex(), // blush
+  ];
+}
+
+// 2. Antique Parchment - Aged, timeless, vintage
+export function generateAntiqueParchment(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 30) % 360, s * 0.2, Math.min(1, l * 1.4), 'hsl').hex(), // parchment
+    chroma((h + 20) % 360, s * 0.3, l * 0.8, 'hsl').hex(), // aged paper
+    chroma((h + 40) % 360, s * 0.15, l * 0.6, 'hsl').hex(), // sepia
+    chroma((h + 50) % 360, s * 0.1, l * 0.4, 'hsl').hex(), // vintage ink
+  ];
+}
+
+// 3. Retro Funk - Bold, groovy, playful
+export function generateRetroFunk(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 60) % 360, s * 0.9, l * 0.7, 'hsl').hex(), // funky yellow
+    chroma((h + 120) % 360, s * 0.8, l * 0.6, 'hsl').hex(), // groovy green
+    chroma((h + 180) % 360, s * 0.7, l * 0.7, 'hsl').hex(), // disco blue
+    chroma((h + 240) % 360, s * 0.6, l * 0.8, 'hsl').hex(), // retro purple
+  ];
+}
+
+// 4. Desert Oasis - Warm, earthy, serene
+export function generateDesertOasis(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 30) % 360, s * 0.6, l * 0.7, 'hsl').hex(), // desert sand
+    chroma((h + 180) % 360, s * 0.5, l * 0.6, 'hsl').hex(), // oasis water
+    chroma((h + 60) % 360, s * 0.4, l * 0.5, 'hsl').hex(), // dry grass
+    chroma((h + 20) % 360, s * 0.3, Math.min(1, l * 1.3), 'hsl').hex(), // warm light
+  ];
+}
+
+// 5. Vintage Rose - Romantic, faded, timeless
+export function generateVintageRose(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 15) % 360, s * 0.5, l * 0.8, 'hsl').hex(), // faded rose
+    chroma((h + 30) % 360, s * 0.3, Math.min(1, l * 1.2), 'hsl').hex(), // antique pink
+    chroma((h + 45) % 360, s * 0.4, l * 0.6, 'hsl').hex(), // dusty mauve
+    chroma((h + 60) % 360, s * 0.2, l * 0.9, 'hsl').hex(), // cream
+  ];
+}
+
+// 6. Editorial - Sophisticated, editorial, classic
+export function generateEditorial(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(h, s * 0.1, l * 0.2, 'hsl').hex(), // near black
+    chroma((h + 30) % 360, s * 0.2, l * 0.7, 'hsl').hex(), // warm gray
+    chroma(h, s * 0.05, Math.min(1, l * 1.4), 'hsl').hex(), // off-white
+    chroma((h + 180) % 360, s * 0.2, l * 0.5, 'hsl').hex(), // muted accent
+  ];
+}
+
+
+// ============ TECH & FUNCTIONAL (UI Extensions) ============
+
+// 7. Glassmorphism Bases - Frosted, modern, clean
+export function generateGlassmorphism(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(h, s * 0.1, Math.min(1, l * 1.8), 'hsl').hex(), // frosted white
+    chroma((h + 30) % 360, s * 0.15, Math.min(1, l * 1.6), 'hsl').hex(), // glass
+    chroma(h, s * 0.05, l * 0.9, 'hsl').hex(), // semi-transparent
+    chroma(h, s * 0.1, l * 0.3, 'hsl').hex(), // dark glass
+  ];
+}
+
+// 8. Retro Terminal (Hacker) - Green/Amber CRT monitor
+export function generateRetroTerminal(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(120, s * 0.8, l * 0.4, 'hsl').hex(), // CRT green
+    chroma(60, s * 0.9, l * 0.6, 'hsl').hex(), // amber glow
+    chroma(120, s * 0.2, l * 0.1, 'hsl').hex(), // dark screen
+    chroma(120, s * 0.3, l * 0.8, 'hsl').hex(), // bright text
+  ];
+}
+
+// 9. Accessible High Contrast (A11y) - WCAG compliant
+export function generateAccessibleHighContrast(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(h, s * 0.9, l * 0.9, 'hsl').hex(), // light variant
+    chroma(h, s * 0.9, l * 0.1, 'hsl').hex(), // dark variant
+    chroma((h + 180) % 360, s * 0.8, l * 0.8, 'hsl').hex(), // contrast companion
+    '#FFFFFF', // pure white
+    '#000000', // pure black
+  ];
+}
+
+// 10. Brand Identity - Primary, secondary, accent
+export function generateBrandIdentity(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex, // Primary
+    chroma(h, s * 0.8, l * 0.7, 'hsl').hex(), // Secondary
+    chroma(h, s * 0.9, l * 0.5, 'hsl').hex(), // Primary dark
+    chroma((h + 180) % 360, s * 0.6, l * 0.6, 'hsl').hex(), // Complementary
+    chroma(h, s * 0.3, Math.min(1, l * 1.4), 'hsl').hex(), // Light
+    chroma(h, s * 0.5, l * 0.2, 'hsl').hex(), // Dark
+  ];
+}
+
+// 11. Neubrutalism - Bold, raw, unpolished
+export function generateNeubrutalism(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 60) % 360, s * 0.9, l * 0.8, 'hsl').hex(), // bold yellow
+    chroma((h + 180) % 360, s * 0.8, l * 0.7, 'hsl').hex(), // bold blue
+    chroma((h + 300) % 360, s * 0.7, l * 0.7, 'hsl').hex(), // bold pink
+    '#000000', // black
+  ];
+}
+
+// 12. Dark Mode UI - Elevation layers
+export function generateDarkModeUI(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex, // Primary accent
+    chroma(h, s * 0.3, l * 0.1, 'hsl').hex(), // Surface 0
+    chroma(h, s * 0.4, l * 0.15, 'hsl').hex(), // Surface 1
+    chroma(h, s * 0.5, l * 0.2, 'hsl').hex(), // Surface 2
+    chroma(h, s * 0.6, l * 0.3, 'hsl').hex(), // Surface 3
+  ];
+}
+
+// ============ CYBER/BRAT ============
+
+// 1. Cyber Lime / Brat - Neon green, edgy, rebellious
+export function generateCyberLime(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(90, s * 0.9, l * 0.6, 'hsl').hex(), // lime green
+    chroma(180, s * 0.8, l * 0.5, 'hsl').hex(), // cyber teal
+    chroma(300, s * 0.7, l * 0.7, 'hsl').hex(), // neon purple
+    chroma(60, s * 0.6, l * 0.4, 'hsl').hex(), // acid yellow
+  ];
+}
+
+
+// ============ NORDIC/MINIMALIST ============
+
+// 2. Nordic Scandi - Minimalist, clean, functional
+export function generateNordicScandi(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(h, s * 0.05, Math.min(1, l * 1.5), 'hsl').hex(), // pure white
+    chroma(h, s * 0.1, l * 0.7, 'hsl').hex(), // warm gray
+    chroma((h + 180) % 360, s * 0.3, l * 0.8, 'hsl').hex(), // muted blue
+    chroma(h, s * 0.08, l * 0.3, 'hsl').hex(), // charcoal
+  ];
+}
+
+
+// ============ INDUSTRIAL ============
+
+// 3. Industrial Concrete - Raw, urban, utilitarian
+export function generateIndustrialConcrete(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(h, s * 0.05, l * 0.9, 'hsl').hex(), // concrete
+    chroma(h, s * 0.1, l * 0.6, 'hsl').hex(), // weathered steel
+    chroma((h + 30) % 360, s * 0.2, l * 0.4, 'hsl').hex(), // rust
+    chroma(h, s * 0.02, l * 0.15, 'hsl').hex(), // asphalt
+  ];
+}
+
+
+// ============ MEDITERRANEAN ============
+
+// 4. Mediterranean Villa - Sun, sea, warmth
+export function generateMediterranean(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(200, s * 0.7, l * 0.7, 'hsl').hex(), // sea blue
+    chroma(40, s * 0.6, l * 0.8, 'hsl').hex(), // terracotta
+    chroma(60, s * 0.4, Math.min(1, l * 1.3), 'hsl').hex(), // sandy
+    chroma(120, s * 0.5, l * 0.5, 'hsl').hex(), // olive
+  ];
+}
+
+
+// ============ SEASONAL ============
+
+// 5. Spring Bloom - Fresh, floral, vibrant
+export function generateSpringBloom(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 30) % 360, s * 0.6, Math.min(1, l * 1.3), 'hsl').hex(), // peach
+    chroma(120, s * 0.5, l * 0.7, 'hsl').hex(), // fresh green
+    chroma(180, s * 0.4, Math.min(1, l * 1.4), 'hsl').hex(), // sky blue
+    chroma((h + 60) % 360, s * 0.3, Math.min(1, l * 1.5), 'hsl').hex(), // cream
+  ];
+}
+
+// 6. Autumn Whimsy - Warm, nostalgic, colorful
+export function generateAutumnWhimsy(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 30) % 360, s * 0.8, l * 0.5, 'hsl').hex(), // rust
+    chroma(50, s * 0.7, l * 0.6, 'hsl').hex(), // golden
+    chroma(120, s * 0.4, l * 0.4, 'hsl').hex(), // olive
+    chroma((h + 45) % 360, s * 0.5, l * 0.8, 'hsl').hex(), // caramel
+  ];
+}
+
+// 7. Winter Solstice - Cool, crisp, magical
+export function generateWinterSolstice(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(200, s * 0.2, Math.min(1, l * 1.5), 'hsl').hex(), // ice blue
+    chroma(220, s * 0.3, l * 0.8, 'hsl').hex(), // winter sky
+    chroma(h, s * 0.05, l * 0.9, 'hsl').hex(), // snow
+    chroma(240, s * 0.4, l * 0.2, 'hsl').hex(), // midnight
+  ];
+}
+
+
+// ============ SYNTHWAVE/RETRO ============
+
+// 8. Synthwave 80s - Neon, retro, vaporwave
+export function generateSynthwave80s(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(300, s * 0.9, l * 0.7, 'hsl').hex(), // neon pink
+    chroma(180, s * 0.8, l * 0.6, 'hsl').hex(), // cyan
+    chroma(240, s * 0.7, l * 0.5, 'hsl').hex(), // synthwave blue
+    chroma(60, s * 0.6, l * 0.8, 'hsl').hex(), // retro yellow
+  ];
+}
+
+
+// ============ KAWAII/PASTEL ============
+
+// 9. Kawaii Pastel - Cute, soft, playful
+export function generateKawaiiPastel(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(340, s * 0.4, Math.min(1, l * 1.4), 'hsl').hex(), // soft pink
+    chroma(180, s * 0.3, Math.min(1, l * 1.5), 'hsl').hex(), // mint
+    chroma(240, s * 0.3, Math.min(1, l * 1.3), 'hsl').hex(), // baby blue
+    chroma(60, s * 0.2, Math.min(1, l * 1.6), 'hsl').hex(), // pastel yellow
+  ];
+}
+
+
+// ============ RENAISSANCE ============
+
+// 10. Renaissance Oil - Classical, rich, painterly
+export function generateRenaissance(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma((h + 20) % 360, s * 0.6, l * 0.5, 'hsl').hex(), // burnt sienna
+    chroma((h + 40) % 360, s * 0.5, l * 0.7, 'hsl').hex(), // gold leaf
+    chroma((h + 180) % 360, s * 0.4, l * 0.6, 'hsl').hex(), // teal
+    chroma((h + 60) % 360, s * 0.2, l * 0.9, 'hsl').hex(), // cream
+  ];
+}
+
+
+// ============ POP ART ============
+
+// 11. 60s Pop Art - Bold, vibrant, comic
+export function generatePopArt(hex: string): string[] {
+  const color = chroma(normalizeHex(hex));
+  const h = color.get('hsl.h');
+  const s = color.get('hsl.s');
+  const l = color.get('hsl.l');
+  
+  return [
+    hex,
+    chroma(0, s * 0.9, l * 0.6, 'hsl').hex(), // pop red
+    chroma(60, s * 0.9, l * 0.7, 'hsl').hex(), // pop yellow
+    chroma(220, s * 0.8, l * 0.5, 'hsl').hex(), // pop blue
+    '#000000', // black
+  ];
+}
 
 
 // ============ CACHING ============
@@ -889,6 +1603,17 @@ export function generateAllPalettes(hex: string) {
     light: generateLight(normalizedHex),
     warm: generateWarmPalette(normalizedHex),
     cool: generateCoolPalette(normalizedHex),
+
+      // ============ NEW DESIGN PALETTES ============
+    quietLuxury: generateQuietLuxury(normalizedHex),
+    gothicNoir: generateGothicNoir(normalizedHex),
+    cozyCampfire: generateCozyCampfire(normalizedHex),
+    lavenderLullaby: generateLavenderLullaby(normalizedHex),
+    
+    // ============ NEW MAKEUP PALETTES ============
+    softGlam: generateSoftGlam(normalizedHex),
+    berryMartini: generateBerryMartini(normalizedHex),
+    neutrals: generateNeutrals(normalizedHex),
     
     // Advanced harmonies
     monochromatic: generateMonochromatic(normalizedHex),
@@ -922,6 +1647,52 @@ export function generateAllPalettes(hex: string) {
     uiPalette: generateUIPalette(normalizedHex),
     clash: generateClash(normalizedHex),
     saturationScale: generateSaturationScale(normalizedHex),
+
+        // ============ CAFE & FLAVORS ============
+    vanillaLatte: generateVanillaLatte(normalizedHex),
+    saltedCaramel: generateSaltedCaramel(normalizedHex),
+    matchaLatte: generateMatchaLatte(normalizedHex),
+    berryBlast: generateBerryBlast(normalizedHex),
+    honeyAlmond: generateHoneyAlmond(normalizedHex),
+    mocha: generateMocha(normalizedHex),
+    
+    // ============ COSMIC & DREAMY ============
+    stardust: generateStardust(normalizedHex),
+    cyberpunkNight: generateCyberpunkNight(normalizedHex),
+    moonlitSilver: generateMoonlitSilver(normalizedHex),
+    auroraBorealis: generateAuroraBorealis(normalizedHex),
+    galaxy: generateGalaxy(normalizedHex),
+    dreamscape: generateDreamscape(normalizedHex),
+
+      
+    // ============ VINTAGE & EDITORIAL ============
+    velvetRomance: generateVelvetRomance(normalizedHex),
+    antiqueParchment: generateAntiqueParchment(normalizedHex),
+    retroFunk: generateRetroFunk(normalizedHex),
+    desertOasis: generateDesertOasis(normalizedHex),
+    vintageRose: generateVintageRose(normalizedHex),
+    editorial: generateEditorial(normalizedHex),
+    
+    // ============ TECH & FUNCTIONAL ============
+    glassmorphism: generateGlassmorphism(normalizedHex),
+    retroTerminal: generateRetroTerminal(normalizedHex),
+    accessibleHighContrast: generateAccessibleHighContrast(normalizedHex),
+    brandIdentity: generateBrandIdentity(normalizedHex),
+    neubrutalism: generateNeubrutalism(normalizedHex),
+    darkModeUI: generateDarkModeUI(normalizedHex),
+
+     // ============ NEW PALETTES ============
+    cyberLime: generateCyberLime(normalizedHex),
+    nordicScandi: generateNordicScandi(normalizedHex),
+    industrialConcrete: generateIndustrialConcrete(normalizedHex),
+    mediterranean: generateMediterranean(normalizedHex),
+    springBloom: generateSpringBloom(normalizedHex),
+    autumnWhimsy: generateAutumnWhimsy(normalizedHex),
+    winterSolstice: generateWinterSolstice(normalizedHex),
+    synthwave80s: generateSynthwave80s(normalizedHex),
+    kawaiiPastel: generateKawaiiPastel(normalizedHex),
+    renaissance: generateRenaissance(normalizedHex),
+    popArt: generatePopArt(normalizedHex),
 
  
   };
