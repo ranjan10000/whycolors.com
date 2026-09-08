@@ -5,6 +5,9 @@ import { Palette, Heart, Mail, Sparkles, Zap, Shield, BookOpen } from 'lucide-re
 
 const footerLinks = {
   tools: [
+     { label: 'Colors', href: '/color' },
+    { label: 'Shades', href: '/shades' },
+    { label: 'Custom Palettes', href: '/color/palettes' },
     { label: 'Palettes', href: '#palette' },
     { label: 'Effects', href: '#effects' },
     { label: 'Color Wheel', href: '#color-wheel' },

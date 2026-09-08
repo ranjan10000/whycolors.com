@@ -319,37 +319,7 @@ export default async function ColorPalettePage({ params }: ColorPalettePageProps
   // ✅ RETURN WITH H1
   return (
     <div className="min-h-screen">
-      
-      {/* ✅ HERO SECTION WITH H1 - Server Rendered for SEO */}
-      <div className="bg-gradient-to-b from-white to-gray-50 dark:from-[#090911] dark:to-[#0d0d1a] border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <div className="flex items-center gap-4 sm:gap-6">
-            {/* Color Swatch */}
-            <div 
-              className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-xl shadow-lg border-2 border-white dark:border-gray-700 flex-shrink-0"
-              style={{ backgroundColor: fullHex }}
-            />
-            <div>
-              {/* ✅ H1 - Main heading for SEO */}
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white">
-                {colorName} Color Palettes
-              </h1>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
-                <span className="text-sm font-mono bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg text-gray-600 dark:text-gray-300">
-                  {fullHex}
-                </span>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {validPaletteTypes.length} Palettes
-                </span>
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Explore harmonious color palettes for {colorName}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-      
+
       {/* ✅ Client Component */}
       <PaletteClient 
         hex={cleanHex}

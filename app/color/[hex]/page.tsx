@@ -1,7 +1,6 @@
 // app/color/[hex]/page.tsx
 import { notFound } from 'next/navigation';
 import type { Metadata , Viewport  } from 'next';
-import { getColors } from '@/lib/color-cache';
 import { 
   getColorName, 
   isValidHex, 

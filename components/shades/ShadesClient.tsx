@@ -23,6 +23,7 @@ import {
   getUniqueColorNames,
 } from '@/components/shades/shade-generator';
 import { getColorName, getColorFamily } from '@/lib/color-utils';
+import SocialShare from '@/components/color/SocialShare';
 
 interface ShadesClientProps {
   colorName?: string;
@@ -230,6 +231,23 @@ export default function ShadesClient({
    * ============================================================
    */
 
+  // ✅ சரியான Type - InputEvent
+const handlePickerInput = (e: React.FormEvent<HTMLInputElement>) => {
+  const target = e.currentTarget;
+  const newHex = target.value.replace('#', '').toLowerCase();
+
+  if (!/^[0-9a-f]{6}$/.test(newHex)) {
+    return;
+  }
+
+  setColor(newHex);
+  setInputValue(`#${newHex.toUpperCase()}`);
+
+  router.push(`/shades/${newHex}`, {
+    scroll: false,
+  });
+};
+
   const handlePickerChange = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -358,146 +376,115 @@ export default function ShadesClient({
             HERO + HEADER
         ====================================================== */}
 
-        <div
-          className={`flex flex-wrap items-center justify-between gap-4 ${
-            isDark ? 'border-white/10' : 'border-gray-200'
-          } border-b pb-4`}
-        >
-          <div className="flex items-center gap-4 sm:gap-6">
+<div
+  className={`flex flex-col items-center text-center gap-6 border-b pb-6 sm:flex-row sm:items-end sm:text-left sm:justify-between ${
+    isDark ? 'border-white/10' : 'border-gray-200'
+  }`}
+>
+  <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:gap-6">
+    {/* Back Button */}
+    <Link
+      href={`/color/${hex}`}
+      className={`absolute left-4 top-4 p-2 rounded-full transition-colors sm:static sm:mb-1 ${
+        isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'
+      }`}
+      aria-label="Back to color"
+    >
+      <ChevronLeft className="w-5 h-5" />
+    </Link>
 
-            {/* Back */}
-            <Link
-              href={`/color/${hex}`}
-              className={`p-2 rounded-lg transition-colors ${
-                isDark
-                  ? 'hover:bg-white/10'
-                  : 'hover:bg-gray-200'
-              }`}
-              aria-label="Back to color"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </Link>
+    {/* Color Swatch */}
+    <div className="relative flex-shrink-0">
+      <div
+        className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-2xl"
+        style={{
+          backgroundColor: fullHex,
+          boxShadow: `0 8px 24px -6px ${fullHex}66, 0 0 0 1px ${
+            isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
+          }`,
+        }}
+      />
+      <input
+        type="color"
+        value={fullHex}
+        onChange={handlePickerChange}
+        onInput={handlePickerInput}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-2xl"
+        aria-label="Choose a color"
+      />
+    </div>
 
-            {/* ==================================================
-                COLOR PICKER
-            ================================================== */}
+    {/* Color Information */}
+    <div>
+      <h1
+        className={`text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight ${
+          isDark ? 'text-white' : 'text-gray-900'
+        }`}
+      >
+        {colorName}
+      </h1>
 
-            <div className="relative flex-shrink-0">
-              <div
-                className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl shadow-lg border-2 border-white dark:border-gray-700"
-                style={{
-                  backgroundColor: fullHex,
-                }}
-              />
+      <div className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1 mt-1.5 sm:justify-start">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={handleColorChange}
+          className={`font-mono text-base sm:text-lg tracking-tight bg-transparent border-0 border-b w-28 text-center focus:outline-none transition-colors sm:text-left ${
+            isDark
+              ? 'text-gray-300 border-transparent hover:border-white/20 focus:border-white/40'
+              : 'text-gray-600 border-transparent hover:border-gray-300 focus:border-gray-400'
+          }`}
+          aria-label="Enter HEX color code"
+        />
 
-              <input
-                type="color"
-                value={fullHex}
-                onChange={handlePickerChange}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-xl"
-                aria-label="Choose a color"
-              />
-            </div>
+        <span className={`text-sm ${isDark ? 'text-white' : 'text-black'}`}>
+          {colorFamily} Color Family
+        </span>
+      </div>
 
-            {/* ==================================================
-                COLOR INFORMATION
-            ================================================== */}
+      <p className={`text-sm mt-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+        {filteredShades.length} shades, {allShades.length} variations total
+      </p>
+    </div>
+  </div>
 
-            <div>
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
-                  {colorName} Color Shades
-                </h1>
-              </div>
+  {/* ✅ ACTIONS - Social Share + Info + Sliders */}
+  <div className="flex items-center gap-1">
+    
+    <button
+      onClick={() => setShowNames(!showNames)}
+      className={`p-2.5 rounded-full transition-colors ${
+        showNames
+          ? 'text-white'
+          : isDark
+          ? 'hover:bg-white/10 text-gray-400'
+          : 'hover:bg-gray-100 text-gray-500'
+      }`}
+      style={showNames ? { backgroundColor: fullHex } : undefined}
+      aria-label="Toggle color names"
+      title="Toggle color names"
+    >
+      <Info className="w-5 h-5" />
+    </button>
 
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
+    <button
+      onClick={() => setShowColorWheel(!showColorWheel)}
+      className={`p-2.5 rounded-full transition-colors ${
+        isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'
+      }`}
+      aria-label="Toggle color wheel"
+    >
+      <Sliders className="w-5 h-5" />
+    </button>
+    {/* ✅ Social Share Button */}
+    <SocialShare 
+      hex={hex} 
+      colorName={colorName} 
+      isDark={isDark} 
+    />
 
-                {/* HEX INPUT */}
-                <input
-                  type="text"
-                  value={inputValue}
-                  onChange={handleColorChange}
-                  className={`text-sm font-mono px-3 py-1 rounded-lg border focus:ring-2 focus:ring-[#7c3aed] focus:outline-none w-28 ${
-                    isDark
-                      ? 'bg-[#0a0a14] border-white/10 text-white'
-                      : 'bg-gray-100 border-gray-200 text-gray-800'
-                  }`}
-                  aria-label="Enter HEX color code"
-                />
-
-                {/* FAMILY */}
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    isDark
-                      ? 'bg-white/5 text-gray-400'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {colorFamily}
-                </span>
-
-                {/* NAMES */}
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    isDark
-                      ? 'bg-white/5 text-gray-400'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {uniqueNames.length} names
-                </span>
-              </div>
-
-              <p
-                className={`text-sm ${
-                  isDark
-                    ? 'text-gray-400'
-                    : 'text-gray-500'
-                } mt-1`}
-              >
-                {filteredShades.length} shades •{' '}
-                {allShades.length} total variations
-              </p>
-            </div>
-          </div>
-
-          {/* ACTIONS */}
-
-          <div className="flex items-center gap-2">
-
-            {/* SHOW NAMES */}
-            <button
-              onClick={() => setShowNames(!showNames)}
-              className={`p-2 rounded-lg transition-colors ${
-                showNames
-                  ? 'bg-[#7c3aed] text-white'
-                  : isDark
-                  ? 'hover:bg-white/10'
-                  : 'hover:bg-gray-200'
-              }`}
-              aria-label="Toggle color names"
-              title="Toggle color names"
-            >
-              <Info className="w-5 h-5" />
-            </button>
-
-            {/* COLOR WHEEL */}
-            <button
-              onClick={() =>
-                setShowColorWheel(!showColorWheel)
-              }
-              className={`p-2 rounded-lg transition-colors ${
-                isDark
-                  ? 'hover:bg-white/10'
-                  : 'hover:bg-gray-200'
-              }`}
-              aria-label="Toggle color wheel"
-            >
-              <Sliders className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
+  </div>
+</div>
         {/* ======================================================
             SEARCH + FILTER
         ====================================================== */}

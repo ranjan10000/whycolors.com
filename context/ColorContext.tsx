@@ -13,8 +13,14 @@ interface ColorContextType {
 
 const ColorContext = createContext<ColorContextType | undefined>(undefined);
 
-export function ColorProvider({ children }: { children: ReactNode }) {
-  const [currentColor, setCurrentColor] = useState<string>('8B5CF6');
+interface ColorProviderProps {
+  children: ReactNode;
+  initialColor?: string; // ✅ Add this to pass URL color
+}
+
+export function ColorProvider({ children, initialColor }: ColorProviderProps) {
+  // ✅ Use initialColor from URL or empty string
+  const [currentColor, setCurrentColor] = useState<string>(initialColor || '');
   const [recentColors, setRecentColors] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -32,6 +38,13 @@ export function ColorProvider({ children }: { children: ReactNode }) {
       }
     }
   }, []);
+
+  // ✅ Sync with URL when initialColor changes
+  useEffect(() => {
+    if (initialColor && initialColor !== currentColor) {
+      setCurrentColor(initialColor);
+    }
+  }, [initialColor]);
 
   // Save recent colors to localStorage when updated
   useEffect(() => {

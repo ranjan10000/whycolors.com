@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getColors } from '@/lib/color-cache';
-import { getColorName } from '@/lib/color-utils';
+import { getColorName, sanitizeHex, isValidHex } from '@/lib/color-utils'; // Import these
 import Link from 'next/link';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Search, Palette, Loader2 } from 'lucide-react';
+import { Search, Palette, Loader2, X } from 'lucide-react';
 
 // Fallback colors (hardcoded - removed duplicates)
 const FALLBACK_COLORS = [
@@ -19,11 +19,15 @@ const FALLBACK_COLORS = [
   'fef3c7', '6b7280', '374151', '111827', '030712',
 ];
 
+// Constants
+const SEARCH_ERROR_TIMEOUT = 3000;
+
 export default function ShadesIndexPage() {
   const { isDark } = useTheme();
   const [colors, setColors] = useState<Array<{ hex: string; name: string }>>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [searchError, setSearchError] = useState('');
 
   // Load colors on mount
   useEffect(() => {
@@ -68,7 +72,25 @@ export default function ShadesIndexPage() {
     setLoading(false);
   }, []);
 
-  // Filter colors based on search
+  // Handle color search navigation (like in ColorClient)
+  const handleColorSearch = useCallback((hex: string) => {
+    const sanitized = sanitizeHex(hex);
+    if (sanitized && isValidHex(sanitized)) {
+      window.location.href = `/shades/${sanitized}`;
+    } else {
+      setSearchError('Please enter a valid hex color (e.g., ff0000 or f00)');
+      setTimeout(() => {
+        setSearchError('');
+      }, SEARCH_ERROR_TIMEOUT);
+    }
+  }, []);
+
+  // Clear search error
+  const clearSearchError = useCallback(() => {
+    setSearchError('');
+  }, []);
+
+  // Filter colors based on search (only for text search, not hex)
   const filteredColors = useMemo(() => {
     if (!searchTerm.trim()) return colors;
     
@@ -79,6 +101,12 @@ export default function ShadesIndexPage() {
         c.name.toLowerCase().includes(term)
     );
   }, [colors, searchTerm]);
+
+  // Check if search term is a hex code
+  const isHexSearch = useMemo(() => {
+    const clean = searchTerm.replace(/^#/, '').trim();
+    return /^[0-9a-f]{3,6}$/i.test(clean);
+  }, [searchTerm]);
 
   if (loading) {
     return (
@@ -110,7 +138,7 @@ export default function ShadesIndexPage() {
             </h1>
           </div>
           <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Browse {colors.length} colors with their shades, tints, and variations
+            Browse colors with their shades, tints, and variations
           </p>
           {colors.length === 0 && (
             <p className="mt-2 text-sm text-yellow-500">
@@ -119,28 +147,123 @@ export default function ShadesIndexPage() {
           )}
         </header>
 
-        {/* Search */}
-        <div className="mb-6 relative">
-          <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${
+        {/* Search - Like ColorClient's HexSearch */}
+        <div className="mb-6">
+          <div className={`relative p-2 border rounded-2xl backdrop-blur-xl ${
+            isDark 
+              ? 'bg-[#12131a] border-white/10 shadow-2xl' 
+              : 'bg-white border-gray-200 shadow-lg'
+          }`}>
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const cleanTerm = searchTerm.replace(/^#/, '').trim();
+                if (cleanTerm) {
+                  handleColorSearch(cleanTerm);
+                }
+              }}
+              className="flex flex-col sm:flex-row gap-2"
+            >
+              <div className="flex-1 relative flex items-center">
+                <span className={`absolute left-4 font-mono font-bold text-base ${
+                  isDark ? 'text-gray-400' : 'text-gray-600'
+                }`}>#</span>
+                <input
+                  type="text"
+                  placeholder="Search color by name or enter hex (e.g. ff0000)"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    clearSearchError();
+                  }}
+                  className={`w-full border rounded-xl pl-9 pr-10 py-3 font-mono transition text-sm sm:text-base ${
+                    isDark 
+                      ? 'bg-[#090a0f] border-white/10 text-white placeholder-gray-500' 
+                      : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
+                  } focus:border-violet-500 focus:ring-1 focus:ring-violet-500`}
+                  aria-label="Search colors or enter HEX code"
+                  aria-invalid={!!searchError}
+                  aria-describedby={searchError ? "search-error" : undefined}
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm('');
+                      clearSearchError();
+                    }}
+                    className={`absolute right-3 p-1 rounded-full transition ${
+                      isDark 
+                        ? 'hover:bg-white/10 text-gray-500 hover:text-white' 
+                        : 'hover:bg-gray-200 text-gray-400 hover:text-gray-700'
+                    }`}
+                    aria-label="Clear input"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+                {searchError && (
+                  <p id="search-error" className={`absolute -bottom-6 left-2 text-xs font-medium text-red-400`}>
+                    {searchError}
+                  </p>
+                )}
+              </div>
+              <button
+                type="submit"
+                className={`px-8 py-3 font-semibold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer ${
+                  isDark 
+                    ? 'bg-violet-600 hover:bg-violet-500 active:scale-95 text-white shadow-lg shadow-violet-600/20' 
+                    : 'bg-violet-600 hover:bg-violet-500 active:scale-95 text-white shadow-lg shadow-violet-600/30'
+                }`}
+                disabled={!searchTerm}
+              >
+                <Search className="w-4 h-4" />
+                <span>Explore</span>
+              </button>
+            </form>
+            
+            {/* Quick example buttons */}
+            <div className={`px-3 pt-2 text-[11px] flex items-center gap-2 flex-wrap ${
+              isDark ? 'text-gray-500' : 'text-gray-500'
+            }`}>
+              <span>Try:</span>
+              {['FF0000', '00FF00', '0000FF'].map((example) => (
+                <button
+                  key={example}
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm(example);
+                    handleColorSearch(example);
+                  }}
+                  className={`font-mono transition ${
+                    isDark 
+                      ? 'text-gray-400 hover:text-violet-400 hover:underline' 
+                      : 'text-gray-500 hover:text-violet-600 hover:underline'
+                  }`}
+                >
+                  {example}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Search hint for text filtering */}
+          <p className={`text-xs mt-2 ${
             isDark ? 'text-gray-500' : 'text-gray-400'
-          }`} />
-          <input
-            type="text"
-            placeholder="Search by name or hex code..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={`w-full max-w-md pl-10 pr-4 py-2.5 rounded-lg border focus:ring-2 focus:ring-[#7c3aed] outline-none ${
-              isDark 
-                ? 'bg-[#131322] border-white/10 text-white placeholder:text-gray-500' 
-                : 'bg-white border-gray-300 text-gray-800 placeholder:text-gray-400'
-            }`}
-          />
+          }`}>
+            💡 Type a color name to filter the list, or enter a hex code to go directly to that color's shades
+          </p>
         </div>
 
         {/* Results count */}
         <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          Showing {filteredColors.length} of {colors.length} colors
-          {searchTerm && ` (filtered by "${searchTerm}")`}
+          {searchTerm && !isHexSearch ? (
+            <>Showing {filteredColors.length} of {colors.length} colors (filtered by "{searchTerm}")</>
+          ) : searchTerm && isHexSearch ? (
+            <>Searching for hex #{searchTerm.replace(/^#/, '').toUpperCase()}...</>
+          ) : (
+            <>Showing all {colors.length} colors</>
+          )}
         </p>
 
         {/* Color Grid */}
@@ -148,7 +271,7 @@ export default function ShadesIndexPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {filteredColors.map(({ hex, name }) => (
               <Link
-                key={`${hex}-${name}`} // Use combination to ensure uniqueness
+                key={`${hex}-${name}`}
                 href={`/shades/${hex}`}
                 className={`group block rounded-xl border overflow-hidden hover:shadow-xl transition-all hover:scale-105 ${
                   isDark 
@@ -196,11 +319,6 @@ export default function ShadesIndexPage() {
           isDark ? 'text-gray-500' : 'text-gray-400'
         }`}>
           <p>{filteredColors.length} colors displayed • {colors.length} total colors</p>
-          {colors.length === 0 && (
-            <p className="mt-2 text-xs text-yellow-500">
-              ⚠️ No colors loaded. Please check the console for errors.
-            </p>
-          )}
         </footer>
       </div>
     </div>

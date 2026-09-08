@@ -3,8 +3,9 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Copy, Sparkles, Grid3x3, LayoutList, Palette, X } from 'lucide-react';
+import { Copy, Grid3x3, LayoutList, Palette, X } from 'lucide-react';
 import { generateAllPalettes, normalizeHex, getColorNameFromHex } from '@/lib/dynamic-palettes';
+import SocialShare from '@/components/color/SocialShare';
 
 interface PaletteClientProps {
   hex: string;
@@ -142,7 +143,7 @@ export default function PaletteClient({
   }, [isColorPickerOpen, currentColor]);
 
   return (
-    <div className={`max-w-6xl mx-auto p-3 sm:p-4 md:p-6 min-h-screen ${
+    <div className={`max-w-8xl mx-auto p-3 sm:p-4 md:p-6 min-h-screen ${
       isDark ? 'bg-[#090911]' : 'bg-gray-50'
     }`}>
       {/* Status Message */}
@@ -156,188 +157,113 @@ export default function PaletteClient({
         </div>
       )}
 
-      {/* Header */}
-      <div className="mb-8 sm:mb-10">
-        <div className="grid grid-cols-[auto_1fr] gap-4 sm:gap-6 items-start">
-          <div 
-            className={`w-14 h-14 sm:w-20 sm:h-20 rounded-2xl border-2 shadow-xl cursor-pointer transition-all hover:scale-105 hover:shadow-2xl ${
-              isDark ? 'border-white/20' : 'border-gray-200'
-            }`}
-            style={{ backgroundColor: currentColor }}
-            onClick={() => setIsColorPickerOpen(true)}
-            title="Click to change color"
-            role="button"
-            tabIndex={0}
-            aria-label="Change base color"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setIsColorPickerOpen(true);
-              }
-            }}
-          />
-          
-          <div className="flex flex-col gap-2 min-w-0">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className={`text-2xl sm:text-3xl md:text-4xl font-bold truncate ${
-                isDark ? 'text-white' : 'text-gray-800'
-              }`}>
-                {currentColorName} Palettes
-              </h1>
-              
-              <div className={`flex p-1 rounded-lg border ml-auto ${
-                isDark ? 'bg-[#1a1a2e] border-[#2d2d4a]' : 'bg-gray-100 border-gray-200'
-              }`} role="group" aria-label="View mode toggle">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                    viewMode === 'grid'
-                      ? 'bg-purple-600 text-white shadow-md'
-                      : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                  aria-pressed={viewMode === 'grid'}
-                >
-                  <Grid3x3 className="w-3.5 h-3.5 inline mr-1.5" />
-                  Grid
-                </button>
-                <button
-                  onClick={() => setViewMode('strip')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                    viewMode === 'strip'
-                      ? 'bg-purple-600 text-white shadow-md'
-                      : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                  aria-pressed={viewMode === 'strip'}
-                >
-                  <LayoutList className="w-3.5 h-3.5 inline mr-1.5" />
-                  Strip
-                </button>
-              </div>
-            </div>
-            
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`text-sm font-mono ${
-                isDark ? 'text-gray-400' : 'text-gray-600'
-              }`}>{currentColor}</span>
-              <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>|</span>
-              <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                {viewMode === 'grid' ? 'Color swatches' : 'Gradient preview'}
-              </span>
-              <button
-                onClick={() => setIsColorPickerOpen(true)}
-                className={`ml-2 flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                  isDark
-                    ? 'bg-[#1a1a2e] text-gray-300 hover:bg-[#2d2d4a] hover:text-white border border-[#2d2d4a]'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
-                }`}
-              >
-                <Palette className="w-3.5 h-3.5" />
-                Change Color
-              </button>
-            </div>
-            <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              Explore all color harmonies and palettes for {currentColor}
-            </p>
-          </div>
-        </div>
+{/* Header */}
+<div className="relative mb-8 sm:mb-10">
+  <div className="flex flex-col items-center text-center gap-5 sm:flex-row sm:items-start sm:text-left sm:gap-6">
 
-        {/* Color Picker Modal */}
-        {isColorPickerOpen && (
-          <div 
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="color-picker-title"
-          >
-            <div className={`rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto ${
-              isDark ? 'bg-[#1a1a2e] border border-[#2d2d4a]' : 'bg-white border border-gray-200'
-            }`}>
-              <div className="flex justify-between items-center mb-4">
-                <h3 id="color-picker-title" className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                  Choose a Color
-                </h3>
-                <button
-                  onClick={() => {
-                    setTempColor(currentColor);
-                    setIsColorPickerOpen(false);
-                  }}
-                  className={`p-1 rounded-lg transition-colors ${
-                    isDark ? 'hover:bg-[#2d2d4a] text-gray-400' : 'hover:bg-gray-100 text-gray-600'
-                  }`}
-                  aria-label="Close color picker"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              
-              <div className="grid grid-cols-[auto_1fr] gap-4 mb-4">
-                <input
-                  type="color"
-                  value={tempColor}
-                  onChange={(e) => setTempColor(e.target.value)}
-                  className="w-20 h-20 rounded-xl cursor-pointer border-2 border-purple-500"
-                  aria-label="Choose color"
-                />
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="text"
-                    value={tempColor}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (/^#?[0-9A-Fa-f]{0,6}$/.test(val.replace('#', ''))) {
-                        const formatted = val.startsWith('#') ? val : `#${val}`;
-                        setTempColor(formatted);
-                      }
-                    }}
-                    className={`w-full px-3 py-2 rounded-lg text-sm font-mono border transition-all ${
-                      isDark
-                        ? 'bg-[#090911] border-[#2d2d4a] text-white focus:border-purple-500'
-                        : 'bg-gray-50 border-gray-200 text-gray-800 focus:border-purple-500'
-                    }`}
-                    placeholder="#RRGGBB"
-                    aria-label="Enter hex color"
-                  />
-                  <div className="grid grid-cols-6 gap-2">
-                    {['#FF5733', '#33FF57', '#3357FF', '#FF33F5', '#F5FF33', '#33FFF5'].map((preset) => (
-                      <button
-                        key={preset}
-                        className="w-full aspect-square rounded-full border-2 border-white/20 hover:scale-110 transition-transform"
-                        style={{ backgroundColor: preset }}
-                        onClick={() => setTempColor(preset)}
-                        aria-label={`Preset color ${preset}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => {
-                    setTempColor(currentColor);
-                    setIsColorPickerOpen(false);
-                  }}
-                  className={`py-2 rounded-xl font-medium transition-all ${
-                    isDark
-                      ? 'bg-[#2d2d4a] text-gray-300 hover:bg-[#3d3d5a]'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={applyColorChange}
-                  disabled={isGenerating}
-                  className="py-2 rounded-xl font-bold text-white bg-purple-600 hover:bg-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isGenerating ? 'Updating...' : 'Apply Color'}
-                </button>
-              </div>
-            </div>
+    {/* Color Swatch */}
+    <div
+      className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-2xl cursor-pointer transition-transform hover:scale-[1.03] flex-shrink-0"
+      style={{
+        backgroundColor: currentColor,
+        boxShadow: `0 10px 28px -8px ${currentColor}77, 0 0 0 1px ${
+          isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'
+        }`,
+      }}
+      onClick={() => setIsColorPickerOpen(true)}
+      title="Click to change color"
+      role="button"
+      tabIndex={0}
+      aria-label="Change base color"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setIsColorPickerOpen(true);
+        }
+      }}
+    />
+
+    <div className="flex flex-col gap-2 min-w-0 items-center sm:items-start w-full">
+      <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start w-full">
+        <h1 className={`text-2xl sm:text-3xl md:text-5xl font-semibold tracking-tight truncate ${
+          isDark ? 'text-white' : 'text-gray-900'
+        }`}>
+          {currentColorName} Palettes
+        </h1>
+
+        {/* ✅ Social Share + View Mode Toggle */}
+        <div className="flex items-center gap-2 sm:ml-auto">
+        
+
+          {/* View Mode Toggle */}
+          <div className={`flex p-1 rounded-lg border ${
+            isDark ? 'bg-[#1a1a2e] border-[#2d2d4a]' : 'bg-gray-100 border-gray-200'
+          }`} role="group" aria-label="View mode toggle">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                viewMode === 'grid'
+                  ? 'text-white'
+                  : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+              }`}
+              style={viewMode === 'grid' ? { backgroundColor: currentColor } : undefined}
+              aria-pressed={viewMode === 'grid'}
+            >
+              <Grid3x3 className="w-3.5 h-3.5 inline mr-1.5" />
+              Grid
+            </button>
+            <button
+              onClick={() => setViewMode('strip')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                viewMode === 'strip'
+                  ? 'text-white'
+                  : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+              }`}
+              style={viewMode === 'strip' ? { backgroundColor: currentColor } : undefined}
+              aria-pressed={viewMode === 'strip'}
+            >
+              <LayoutList className="w-3.5 h-3.5 inline mr-1.5" />
+              Strip
+            </button>
           </div>
-        )}
+            {/* ✅ Social Share Button */}
+          <SocialShare 
+            hex={currentColor.replace('#', '')} 
+            colorName={currentColorName} 
+            isDark={isDark} 
+          />
+        </div>
       </div>
-      
+
+      <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+        <span className={`text-sm font-mono ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          {currentColor}
+        </span>
+        <span className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-300'}`}>·</span>
+        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          {viewMode === 'grid' ? 'Color swatches' : 'Gradient preview'}
+        </span>
+        <button
+          onClick={() => setIsColorPickerOpen(true)}
+          className={`ml-1 flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all border ${
+            isDark
+              ? 'bg-[#1a1a2e] text-gray-300 hover:bg-[#2d2d4a] hover:text-white border-[#2d2d4a]'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200'
+          }`}
+        >
+          <Palette className="w-3.5 h-3.5" />
+          Change color
+        </button>
+      </div>
+
+      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+        Explore all color harmonies and palettes for {currentColor}
+      </p>
+    </div>
+  </div>
+
+  {/* ... Color Picker Modal (ஏற்கனவே உள்ளது) ... */}
+</div>
       {/* Loading State */}
       {isGenerating && (
         <div className="space-y-6">
