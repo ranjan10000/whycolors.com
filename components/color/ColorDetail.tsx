@@ -203,7 +203,6 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
               aria-label="Home"
             >
               <Home className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>Home</span>
             </Link>
             <ChevronRight className={`w-3.5 h-3.5 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} aria-hidden="true" />
             <Link 
@@ -212,7 +211,7 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
                 isDark ? 'hover:text-white hover:bg-white/5' : 'hover:text-gray-700 hover:bg-gray-100'
               }`}
             >
-              Color Studio
+              Color
             </Link>
             <ChevronRight className={`w-3.5 h-3.5 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} aria-hidden="true" />
             <div 

@@ -93,10 +93,10 @@ const Header = ({ totalColors, isDark }: HeaderProps) => {
           <h1 className={`text-3xl sm:text-4xl font-extrabold tracking-tight ${styles.text}`}>
             Color Explorer
           </h1>
-          <span className={`px-3 py-1 border rounded-full text-xs font-semibold flex items-center gap-1.5 ${styles.badge}`}>
+          {/* <span className={`px-3 py-1 border rounded-full text-xs font-semibold flex items-center gap-1.5 ${styles.badge}`}>
             <Sparkles className="w-3 h-3" />
             {totalColors.toLocaleString()} colors
-          </span>
+          </span> */}
         </div>
         <p className={`text-sm ${styles.textMuted}`}>
           Explore, discover, and analyze any color in real-time

@@ -9,7 +9,7 @@ import {
   hexToRgb,
 } from '@/lib/color-utils';
 import ShadesClient from '@/components/shades/ShadesClient';
-import ShadesFAQ from '@/components/shades/ShadesFAQ';
+
 
 interface ShadesPageProps {
   params: Promise<{
@@ -52,7 +52,6 @@ export default async function ShadesPage({ params }: ShadesPageProps) {
         colorName={colorName}
         colorFamily={colorFamily}
       />
-      <ShadesFAQ colorName={colorName} hex={cleanHex} colorFamily={colorFamily} />
     </div>
   );
 }
