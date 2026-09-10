@@ -353,7 +353,7 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
 
             {/* Color Format Data */}
             <div 
-              className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 w-full lg:w-auto min-w-[280px]"
+              className="grid grid-cols-1 sm:grid-cols-4 lg:grid-cols-2 gap-3 w-full lg:w-auto min-w-[280px]"
               role="group"
               aria-label="Color format values"
             >

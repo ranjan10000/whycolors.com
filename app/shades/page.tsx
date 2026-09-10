@@ -40,7 +40,8 @@ export default function ShadesIndexPage() {
         colorList = cached;
         console.log(`✅ Loaded ${colorList.length} colors from cache`);
       } else {
-        throw new Error('No colors in cache');
+          console.log('ℹ️ No colors in cache — using fallback');
+          colorList = FALLBACK_COLORS;
       }
     } catch (error) {
       console.warn('⚠️ Using fallback colors:', error);
@@ -49,7 +50,7 @@ export default function ShadesIndexPage() {
     
     // Remove duplicates using Set
     const uniqueColors = [...new Set(colorList)];
-    console.log(`📊 Unique colors: ${uniqueColors.length} (removed ${colorList.length - uniqueColors.length} duplicates)`);
+    console.log(`Unique colors: ${uniqueColors.length} (removed ${colorList.length - uniqueColors.length} duplicates)`);
     
     // Map to color objects with names
     const sorted = uniqueColors
@@ -318,7 +319,7 @@ export default function ShadesIndexPage() {
         <footer className={`mt-8 text-center text-sm ${
           isDark ? 'text-gray-500' : 'text-gray-400'
         }`}>
-          <p>{filteredColors.length} colors displayed • {colors.length} total colors</p>
+          {/* <p>{filteredColors.length} colors displayed • {colors.length} total colors</p> */}
         </footer>
       </div>
     </div>

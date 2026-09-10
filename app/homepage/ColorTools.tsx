@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { Copy, Sparkles, ImageUp, Download, Contrast } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Sparkles } from "lucide-react";
 import ImageColorExtractor from "./ImageColorExtractor";
 import GlassMorphism from "./GlassMorphism";
 import Neumorphism from "./Neumorphism";
 import BoxShadow from "./BoxShadow";
 import GradientBuilder from "./GradientBuilder";
+import ImagePaletteExtractor from "./ImagePaletteExtractor";
 
 interface ColorFormat {
   hex: string;
@@ -29,22 +30,6 @@ export default function ColorTools({
   onCopy,
   onShowToast,
 }: ColorToolsProps) {
-  // const [gradientStart, setGradientStart] = useState("#FF5A36");
-  // const [gradientEnd, setGradientEnd] = useState("#7CC3FF");
-  const [gradientDirection, setGradientDirection] = useState("to right");
-  const [glassBlur, setGlassBlur] = useState(16);
-  const [glassOpacity, setGlassOpacity] = useState(28);
-  const [neoDepth, setNeoDepth] = useState(12);
-  const [neoDark, setNeoDark] = useState(false);
-  const [shadowX, setShadowX] = useState(12);
-  const [shadowY, setShadowY] = useState(12);
-  const [shadowBlur, setShadowBlur] = useState(24);
-  const [shadowOpacity, setShadowOpacity] = useState(20);
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [imagePalette, setImagePalette] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
-
   const hexToRgb = (hex: string) => {
     const clean = hex.replace("#", "");
     return {
@@ -54,20 +39,6 @@ export default function ColorTools({
     };
   };
 
-  const rgbToHex = (r: number, g: number, b: number) => {
-    return (
-      "#" +
-      [r, g, b]
-        .map((value) =>
-          Math.max(0, Math.min(255, Math.round(value)))
-            .toString(16)
-            .padStart(2, "0")
-        )
-        .join("")
-        .toUpperCase()
-    );
-  };
-
   const hslToHex = (h: number, s: number, l: number) => {
     const sNorm = Math.max(0, Math.min(100, s)) / 100;
     const lNorm = Math.max(0, Math.min(100, l)) / 100;
@@ -75,35 +46,14 @@ export default function ColorTools({
     const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
     const m = lNorm - c / 2;
 
-    let r = 0,
-      g = 0,
-      b = 0;
+    let r = 0, g = 0, b = 0;
 
-    if (h < 60) {
-      r = c;
-      g = x;
-      b = 0;
-    } else if (h < 120) {
-      r = x;
-      g = c;
-      b = 0;
-    } else if (h < 180) {
-      r = 0;
-      g = c;
-      b = x;
-    } else if (h < 240) {
-      r = 0;
-      g = x;
-      b = c;
-    } else if (h < 300) {
-      r = x;
-      g = 0;
-      b = c;
-    } else {
-      r = c;
-      g = 0;
-      b = x;
-    }
+    if (h < 60) { r = c; g = x; b = 0; }
+    else if (h < 120) { r = x; g = c; b = 0; }
+    else if (h < 180) { r = 0; g = c; b = x; }
+    else if (h < 240) { r = 0; g = x; b = c; }
+    else if (h < 300) { r = x; g = 0; b = c; }
+    else { r = c; g = 0; b = x; }
 
     const rr = Math.round((r + m) * 255);
     const gg = Math.round((g + m) * 255);
@@ -115,7 +65,7 @@ export default function ColorTools({
   };
 
   const renderColorSwatch = useCallback(
-    (color: string, label: string) => {
+    (color: string, label: string, name?: string) => {
       const luminance = (hex: string) => {
         const { r, g, b } = hexToRgb(hex);
         return [r, g, b]
@@ -135,14 +85,19 @@ export default function ColorTools({
       const isLight = luminance(color) > 0.5;
       return (
         <button
-          key={color}
+          key={`${color}-${label}`}
           className="swatch-button min-h-28 p-3 text-left flex-1"
           style={{ background: color, color: isLight ? "#101114" : "#FFFFFF" }}
           onClick={() => onCopy(color)}
-          aria-label={`Copy ${color}`}
+          aria-label={`Copy ${name ?? color}`}
         >
           <span className="block text-xs font-bold">{label}</span>
-          <span className="mt-8 block font-mono text-xs">{color}</span>
+          {name && (
+            <span className="mt-1 block truncate text-[11px] font-semibold">
+              {name}
+            </span>
+          )}
+          <span className="mt-4 block font-mono text-xs">{color}</span>
         </button>
       );
     },
@@ -178,100 +133,6 @@ export default function ColorTools({
     };
   }, [colorInfo.hsl, renderColorSwatch]);
 
-  // const getGradientCSS = useCallback(() => {
-  //   return `linear-gradient(${gradientDirection}, ${gradientStart}, ${gradientEnd})`;
-  // }, [gradientDirection, gradientStart, gradientEnd]);
-
-  const getGlassCSS = useCallback(() => {
-    const opacity = glassOpacity / 100;
-    return `background: rgba(255,255,255,${opacity.toFixed(
-      2
-    )}); backdrop-filter: blur(${glassBlur}px);`;
-  }, [glassOpacity, glassBlur]);
-
-  const getNeoCSS = useCallback(() => {
-    const surface = neoDark ? "#24262b" : "#e7ebef";
-    const darkShade = neoDark ? "#17191d" : "#bec2c6";
-    const lightShade = neoDark ? "#31343a" : "#ffffff";
-    return `background: ${surface}; box-shadow: ${neoDepth}px ${neoDepth}px ${
-      neoDepth * 2
-    }px ${darkShade}, -${neoDepth}px -${neoDepth}px ${neoDepth * 2}px ${lightShade};`;
-  }, [neoDark, neoDepth]);
-
-  const getShadowCSS = useCallback(() => {
-    const opacity = shadowOpacity / 100;
-    return `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(16,17,20,${opacity.toFixed(
-      2
-    )});`;
-  }, [shadowX, shadowY, shadowBlur, shadowOpacity]);
-
-  const extractImageColors = useCallback((image: HTMLImageElement) => {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return;
-
-    const size = 100;
-    canvas.width = size;
-    canvas.height = size;
-    ctx.drawImage(image, 0, 0, size, size);
-    const pixels = ctx.getImageData(0, 0, size, size).data;
-
-    const buckets: Record<string, number> = {};
-    for (let i = 0; i < pixels.length; i += 4) {
-      const r = pixels[i];
-      const g = pixels[i + 1];
-      const b = pixels[i + 2];
-      const alpha = pixels[i + 3];
-      if (alpha < 30) continue;
-
-      const quantR = Math.round(r / 16) * 16;
-      const quantG = Math.round(g / 16) * 16;
-      const quantB = Math.round(b / 16) * 16;
-      const key = rgbToHex(quantR, quantG, quantB);
-      buckets[key] = (buckets[key] || 0) + 1;
-    }
-
-    const colors = Object.entries(buckets)
-      .sort((a, b) => b[1] - a[1])
-      .map((entry) => entry[0])
-      .filter((color, index, list) => index === 0 || color !== list[index - 1])
-      .slice(0, 5);
-
-    while (colors.length < 5) {
-      colors.push("#CCCCCC");
-    }
-
-    setImagePalette(colors);
-  }, []);
-
-  const handleImageUpload = useCallback(
-    (file: File) => {
-      if (!file) return;
-      const url = URL.createObjectURL(file);
-      setUploadedImage(url);
-
-      const img = new Image();
-      img.onload = () => {
-        extractImageColors(img);
-        if (imageRef.current) {
-          imageRef.current.src = url;
-          imageRef.current.classList.remove("hidden");
-        }
-        URL.revokeObjectURL(url);
-        onShowToast("Colors extracted successfully!");
-      };
-      img.onerror = () => {
-        onShowToast("Error loading image");
-      };
-      img.src = url;
-    },
-    [extractImageColors, onShowToast]
-  );
-
-  // const gradientCSS = getGradientCSS();
-  const glassCSS = getGlassCSS();
-  const neoCSS = getNeoCSS();
-  const shadowCSS = getShadowCSS();
   const scales = updateSystemScales();
 
   return (
@@ -309,12 +170,11 @@ export default function ColorTools({
         </div>
       </section>
 
-<GradientBuilder 
-color={mainColor}
-            onCopy={onCopy}
-            onShowToast={onShowToast}
-          />
- 
+      <GradientBuilder
+        color={mainColor}
+        onCopy={onCopy}
+        onShowToast={onShowToast}
+      />
 
       {/* Visual Effects */}
       <section id="effects" className="mx-auto mt-16 max-w-7xl">
@@ -327,25 +187,10 @@ color={mainColor}
           </h2>
         </div>
         <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4">
-          
-          
-          <GlassMorphism 
-            color={mainColor}
-            onCopy={onCopy}
-            onShowToast={onShowToast}
-          />
-          <Neumorphism 
-            color={mainColor}
-            onCopy={onCopy}
-            onShowToast={onShowToast}
-          />
-          <BoxShadow 
-            color={mainColor}
-            onCopy={onCopy}
-            onShowToast={onShowToast}
-          />
+          <GlassMorphism color={mainColor} onCopy={onCopy} onShowToast={onShowToast} />
+          <Neumorphism color={mainColor} onCopy={onCopy} onShowToast={onShowToast} />
+          <BoxShadow color={mainColor} onCopy={onCopy} onShowToast={onShowToast} />
         </div>
-   
       </section>
 
       {/* Color Scales */}
@@ -381,101 +226,17 @@ color={mainColor}
         </div>
       </section>
 
-      {/* Image Palette Extractor */}
-      <section id="image-palette" className="mx-auto mt-16 max-w-7xl">
-        <div className="glass rounded-[2rem] p-6 sm:p-8 bg-white/76 dark:bg-[#191a1e]/76 border border-[#101114]/9 dark:border-white/11 shadow-[0_24px_64px_rgba(19,20,24,0.09)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.35)] backdrop-blur-[18px]">
-          <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#686b74] dark:text-[#a8abb4]">
-                Extractor
-              </p>
-              <h2 className="mt-2 font-['Fraunces',serif] text-2xl font-bold tracking-[-0.045em]">
-                Image palette
-              </h2>
-              <p className="mt-4 leading-relaxed text-[#686b74] dark:text-[#a8abb4]">
-                Upload an image to extract its dominant colors.
-              </p>
-              <button
-                className="mt-7 inline-flex min-h-12 cursor-pointer items-center gap-2 rounded-xl bg-[#ff5a36] px-5 py-3 font-bold text-white transition-transform hover:-translate-y-0.5 dark:bg-[#ff7e5c]"
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <ImageUp className="h-4 w-4" />
-                Upload image
-              </button>
-              <input
-                ref={fileInputRef}
-                id="image-upload"
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                aria-label="Upload an image to extract colors"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleImageUpload(file);
-                }}
-              />
-              {uploadedImage && (
-                <button
-                  className="mt-3 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl bg-gray-200 px-4 py-2 text-sm font-bold text-[#101114] transition-colors hover:bg-gray-300 dark:bg-[#2a2b30] dark:text-[#f7f7f4] dark:hover:bg-[#3a3b40]"
-                  type="button"
-                  onClick={() => {
-                    setUploadedImage(null);
-                    setImagePalette([]);
-                    if (imageRef.current) {
-                      imageRef.current.classList.add("hidden");
-                      imageRef.current.src = "";
-                    }
-                  }}
-                >
-                  Clear image
-                </button>
-              )}
-            </div>
-            <div>
-              <div className="grid min-h-[220px] place-items-center overflow-hidden rounded-3xl border border-dashed border-[#101114]/9 dark:border-white/11 bg-black/[0.03] p-4 dark:bg-white/[0.03]">
-                {uploadedImage ? (
-                  <img
-                    ref={imageRef}
-                    className="max-h-[290px] w-full rounded-2xl object-contain"
-                    src={uploadedImage}
-                    alt="Uploaded image"
-                  />
-                ) : (
-                  <p className="text-center text-sm text-[#686b74] dark:text-[#a8abb4]">
-                    Upload an image to extract colors
-                  </p>
-                )}
-              </div>
-              <div className="mt-5 grid grid-cols-5 overflow-hidden rounded-2xl border border-[#101114]/9 dark:border-white/11">
-                {imagePalette.length > 0
-                  ? imagePalette.map((color, i) =>
-                      renderColorSwatch(color, `${i + 1}`)
-                    )
-                  : Array.from({ length: 5 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="min-h-28 bg-[#e5e5e5] dark:bg-[#2a2b30] flex items-center justify-center text-xs text-[#686b74] dark:text-[#a8abb4]"
-                        role="img"
-                        aria-label="Empty color swatch placeholder"
-                      >
-                        Empty
-                      </div>
-                    ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ✅ Image Palette Extractor — separate component */}
+      <ImagePaletteExtractor onCopy={onCopy} onShowToast={onShowToast} />
 
       <section id="image-color-extractor" className="mx-auto mt-16 max-w-7xl">
         <div className="glass rounded-[2rem] p-6 sm:p-8 bg-white/76 dark:bg-[#191a1e]/76 border border-[#101114]/9 dark:border-white/11 shadow-[0_24px_64px_rgba(19,20,24,0.09)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.35)] backdrop-blur-[18px]">
-        <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#686b74] dark:text-[#a8abb4]">
-                Extractor
-              </p>
-              <h2 className="mt-2 font-['Fraunces',serif] text-2xl font-bold tracking-[-0.045em]">
-                Image Color Extractor & Palette Builder
-              </h2>
+          <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#686b74] dark:text-[#a8abb4]">
+            Extractor
+          </p>
+          <h2 className="mt-2 font-['Fraunces',serif] text-2xl font-bold tracking-[-0.045em]">
+            Image Color Extractor & Palette Builder
+          </h2>
           <ImageColorExtractor />
         </div>
       </section>
