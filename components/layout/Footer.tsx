@@ -101,8 +101,7 @@ export default function Footer() {
               </Link>
               
               <p className="text-sm text-gray-600 dark:text-gray-400 max-w-xs">
-                Your ultimate color toolkit for Designers, Developers and Creative Professionals. 
-                Create beautiful palettes, test accessibility, and explore color harmonies.
+                Explore and create stunning colors with ease.
               </p>
             </div>
 

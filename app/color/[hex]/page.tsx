@@ -1,9 +1,11 @@
 // app/color/[hex]/page.tsx
 import { notFound } from 'next/navigation';
-import type { Metadata , Viewport  } from 'next';
-import { 
-  getColorName, 
-  isValidHex, 
+import type { Metadata, Viewport } from 'next';
+import Link from 'next/link';
+import { Home, ChevronRight } from 'lucide-react';
+import {
+  getColorName,
+  isValidHex,
   hexToRgbArray,
   sanitizeHex,
   getColorFamily,
@@ -11,9 +13,10 @@ import {
   hexToHsl,
   hexToHsv,
   hexToCmyk,
-  getContrastColor
+  getContrastColor,
 } from '@/lib/color-utils';
 import ColorDetail from '@/components/color/ColorDetail';
+import SocialShare from '@/components/color/SocialShare';
 
 interface ColorPageProps {
   params: Promise<{
@@ -21,146 +24,182 @@ interface ColorPageProps {
   }>;
 }
 
-// ============ STATIC PATHS GENERATION ============
-
-/**
- * Generate static paths for ALL 7,800 colors at build time
- * Uses cached data from color-cache (generated only once)
- */
-// export function generateStaticParams() {
-//   try {
-//     const colors = getColors();
-//     console.log(`📦 Generating ${colors.length} static color paths`);
-    
-//     return colors.map(hex => ({
-//       hex: hex.toLowerCase()
-//     }));
-//   } catch (error) {
-//     console.error('Error generating color params:', error);
-//     // Fallback to common colors if cache fails
-//     const fallbackColors = [
-//       'ff0000', '00ff00', '0000ff', 'ffff00', 'ff00ff', '00ffff',
-//       '000000', 'ffffff', '808080', 'ffa500', 'ffc0cb', '8b5cf6'
-//     ];
-//     return fallbackColors.map(hex => ({
-//       hex: hex.toLowerCase()
-//     }));
-//   }
-// }
-
 // ============ ROUTE CONFIG ============
-
-/**
- * Allow dynamic generation for ANY valid hex color
- * Pages are cached after first visit
- */
 export const dynamicParams = true;
-export const revalidate = 86400; // Revalidate every 24 hours
+export const revalidate = 86400;
 
 // ============ PAGE COMPONENT ============
-
 export default async function ColorPage({ params }: ColorPageProps) {
   const { hex } = await params;
-  
+
   // Step 1: Sanitize and validate hex
   const sanitized = sanitizeHex(hex);
-  if (!sanitized) {
-    notFound();
-  }
-  
+  if (!sanitized) notFound();
+
   const cleanHex = sanitized.toLowerCase();
-  
+
   // Step 2: Validate hex format
-  if (!isValidHex(cleanHex)) {
-    notFound();
-  }
-  
+  if (!isValidHex(cleanHex)) notFound();
+
   // Step 3: Validate RGB conversion
   try {
     const rgb = hexToRgbArray(cleanHex);
-    if (!rgb) {
-      notFound();
-    }
+    if (!rgb) notFound();
   } catch {
     notFound();
   }
-  
-  // Step 4: Get color information
-  const colorName = getColorName(cleanHex);
-  const colorFamily = getColorFamily(cleanHex);
+
+  // Step 4: Server-computed color information
+  const colorName = getColorName(cleanHex) || 'Color';
+  const colorFamily = getColorFamily(cleanHex) || 'Color';
+  const fullHex = `#${cleanHex.toUpperCase()}`;
   const rgb = hexToRgb(cleanHex);
   const hsl = hexToHsl(cleanHex);
   const hsv = hexToHsv(cleanHex);
   const cmyk = hexToCmyk(cleanHex);
   const contrast = getContrastColor(cleanHex);
-  
-  // Step 5: Render the page
+
+  // Step 5: Render
   return (
-    <ColorDetail 
-      hex={cleanHex} 
-      colorName={colorName}
-      colorFamily={colorFamily}
-      rgb={rgb}
-      hsl={hsl}
-      hsv={hsv}
-      cmyk={cmyk}
-      contrast={contrast}
-    />
+    // ✅ FIX 1: Added background — matches PaletteClient dark bg
+    <div className="min-h-screen bg-gray-50 dark:bg-[#090911] transition-colors duration-300">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 pt-6 sm:pt-8">
+        {/* ============================================================
+            BREADCRUMB + SOCIAL SHARE ROW
+            Breadcrumb is server-rendered (SEO).
+            SocialShare is a client component (interactive).
+        ============================================================ */}
+        <nav
+          className="flex items-center justify-between gap-2 text-xs md:text-sm font-medium text-gray-500 dark:text-gray-400"
+          aria-label="Breadcrumb"
+        >
+          {/* Left: Breadcrumb — server-rendered */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              href="/"
+              className="transition-colors flex items-center gap-1.5 p-1 rounded-md hover:text-gray-700 hover:bg-gray-100 dark:hover:text-white dark:hover:bg-white/5"
+              aria-label="Home"
+            >
+              <Home className="w-3.5 h-3.5" aria-hidden="true" />
+            </Link>
+
+            <ChevronRight
+              className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600"
+              aria-hidden="true"
+            />
+
+            <Link
+              href="/color"
+              className="transition-colors p-1 rounded-md hover:text-gray-700 hover:bg-gray-100 dark:hover:text-white dark:hover:bg-white/5"
+            >
+              Color
+            </Link>
+
+            <ChevronRight
+              className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600"
+              aria-hidden="true"
+            />
+
+            {/* Hex pill with ids for client-side updates */}
+            <div
+              className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-gray-100 border border-gray-200 text-gray-700 dark:bg-white/5 dark:border-white/10 dark:text-white"
+              aria-current="page"
+            >
+              <span
+                id="color-breadcrumb-dot"
+                className="w-2 h-2 rounded-full transition-colors duration-300"
+                style={{ backgroundColor: fullHex }}
+                aria-hidden="true"
+              />
+              <span id="color-breadcrumb-hex" className="font-mono">
+                {fullHex}
+              </span>
+            </div>
+          </div>
+
+          {/* Right: SocialShare — client-rendered */}
+          {/*
+            ✅ FIX 2: Removed hardcoded isDark={false}
+            SocialShare now reads theme via useTheme() internally.
+          */}
+          <div className="flex-shrink-0">
+            <SocialShare hex={cleanHex} colorName={colorName} />
+          </div>
+        </nav>
+
+        {/* ============================================================
+            SERVER-RENDERED H1
+        ============================================================ */}
+        <h1
+          id="color-h1"
+          className="mt-4 sm:mt-6 text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-gray-900 dark:text-white"
+        >
+          <span id="color-h1-name">{colorName}</span>
+          <span
+            id="color-h1-hex"
+            className="ml-3 text-sm sm:text-base font-mono font-normal text-gray-500 dark:text-gray-400"
+          >
+            {fullHex}
+          </span>
+        </h1>
+      </div>
+
+      {/* Client component — interactive part */}
+      <ColorDetail
+        hex={cleanHex}
+        colorName={colorName}
+        colorFamily={colorFamily}
+        rgb={rgb}
+        hsl={hsl}
+        hsv={hsv}
+        cmyk={cmyk}
+        contrast={contrast}
+      />
+    </div>
   );
 }
 
 // ============ METADATA GENERATION ============
-
-// ============ METADATA GENERATION ============
-export async function generateMetadata({ params }: ColorPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: ColorPageProps): Promise<Metadata> {
   try {
     const { hex } = await params;
-    
-    // Validate hex for metadata
+
     const sanitized = sanitizeHex(hex);
     if (!sanitized) {
       return {
         title: 'Invalid Color',
         description: 'The requested color could not be found.',
-        robots: {
-          index: false,
-          follow: false,
-        },
+        robots: { index: false, follow: false },
       };
     }
-    
+
     const cleanHex = sanitized.toLowerCase();
-    
-    // Check if it's a valid color
+
     if (!isValidHex(cleanHex)) {
       return {
         title: 'Invalid Color',
         description: 'The requested color format is invalid.',
-        robots: { 
-          index: false, 
-          follow: false 
-        },
+        robots: { index: false, follow: false },
       };
     }
-    
-    // Get color information for metadata with fallbacks
+
     const colorName = getColorName(cleanHex) || 'Unknown Color';
     const colorFamily = getColorFamily(cleanHex) || 'Unknown';
     const fullHex = `#${cleanHex.toUpperCase()}`;
     const rgb = hexToRgb(cleanHex);
     const hsl = hexToHsl(cleanHex);
 
-    // Build rich description
     const descriptionParts = [
       `Explore ${colorName} (${fullHex})`,
       rgb ? `RGB: ${rgb}` : '',
       hsl ? `HSL: ${hsl}` : '',
       `Part of the ${colorFamily} color family`,
     ].filter(Boolean);
-    
+
     const description = descriptionParts.join(' • ');
-    
-    // Generate keywords
+
     const keywords = [
       colorName,
       fullHex,
@@ -175,12 +214,11 @@ export async function generateMetadata({ params }: ColorPageProps): Promise<Meta
       'color harmonies',
       'shades',
       'tints',
-      'similar colors'
+      'similar colors',
     ].join(', ');
-    
-    // Generate title
+
     const title = `${fullHex} ${colorName} - Color Details, HEX, RGB, Shades & Gradients`;
-    
+
     return {
       title,
       description,
@@ -202,7 +240,7 @@ export async function generateMetadata({ params }: ColorPageProps): Promise<Meta
         type: 'website',
         locale: 'en_US',
       },
-      
+
       twitter: {
         card: 'summary_large_image',
         title,
@@ -211,11 +249,11 @@ export async function generateMetadata({ params }: ColorPageProps): Promise<Meta
         site: '@whycolors',
         creator: '@whycolors',
       },
-      
+
       alternates: {
         canonical: `https://www.whycolors.com/color/${cleanHex}`,
       },
-      
+
       robots: {
         index: true,
         follow: true,
@@ -227,13 +265,11 @@ export async function generateMetadata({ params }: ColorPageProps): Promise<Meta
           'max-snippet': -1,
         },
       },
-      
-      // Additional metadata
+
       category: 'color',
       applicationName: 'WhyColors',
       referrer: 'origin-when-cross-origin',
-      
-      // Structured data for rich snippets
+
       other: {
         'application/ld+json': JSON.stringify({
           '@context': 'https://schema.org',
@@ -246,28 +282,22 @@ export async function generateMetadata({ params }: ColorPageProps): Promise<Meta
         }),
       },
     };
-    
   } catch (error) {
-    // Handle any unexpected errors
     console.error('Error generating metadata:', error);
     return {
       title: 'Color Details',
       description: 'Explore color information, conversions, and harmonies.',
-      robots: {
-        index: true,
-        follow: true,
-      },
+      robots: { index: true, follow: true },
     };
   }
 }
 
 // ============ VIEWPORT GENERATION ============
-// ✅ THEME COLOR MOVED HERE
-export async function generateViewport({ 
-  params 
+export async function generateViewport({
+  params,
 }: ColorPageProps): Promise<Viewport> {
   const { hex } = await params;
-  
+
   const sanitized = sanitizeHex(hex);
   if (!sanitized || !isValidHex(sanitized)) {
     return {
@@ -277,13 +307,13 @@ export async function generateViewport({
       maximumScale: 5,
     };
   }
-  
+
   const cleanHex = sanitized.toLowerCase();
   const fullHex = `#${cleanHex.toUpperCase()}`;
-  
+
   return {
-    themeColor: fullHex,      // ✅ Theme color here
-    width: 'device-width',    // ✅ Viewport settings
+    themeColor: fullHex,
+    width: 'device-width',
     initialScale: 1,
     maximumScale: 5,
   };

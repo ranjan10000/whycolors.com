@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronUp,
   Home,
+  Download,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -30,6 +31,8 @@ import SocialShare from '@/components/color/SocialShare';
 interface ShadesClientProps {
   colorName?: string;
   colorFamily?: string;
+  fullHex?: string;
+  initialHex?: string;
 }
 
 const DEFAULT_HEX = '32cd32';
@@ -39,29 +42,20 @@ function normalizeHex(value: string | undefined): string {
     return DEFAULT_HEX;
   }
 
-  const cleanHex = value
-    .replace(/^#/, '')
-    .trim()
-    .toLowerCase();
+  const cleanHex = value.replace(/^#/, '').trim().toLowerCase();
 
-  return /^[0-9a-f]{6}$/.test(cleanHex)
-    ? cleanHex
-    : DEFAULT_HEX;
+  return /^[0-9a-f]{6}$/.test(cleanHex) ? cleanHex : DEFAULT_HEX;
 }
 
 export default function ShadesClient({
   colorName: propColorName,
   colorFamily: propColorFamily,
+  fullHex: propFullHex,
+  initialHex: propInitialHex,
 }: ShadesClientProps) {
   const { isDark } = useTheme();
   const { currentColor, setColor } = useColor();
   const params = useParams();
-
-  /*
-   * ============================================================
-   * LOCAL UI STATE
-   * ============================================================
-   */
 
   const [copied, setCopied] = useState<string | null>(null);
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
@@ -73,31 +67,13 @@ export default function ShadesClient({
   const [showNames, setShowNames] = useState(true);
   const [showAllNames, setShowAllNames] = useState(false);
   const [showAllShadeNames, setShowAllShadeNames] = useState(false);
-
-  /*
-   * ============================================================
-   * URL COLOR
-   *
-   * IMPORTANT:
-   * URL is ONLY used to initialize the ColorContext.
-   * After initialization, currentColor is the source of truth.
-   * ============================================================
-   */
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const rawHexFromUrl = params?.hex as string | undefined;
 
   const hexFromUrl = useMemo(() => {
-    return normalizeHex(rawHexFromUrl);
-  }, [rawHexFromUrl]);
-
-  /*
-   * ============================================================
-   * INITIALIZE CONTEXT FROM URL
-   *
-   * We use a ref so the URL value does not overwrite a color
-   * selected interactively by the user.
-   * ============================================================
-   */
+    return normalizeHex(propInitialHex || rawHexFromUrl);
+  }, [propInitialHex, rawHexFromUrl]);
 
   const initializedUrlHexRef = useRef<string | null>(null);
 
@@ -106,18 +82,6 @@ export default function ShadesClient({
       return;
     }
 
-    /*
-     * Only initialize once for this particular route color.
-     *
-     * Example:
-     * URL = /shades/32cd32
-     * Context becomes 32cd32
-     *
-     * User selects ff0000
-     * Context becomes ff0000
-     *
-     * This effect does NOT change it back to 32cd32.
-     */
     if (initializedUrlHexRef.current === hexFromUrl) {
       return;
     }
@@ -129,29 +93,12 @@ export default function ShadesClient({
     }
   }, [hexFromUrl, currentColor, setColor]);
 
-  /*
-   * ============================================================
-   * LIVE COLOR
-   *
-   * This is the most important change.
-   *
-   * currentColor = live source of truth
-   * URL = initial/default value only
-   * ============================================================
-   */
-
   const hex = useMemo(() => {
     const normalizedCurrentColor = normalizeHex(currentColor);
 
-    /*
-     * If context has a valid color, always use it.
-     * Otherwise fall back to URL color.
-     */
     if (
       currentColor &&
-      /^[0-9a-f]{6}$/i.test(
-        currentColor.replace(/^#/, '').trim()
-      )
+      /^[0-9a-f]{6}$/i.test(currentColor.replace(/^#/, '').trim())
     ) {
       return normalizedCurrentColor;
     }
@@ -161,57 +108,27 @@ export default function ShadesClient({
 
   const fullHex = `#${hex.toUpperCase()}`;
 
-  /*
-   * ============================================================
-   * INPUT VALUE
-   * ============================================================
-   */
-
   const [inputValue, setInputValue] = useState(fullHex);
 
-  /*
-   * Keep the text input synchronized with the LIVE color.
-   *
-   * This means:
-   * picker -> context -> input
-   */
   useEffect(() => {
     setInputValue(fullHex);
   }, [fullHex]);
-
-  /*
-   * ============================================================
-   * CONTRAST COLOR
-   * ============================================================
-   */
 
   const contrastColor = useMemo(() => {
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
 
-    const luminance =
-      (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
     return luminance > 0.5 ? '#000000' : '#ffffff';
   }, [hex]);
-
-  /*
-   * ============================================================
-   * FORMAT DATA
-   * ============================================================
-   */
 
   const formatData = useMemo(() => {
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
 
-    /*
-     * Proper HSL calculation.
-     *
-     * The previous implementation was not actually calculating HSL.
-     */
     const rNorm = r / 255;
     const gNorm = g / 255;
     const bNorm = b / 255;
@@ -224,17 +141,11 @@ export default function ShadesClient({
 
     if (delta !== 0) {
       if (max === rNorm) {
-        h =
-          60 *
-          (((gNorm - bNorm) / delta) % 6);
+        h = 60 * (((gNorm - bNorm) / delta) % 6);
       } else if (max === gNorm) {
-        h =
-          60 *
-          ((bNorm - rNorm) / delta + 2);
+        h = 60 * ((bNorm - rNorm) / delta + 2);
       } else {
-        h =
-          60 *
-          ((rNorm - gNorm) / delta + 4);
+        h = 60 * ((rNorm - gNorm) / delta + 4);
       }
     }
 
@@ -255,100 +166,90 @@ export default function ShadesClient({
     )}%, ${Math.round(l * 100)}%)`;
 
     return [
-      {
-        label: 'HEX',
-        value: fullHex,
-        format: 'hex',
-      },
-      {
-        label: 'RGB',
-        value: `rgb(${r}, ${g}, ${b})`,
-        format: 'rgb',
-      },
-      {
-        label: 'HSL',
-        value: hsl,
-        format: 'hsl',
-      },
-      {
-        label: 'CSS',
-        value: fullHex,
-        format: 'css',
-      },
+      { label: 'HEX', value: fullHex, format: 'hex' },
+      { label: 'RGB', value: `rgb(${r}, ${g}, ${b})`, format: 'rgb' },
+      { label: 'HSL', value: hsl, format: 'hsl' },
+      { label: 'CSS', value: fullHex, format: 'css' },
     ];
   }, [hex, fullHex]);
 
-  /*
-   * ============================================================
-   * COLOR NAME
-   *
-   * IMPORTANT:
-   * Do NOT permanently use propColorName here.
-   * The displayed name must follow the LIVE color.
-   * ============================================================
-   */
-
   const colorName = useMemo(() => {
     const liveName = getColorName(hex);
-
     return liveName || propColorName || 'Color';
   }, [hex, propColorName]);
 
-  /*
-   * ============================================================
-   * COLOR FAMILY
-   * ============================================================
-   */
-
   const colorFamily = useMemo(() => {
     const liveFamily = getColorFamily(hex);
-
     return liveFamily || propColorFamily || 'Color';
   }, [hex, propColorFamily]);
 
   /*
    * ============================================================
-   * GENERATE SHADES
-   *
-   * Automatically recalculates whenever LIVE hex changes.
+   * ✅ DYNAMIC H1 UPDATE
    * ============================================================
    */
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const h1Name = document.getElementById('shades-h1-name');
+    const h1Hex = document.getElementById('shades-h1-hex');
+
+    if (h1Name) {
+      h1Name.textContent = colorName;
+    }
+
+    if (h1Hex) {
+      h1Hex.textContent = fullHex;
+    }
+
+    const breadcrumbDot = document.getElementById('shades-breadcrumb-dot');
+    const breadcrumbHex = document.getElementById('shades-breadcrumb-hex');
+
+    if (breadcrumbDot) {
+      breadcrumbDot.style.backgroundColor = fullHex;
+    }
+    if (breadcrumbHex) {
+      breadcrumbHex.textContent = fullHex;
+    }
+
+    if (typeof document !== 'undefined') {
+      document.title = `${fullHex} ${colorName} - 100+ Shades & Color Variations`;
+    }
+  }, [colorName, fullHex]);
 
   const allShades = useMemo(() => {
     return generateShades(hex, 120);
   }, [hex]);
 
-  /*
-   * ============================================================
-   * UNIQUE COLOR NAMES
-   * ============================================================
-   */
-
   const uniqueNames = useMemo(() => {
     return getUniqueColorNames(allShades);
   }, [allShades]);
-
-  /*
-   * ============================================================
-   * DISPLAYED NAMES
-   * ============================================================
-   */
 
   const displayedNames = useMemo(() => {
     if (showAllNames) {
       return uniqueNames;
     }
-
     return uniqueNames.slice(0, 20);
   }, [uniqueNames, showAllNames]);
 
   const hasMoreNames = uniqueNames.length > 20;
 
-  /*
-   * ============================================================
-   * FILTER SHADES
-   * ============================================================
-   */
+  // ✅ Helper: get contrast text color for any hex
+const getContrastTextColor = (hexColor: string): string => {
+  const clean = hexColor.replace('#', '');
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+
+  // Relative luminance (WCAG style)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  return luminance > 0.55 ? '#111827' : '#ffffff';
+};
+
 
   const filteredShades = useMemo(() => {
     let shades = allShades;
@@ -359,25 +260,16 @@ export default function ShadesClient({
       shades = shades.filter(
         (shade) =>
           shade.hex.toLowerCase().includes(term) ||
-          (shade.name &&
-            shade.name.toLowerCase().includes(term))
+          (shade.name && shade.name.toLowerCase().includes(term))
       );
     }
 
     if (filter !== 'all') {
-      shades = shades.filter(
-        (shade) => shade.type === filter
-      );
+      shades = shades.filter((shade) => shade.type === filter);
     }
 
     return shades;
   }, [allShades, searchTerm, filter]);
-
-  /*
-   * ============================================================
-   * GROUP SHADES BY TYPE
-   * ============================================================
-   */
 
   const groupedShades = useMemo(() => {
     const groups: Record<string, Shade[]> = {};
@@ -386,18 +278,11 @@ export default function ShadesClient({
       if (!groups[shade.type]) {
         groups[shade.type] = [];
       }
-
       groups[shade.type].push(shade);
     });
 
     return groups;
   }, [filteredShades]);
-
-  /*
-   * ============================================================
-   * UNIQUE SHADES WITH NAMES
-   * ============================================================
-   */
 
   const uniqueShadesWithNames = useMemo(() => {
     const shadeMap = new Map<string, Shade>();
@@ -415,69 +300,24 @@ export default function ShadesClient({
     if (showAllShadeNames) {
       return uniqueShadesWithNames;
     }
-
     return uniqueShadesWithNames.slice(0, 20);
   }, [uniqueShadesWithNames, showAllShadeNames]);
 
-  const hasMoreUniqueShades =
-    uniqueShadesWithNames.length > 20;
+  const hasMoreUniqueShades = uniqueShadesWithNames.length > 20;
 
-  /*
-   * ============================================================
-   * COLOR PICKER
-   *
-   * IMPORTANT:
-   * NO router.push()
-   *
-   * URL remains unchanged.
-   * ============================================================
-   */
-
-  const handlePickerChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const newHex = e.target.value
-      .replace(/^#/, '')
-      .toLowerCase();
+  const handlePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newHex = e.target.value.replace(/^#/, '').toLowerCase();
 
     if (!/^[0-9a-f]{6}$/.test(newHex)) {
       return;
     }
 
-    /*
-     * Update the global color context.
-     *
-     * This automatically updates:
-     * - HEX
-     * - RGB
-     * - HSL
-     * - color name
-     * - family
-     * - all shades
-     * - unique names
-     * - statistics
-     * - previews
-     * - SocialShare
-     * - every other hex-dependent section
-     */
     setColor(newHex);
     setInputValue(`#${newHex.toUpperCase()}`);
   };
 
-  /*
-   * ============================================================
-   * HEX INPUT
-   *
-   * Updates Context only.
-   * URL remains unchanged.
-   * ============================================================
-   */
-
-  const handleColorChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-
     setInputValue(value);
 
     const cleanHex = value
@@ -485,33 +325,14 @@ export default function ShadesClient({
       .replace(/[^a-fA-F0-9]/g, '')
       .slice(0, 6);
 
-    /*
-     * Only update the live color when a complete valid
-     * six-digit HEX value has been entered.
-     */
-    if (
-      cleanHex.length === 6 &&
-      /^[0-9a-fA-F]{6}$/.test(cleanHex)
-    ) {
-      const normalizedHex = cleanHex.toLowerCase();
-
-      setColor(normalizedHex);
+    if (cleanHex.length === 6 && /^[0-9a-fA-F]{6}$/.test(cleanHex)) {
+      setColor(cleanHex.toLowerCase());
     }
   };
 
-  /*
-   * ============================================================
-   * COPY COLOR
-   * ============================================================
-   */
-
-  const handleCopy = async (
-    text: string,
-    id: string
-  ) => {
+  const handleCopy = async (text: string, id: string) => {
     try {
       await navigator.clipboard.writeText(text);
-
       setCopied(id);
       setCopiedFormat(id);
 
@@ -523,12 +344,6 @@ export default function ShadesClient({
       console.error('Failed to copy:', error);
     }
   };
-
-  /*
-   * ============================================================
-   * TYPE LABEL
-   * ============================================================
-   */
 
   const getTypeLabel = (type: string): string => {
     const labels: Record<string, string> = {
@@ -542,166 +357,219 @@ export default function ShadesClient({
     return labels[type] || type;
   };
 
-  /*
-   * ============================================================
-   * TOGGLES
-   * ============================================================
-   */
+  const toggleShowAllNames = () => setShowAllNames((prev) => !prev);
+  const toggleShowAllShadeNames = () =>
+    setShowAllShadeNames((prev) => !prev);
 
-  const toggleShowAllNames = () => {
-    setShowAllNames((previous) => !previous);
-  };
+/* ============================================================
+ * ✅ DOWNLOAD UNIQUE SHADES AS PNG (ALL SHADES + WATERMARK)
+ * ============================================================ */
+const handleDownloadShades = async () => {
+  if (isDownloading) return;
+  setIsDownloading(true);
 
-  const toggleShowAllShadeNames = () => {
-    setShowAllShadeNames((previous) => !previous);
-  };
+  try {
+    const shadesToExport = uniqueShadesWithNames;
 
-  /*
-   * ============================================================
-   * UI
-   * ============================================================
-   */
+    if (shadesToExport.length === 0) {
+      setIsDownloading(false);
+      return;
+    }
 
+    const COLS = 5;
+    const PADDING = 24;
+    const HEADER_HEIGHT = 80;
+    const FOOTER_HEIGHT = 56; // ✅ NEW: space for website footer
+    const CELL_W = 200;
+    const CELL_H = 148;
+    const GAP = 0;
+
+    const rows = Math.ceil(shadesToExport.length / COLS);
+    const gridW = COLS * CELL_W;
+    const gridH = rows * CELL_H;
+
+    const canvasW = gridW + PADDING * 2;
+    // ✅ Add FOOTER_HEIGHT to canvas height
+    const canvasH = gridH + PADDING * 2 + HEADER_HEIGHT + FOOTER_HEIGHT;
+
+    const dpr = 2; // retina crispness
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasW * dpr;
+    canvas.height = canvasH * dpr;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas context unavailable');
+
+    ctx.scale(dpr, dpr);
+
+    /* ---------- Background ---------- */
+    ctx.fillStyle = isDark ? '#11111d' : '#ffffff';
+    ctx.fillRect(0, 0, canvasW, canvasH);
+
+    /* ---------- Header ---------- */
+    const headerY = PADDING;
+
+    // Color swatch square (rounded)
+    const swatchSize = 48;
+    const r = 12;
+    const sx = PADDING;
+    const sy = headerY;
+
+    ctx.fillStyle = fullHex;
+    ctx.beginPath();
+    ctx.moveTo(sx + r, sy);
+    ctx.lineTo(sx + swatchSize - r, sy);
+    ctx.quadraticCurveTo(sx + swatchSize, sy, sx + swatchSize, sy + r);
+    ctx.lineTo(sx + swatchSize, sy + swatchSize - r);
+    ctx.quadraticCurveTo(
+      sx + swatchSize,
+      sy + swatchSize,
+      sx + swatchSize - r,
+      sy + swatchSize
+    );
+    ctx.lineTo(sx + r, sy + swatchSize);
+    ctx.quadraticCurveTo(sx, sy + swatchSize, sx, sy + swatchSize - r);
+    ctx.lineTo(sx, sy + r);
+    ctx.quadraticCurveTo(sx, sy, sx + r, sy);
+    ctx.closePath();
+    ctx.fill();
+
+    // Title text
+    const textX = PADDING + swatchSize + 16;
+
+    ctx.fillStyle = isDark ? '#ffffff' : '#111827';
+    ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`${colorName} Shades`, textX, headerY + 2);
+
+    ctx.fillStyle = isDark ? '#9ca3af' : '#6b7280';
+    ctx.font = '14px system-ui, -apple-system, sans-serif';
+    ctx.fillText(
+      `${fullHex}  •  ${shadesToExport.length} unique named shades`,
+      textX,
+      headerY + 30
+    );
+
+    /* ---------- Grid ---------- */
+    const gridStartY = PADDING + HEADER_HEIGHT;
+
+    shadesToExport.forEach((shade, index) => {
+      const col = index % COLS;
+      const row = Math.floor(index / COLS);
+
+      const x = PADDING + col * (CELL_W + GAP);
+      const y = gridStartY + row * (CELL_H + GAP);
+
+      // Background fill
+      ctx.fillStyle = shade.hex;
+      ctx.fillRect(x, y, CELL_W, CELL_H);
+
+      // Get contrast color for this shade
+      const sr = parseInt(shade.hex.slice(1, 3), 16);
+      const sg = parseInt(shade.hex.slice(3, 5), 16);
+      const sb = parseInt(shade.hex.slice(5, 7), 16);
+      const lum = (0.299 * sr + 0.587 * sg + 0.114 * sb) / 255;
+      const textColor = lum > 0.55 ? '#111827' : '#ffffff';
+
+      // Shade name (center)
+      ctx.fillStyle = textColor;
+      ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // Truncate long names
+      const maxTextWidth = CELL_W - 24;
+      let displayName = shade.name || 'Unnamed';
+      if (ctx.measureText(displayName).width > maxTextWidth) {
+        while (
+          displayName.length > 3 &&
+          ctx.measureText(displayName + '…').width > maxTextWidth
+        ) {
+          displayName = displayName.slice(0, -1);
+        }
+        displayName += '…';
+      }
+
+      ctx.fillText(displayName, x + CELL_W / 2, y + CELL_H / 2 - 8);
+
+      // HEX code (bottom)
+      ctx.font = '12px ui-monospace, SFMono-Regular, monospace';
+      ctx.fillStyle = textColor;
+      ctx.globalAlpha = 0.85;
+      ctx.fillText(
+        shade.hex.toUpperCase(),
+        x + CELL_W / 2,
+        y + CELL_H / 2 + 16
+      );
+      ctx.globalAlpha = 1;
+    });
+
+    // reset text alignment
+    ctx.textAlign = 'left';
+
+    /* ============================================================
+     * ✅ WEBSITE FOOTER WATERMARK
+     * ============================================================ */
+    const footerTop = canvasH - FOOTER_HEIGHT;
+
+    // Divider line
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PADDING, footerTop);
+    ctx.lineTo(canvasW - PADDING, footerTop);
+    ctx.stroke();
+
+    // Website text (centered)
+    ctx.fillStyle = isDark ? '#9ca3af' : '#6b7280';
+    ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+      'www.whycolors.com',
+      canvasW / 2,
+      footerTop + FOOTER_HEIGHT / 2 - 6
+    );
+
+    // Small subtitle
+    ctx.font = '11px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = isDark ? '#6b7280' : '#9ca3af';
+    ctx.fillText(
+      'Free color tools, shades & palettes',
+      canvasW / 2,
+      footerTop + FOOTER_HEIGHT / 2 + 14
+    );
+
+    ctx.textAlign = 'left';
+
+    /* ---------- Download ---------- */
+    const safeColorName = colorName
+      .replace(/[^a-z0-9]+/gi, '-')
+      .toLowerCase();
+    const filename = `${safeColorName}-${hex}-shades.png`;
+
+    const dataUrl = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (err) {
+    console.error('Download failed:', err);
+  } finally {
+    setIsDownloading(false);
+  }
+};
   return (
     <div
       className={`min-h-screen p-4 sm:p-6 md:p-8 ${
-        isDark
-          ? 'bg-[#090911] text-gray-100'
-          : 'bg-gray-50 text-gray-800'
+        isDark ? 'bg-[#090911] text-gray-100' : 'bg-gray-50 text-gray-800'
       }`}
     >
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* ======================================================
-            BREADCRUMB NAVIGATION
-        ====================================================== */}
 
-        <nav
-          className={`flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-2 text-xs md:text-sm font-medium ${
-            isDark ? 'text-gray-400' : 'text-gray-500'
-          }`}
-          aria-label="Breadcrumb"
-        >
-          <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start w-full sm:w-auto">
-            <Link
-              href="/"
-              className={`transition-colors flex items-center gap-1.5 p-1 rounded-md ${
-                isDark
-                  ? 'hover:text-white hover:bg-white/5'
-                  : 'hover:text-gray-700 hover:bg-gray-100'
-              }`}
-              aria-label="Home"
-            >
-              <Home
-                className="w-3.5 h-3.5"
-                aria-hidden="true"
-              />
-              <span className="hidden xs:inline">
-                Home
-              </span>
-            </Link>
-
-            <ChevronRight
-              className={`w-3.5 h-3.5 ${
-                isDark
-                  ? 'text-gray-600'
-                  : 'text-gray-300'
-              }`}
-              aria-hidden="true"
-            />
-
-            <Link
-              href="/shades"
-              className={`transition-colors p-1 rounded-md ${
-                isDark
-                  ? 'hover:text-white hover:bg-white/5'
-                  : 'hover:text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              Shades
-            </Link>
-
-            <ChevronRight
-              className={`w-3.5 h-3.5 ${
-                isDark
-                  ? 'text-gray-600'
-                  : 'text-gray-300'
-              }`}
-              aria-hidden="true"
-            />
-
-            <div
-              className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1 rounded-full ${
-                isDark
-                  ? 'bg-white/5 border-white/10 text-white'
-                  : 'bg-gray-100 border-gray-200 text-gray-700'
-              } border`}
-              aria-current="page"
-            >
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ backgroundColor: fullHex }}
-                aria-hidden="true"
-              />
-
-              <span className="font-mono text-[10px] sm:text-xs">
-                {fullHex}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-            <button
-              type="button"
-              onClick={() =>
-                setShowNames((previous) => !previous)
-              }
-              className={`p-1.5 sm:p-2 rounded-full transition-colors ${
-                showNames
-                  ? 'text-white'
-                  : isDark
-                  ? 'hover:bg-white/10 text-gray-400'
-                  : 'hover:bg-gray-100 text-gray-500'
-              }`}
-              style={
-                showNames
-                  ? { backgroundColor: fullHex }
-                  : undefined
-              }
-              aria-label="Toggle color names"
-              title="Toggle color names"
-            >
-              <Info className="w-4 h-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                setShowColorWheel(
-                  (previous) => !previous
-                )
-              }
-              className={`p-1.5 sm:p-2 rounded-full transition-colors ${
-                isDark
-                  ? 'hover:bg-white/10 text-gray-400'
-                  : 'hover:bg-gray-100 text-gray-500'
-              }`}
-              aria-label="Toggle color wheel"
-            >
-              <Sliders className="w-4 h-4" />
-            </button>
-
-            <SocialShare
-              hex={hex}
-              colorName={colorName}
-              isDark={isDark}
-            />
-          </div>
-        </nav>
-
-        {/* ======================================================
-            HERO + HEADER
-        ====================================================== */}
-
+        {/* HERO + HEADER */}
         <header
           className={`relative overflow-hidden backdrop-blur-xl border rounded-2xl p-6 sm:p-8 shadow-lg transition-all duration-300 ${
             isDark
@@ -731,23 +599,15 @@ export default function ShadesClient({
                       : `0 12px 40px -8px ${fullHex}40, inset 0 1px 1px rgba(255,255,255,0.5)`,
                   }}
                   onClick={() =>
-                    document
-                      .getElementById('color-picker')
-                      ?.click()
+                    document.getElementById('color-picker')?.click()
                   }
                   role="button"
                   tabIndex={0}
                   aria-label="Click to pick a color"
                   onKeyDown={(e) => {
-                    if (
-                      e.key === 'Enter' ||
-                      e.key === ' '
-                    ) {
+                    if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-
-                      document
-                        .getElementById('color-picker')
-                        ?.click();
+                      document.getElementById('color-picker')?.click();
                     }
                   }}
                 />
@@ -761,9 +621,7 @@ export default function ShadesClient({
                 >
                   <span
                     className={`text-[10px] font-mono tracking-wider ${
-                      isDark
-                        ? 'text-gray-300'
-                        : 'text-gray-600'
+                      isDark ? 'text-gray-300' : 'text-gray-600'
                     }`}
                   >
                     #{hex}
@@ -783,10 +641,7 @@ export default function ShadesClient({
               <div className="space-y-3 text-center sm:text-left w-full">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
                   <div className="relative inline-flex items-center">
-                    <label
-                      htmlFor="color-hex-input"
-                      className="sr-only"
-                    >
+                    <label htmlFor="color-hex-input" className="sr-only">
                       Enter HEX color code
                     </label>
 
@@ -800,66 +655,42 @@ export default function ShadesClient({
                       inputMode="text"
                       maxLength={7}
                       className={`text-2xl sm:text-4xl font-extrabold rounded-xl px-4 py-1.5 w-44 sm:w-52 focus:outline-none focus:ring-2 focus:ring-[#7c3aed] font-mono transition-all shadow-inner border ${
-                        isDark
-                          ? 'border-white/20'
-                          : 'border-gray-200'
+                        isDark ? 'border-white/20' : 'border-gray-200'
                       }`}
                       style={{
                         color: contrastColor,
                         backgroundColor: fullHex,
-                        textShadow:
-                          '0 1px 2px rgba(0,0,0,0.1)',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.1)',
                       }}
                       aria-label="HEX color code input"
                     />
 
                     <button
                       type="button"
-                      onClick={() =>
-                        handleCopy(fullHex, 'hex')
-                      }
+                      onClick={() => handleCopy(fullHex, 'hex')}
                       className={`ml-2.5 p-2.5 border rounded-xl transition-all active:scale-95 shadow-md ${
                         isDark
                           ? 'bg-white/10 hover:bg-white/20 border-white/10 text-white/90'
                           : 'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-700'
                       }`}
                       aria-label={
-                        copied &&
-                        copiedFormat === 'hex'
+                        copied && copiedFormat === 'hex'
                           ? 'Copied!'
                           : 'Copy HEX Code'
                       }
                       title="Copy HEX Code"
                     >
-                      {copied &&
-                      copiedFormat === 'hex' ? (
+                      {copied && copiedFormat === 'hex' ? (
                         <Check
                           className="w-5 h-5 text-emerald-400"
                           aria-hidden="true"
                         />
                       ) : (
-                        <Copy
-                          className="w-5 h-5"
-                          aria-hidden="true"
-                        />
+                        <Copy className="w-5 h-5" aria-hidden="true" />
                       )}
                     </button>
                   </div>
                 </div>
-
-                <h1
-                  className={`text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight ${
-                    isDark
-                      ? 'text-white'
-                      : 'text-gray-900'
-                  }`}
-                >
-                  {colorName}
-
-                  <span className="ml-3 text-sm sm:text-base font-mono font-normal text-gray-500 dark:text-gray-400">
-                    #{hex.toUpperCase()}
-                  </span>
-                </h1>
 
                 <div className="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap">
                   <span
@@ -874,22 +705,17 @@ export default function ShadesClient({
 
                   <span
                     className={`text-sm ${
-                      isDark
-                        ? 'text-gray-400'
-                        : 'text-gray-500'
+                      isDark ? 'text-gray-400' : 'text-gray-500'
                     }`}
                   >
-                    {filteredShades.length} shades,{' '}
-                    {allShades.length} variations total
+                    {filteredShades.length} shades, {allShades.length}{' '}
+                    variations total
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* ==================================================
-                COLOR FORMAT DATA
-            ================================================== */}
-
+            {/* COLOR FORMAT DATA */}
             <div
               className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 w-full lg:w-auto min-w-[280px]"
               role="group"
@@ -899,11 +725,7 @@ export default function ShadesClient({
                 <div
                   key={item.label}
                   onClick={() =>
-                    item.value &&
-                    handleCopy(
-                      item.value,
-                      item.format
-                    )
+                    item.value && handleCopy(item.value, item.format)
                   }
                   className={`group border rounded-xl p-3 transition-all ${
                     isDark
@@ -923,25 +745,18 @@ export default function ShadesClient({
                   }
                   onKeyDown={(e) => {
                     if (
-                      (e.key === 'Enter' ||
-                        e.key === ' ') &&
+                      (e.key === 'Enter' || e.key === ' ') &&
                       item.value
                     ) {
                       e.preventDefault();
-
-                      handleCopy(
-                        item.value,
-                        item.format
-                      );
+                      handleCopy(item.value, item.format);
                     }
                   }}
                 >
                   <div className="flex justify-between items-center mb-1">
                     <span
                       className={`text-[10px] font-bold uppercase tracking-widest ${
-                        isDark
-                          ? 'text-gray-200'
-                          : 'text-gray-500'
+                        isDark ? 'text-gray-200' : 'text-gray-500'
                       }`}
                     >
                       {item.label}
@@ -949,9 +764,7 @@ export default function ShadesClient({
 
                     {item.value && (
                       <div className="flex items-center gap-1">
-                        {copied &&
-                        copiedFormat ===
-                          item.format ? (
+                        {copied && copiedFormat === item.format ? (
                           <Check
                             className="w-3 h-3 text-emerald-400"
                             aria-hidden="true"
@@ -959,9 +772,7 @@ export default function ShadesClient({
                         ) : (
                           <Copy
                             className={`w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity ${
-                              isDark
-                                ? 'text-gray-500'
-                                : 'text-gray-400'
+                              isDark ? 'text-gray-500' : 'text-gray-400'
                             }`}
                             aria-hidden="true"
                           />
@@ -972,9 +783,7 @@ export default function ShadesClient({
 
                   <p
                     className={`font-mono text-xs sm:text-sm font-medium truncate ${
-                      isDark
-                        ? 'text-white'
-                        : 'text-gray-800'
+                      isDark ? 'text-white' : 'text-gray-800'
                     }`}
                   >
                     {item.value || '—'}
@@ -985,10 +794,7 @@ export default function ShadesClient({
           </div>
         </header>
 
-        {/* ======================================================
-            SEARCH + FILTER
-        ====================================================== */}
-
+        {/* SEARCH + FILTER */}
         <div
           className={`flex flex-wrap gap-4 items-center p-4 rounded-xl border ${
             isDark
@@ -999,9 +805,7 @@ export default function ShadesClient({
           <div className="flex-1 min-w-[200px] relative">
             <Search
               className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${
-                isDark
-                  ? 'text-gray-500'
-                  : 'text-gray-400'
+                isDark ? 'text-gray-500' : 'text-gray-400'
               }`}
             />
 
@@ -1009,9 +813,7 @@ export default function ShadesClient({
               type="text"
               placeholder="Search by hex or color name..."
               value={searchTerm}
-              onChange={(e) =>
-                setSearchTerm(e.target.value)
-              }
+              onChange={(e) => setSearchTerm(e.target.value)}
               className={`w-full pl-10 pr-4 py-2 rounded-lg border focus:ring-2 focus:ring-[#7c3aed] outline-none ${
                 isDark
                   ? 'bg-[#0a0a14] border-white/10 text-white placeholder:text-gray-500'
@@ -1021,20 +823,11 @@ export default function ShadesClient({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {[
-              'all',
-              'light',
-              'dark',
-              'tint',
-              'tone',
-              'shade',
-            ].map((type) => (
+            {['all', 'light', 'dark', 'tint', 'tone', 'shade'].map((type) => (
               <button
                 key={type}
                 type="button"
-                onClick={() =>
-                  setFilter(type as typeof filter)
-                }
+                onClick={() => setFilter(type as typeof filter)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${
                   filter === type
                     ? 'bg-[#7c3aed] text-white'
@@ -1043,18 +836,13 @@ export default function ShadesClient({
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
                 }`}
               >
-                {type === 'all'
-                  ? 'All'
-                  : type}
+                {type === 'all' ? 'All' : type}
               </button>
             ))}
           </div>
         </div>
 
-        {/* ======================================================
-            COLOR WHEEL PREVIEW
-        ====================================================== */}
-
+        {/* COLOR WHEEL PREVIEW */}
         {showColorWheel && (
           <div
             className={`p-4 rounded-xl border ${
@@ -1065,42 +853,30 @@ export default function ShadesClient({
           >
             <h3
               className={`text-sm font-semibold mb-3 ${
-                isDark
-                  ? 'text-gray-300'
-                  : 'text-gray-600'
+                isDark ? 'text-gray-300' : 'text-gray-600'
               }`}
             >
-              Color Wheel Preview ({allShades.length}{' '}
-              colors)
+              Color Wheel Preview ({allShades.length} colors)
             </h3>
 
             <div className="flex flex-wrap gap-1.5">
-              {allShades
-                .slice(0, 48)
-                .map((shade) => (
-                  <div
-                    key={shade.id}
-                    className="w-8 h-8 rounded-lg transition-transform hover:scale-110 cursor-pointer relative group"
-                    style={{
-                      backgroundColor: shade.hex,
-                    }}
-                    title={`${shade.hex} - ${
-                      shade.name || 'Unnamed'
-                    }`}
-                  >
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 rounded text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white pointer-events-none">
-                      {shade.name || shade.hex}
-                    </div>
+              {allShades.slice(0, 48).map((shade) => (
+                <div
+                  key={shade.id}
+                  className="w-8 h-8 rounded-lg transition-transform hover:scale-110 cursor-pointer relative group"
+                  style={{ backgroundColor: shade.hex }}
+                  title={`${shade.hex} - ${shade.name || 'Unnamed'}`}
+                >
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 rounded text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white pointer-events-none">
+                    {shade.name || shade.hex}
                   </div>
-                ))}
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* ======================================================
-            COLOR NAMES
-        ====================================================== */}
-
+        {/* COLOR NAMES */}
         {uniqueNames.length > 0 && (
           <div
             className={`p-5 rounded-2xl backdrop-blur-md transition-all ${
@@ -1124,9 +900,7 @@ export default function ShadesClient({
                 <div>
                   <h2
                     className={`text-sm font-bold tracking-wide ${
-                      isDark
-                        ? 'text-white'
-                        : 'text-gray-900'
+                      isDark ? 'text-white' : 'text-gray-900'
                     }`}
                   >
                     Color Names Found
@@ -1134,13 +908,10 @@ export default function ShadesClient({
 
                   <p
                     className={`text-[11px] ${
-                      isDark
-                        ? 'text-gray-400'
-                        : 'text-gray-500'
+                      isDark ? 'text-gray-400' : 'text-gray-500'
                     }`}
                   >
-                    {uniqueNames.length} distinct
-                    shades identified
+                    {uniqueNames.length} distinct shades identified
                   </p>
                 </div>
               </div>
@@ -1155,9 +926,7 @@ export default function ShadesClient({
                       : 'bg-indigo-50/80 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/60'
                   }`}
                   aria-label={
-                    showAllNames
-                      ? 'Show less names'
-                      : 'Show all names'
+                    showAllNames ? 'Show less names' : 'Show all names'
                   }
                 >
                   <span>
@@ -1177,13 +946,10 @@ export default function ShadesClient({
 
             <div className="flex flex-wrap gap-2 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-700">
               {displayedNames.map((name) => {
-                const shadeWithName =
-                  allShades.find(
-                    (shade) => shade.name === name
-                  );
-
-                const colorHex =
-                  shadeWithName?.hex || '#888888';
+                const shadeWithName = allShades.find(
+                  (shade) => shade.name === name
+                );
+                const colorHex = shadeWithName?.hex || '#888888';
 
                 return (
                   <span
@@ -1197,14 +963,9 @@ export default function ShadesClient({
                   >
                     <span
                       className="w-3 h-3 rounded-md flex-shrink-0 shadow-inner transition-transform group-hover:scale-110"
-                      style={{
-                        backgroundColor: colorHex,
-                      }}
+                      style={{ backgroundColor: colorHex }}
                     />
-
-                    <span className="capitalize tracking-tight">
-                      {name}
-                    </span>
+                    <span className="capitalize tracking-tight">{name}</span>
                   </span>
                 );
               })}
@@ -1230,8 +991,7 @@ export default function ShadesClient({
                     className="text-indigo-500 hover:underline"
                     onClick={toggleShowAllNames}
                   >
-                    + {uniqueNames.length - 20}{' '}
-                    more
+                    + {uniqueNames.length - 20} more
                   </button>
                 )}
               </div>
@@ -1239,10 +999,7 @@ export default function ShadesClient({
           </div>
         )}
 
-        {/* ======================================================
-            UNIQUE SHADES WITH NAMES - GRID
-        ====================================================== */}
-
+        {/* UNIQUE SHADES WITH NAMES - GRID */}
         {uniqueShadesWithNames.length > 0 && (
           <div
             className={`p-4 sm:p-5 rounded-2xl transition-all ${
@@ -1251,7 +1008,7 @@ export default function ShadesClient({
                 : 'bg-white border border-gray-100 shadow-xl shadow-gray-200/50'
             }`}
           >
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
               <div className="flex items-center gap-2.5">
                 <div
                   className={`p-2 rounded-xl ${
@@ -1266,109 +1023,145 @@ export default function ShadesClient({
                 <div>
                   <h2
                     className={`text-sm font-bold tracking-wide ${
-                      isDark
-                        ? 'text-white'
-                        : 'text-gray-900'
+                      isDark ? 'text-white' : 'text-gray-900'
                     }`}
                   >
-                    Unique Shades
+                    {colorName} Shades
                   </h2>
 
                   <p
                     className={`text-[11px] ${
-                      isDark
-                        ? 'text-gray-400'
-                        : 'text-gray-500'
+                      isDark ? 'text-gray-400' : 'text-gray-500'
                     }`}
                   >
-                    {
-                      uniqueShadesWithNames.length
-                    }{' '}
-                    distinct shades with color names
+                    {uniqueShadesWithNames.length} distinct shades with color
+                    names
                   </p>
                 </div>
               </div>
 
-              {hasMoreUniqueShades && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* ✅ DOWNLOAD BUTTON */}
                 <button
                   type="button"
-                  onClick={toggleShowAllShadeNames}
-                  className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95 ${
+                  onClick={handleDownloadShades}
+                  disabled={isDownloading}
+                  className={`group flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${
                     isDark
-                      ? 'bg-white/5 hover:bg-white/15 text-emerald-300 border border-emerald-500/20'
-                      : 'bg-emerald-50/80 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/60'
+                      ? 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30'
+                      : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70'
                   }`}
-                  aria-label={
-                    showAllShadeNames
-                      ? 'Show less'
-                      : 'Show all unique shades'
-                  }
+                  aria-label="Download shades as PNG image"
+                  title="Download shades as PNG image"
                 >
-                  <span>
-                    {showAllShadeNames
-                      ? 'Show Less'
-                      : `Show All (${uniqueShadesWithNames.length})`}
-                  </span>
-
-                  {showAllShadeNames ? (
-                    <ChevronUp className="w-3.5 h-3.5 transition-transform group-hover:-translate-y-0.5" />
+                  {isDownloading ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      <span>Preparing…</span>
+                    </>
                   ) : (
-                    <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:translate-y-0.5" />
+                    <>
+                      <Download className="w-3.5 h-3.5 transition-transform group-hover:translate-y-0.5" />
+                      <span>Download PNG</span>
+                    </>
                   )}
                 </button>
-              )}
+
+                {hasMoreUniqueShades && (
+                  <button
+                    type="button"
+                    onClick={toggleShowAllShadeNames}
+                    className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95 ${
+                      isDark
+                        ? 'bg-white/5 hover:bg-white/15 text-emerald-300 border border-emerald-500/20'
+                        : 'bg-emerald-50/80 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/60'
+                    }`}
+                    aria-label={
+                      showAllShadeNames
+                        ? 'Show less'
+                        : 'Show all unique shades'
+                    }
+                  >
+                    <span>
+                      {showAllShadeNames
+                        ? 'Show Less'
+                        : `Show All (${uniqueShadesWithNames.length})`}
+                    </span>
+
+                    {showAllShadeNames ? (
+                      <ChevronUp className="w-3.5 h-3.5 transition-transform group-hover:-translate-y-0.5" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:translate-y-0.5" />
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-0 overflow-hidden rounded-xl">
-              {displayedUniqueShades.map(
-                (shade) => (
-                  <div
-                    key={shade.id}
-                    className="group relative aspect-[1.35/1] flex items-center justify-center cursor-pointer transition-all duration-300 hover:z-10 hover:scale-[1.03] hover:shadow-xl"
-                    style={{
-                      backgroundColor: shade.hex,
-                    }}
-                    title={`${shade.name} - ${shade.hex}`}
-                    onClick={() =>
-                      handleCopy(
-                        shade.hex,
-                        shade.id
-                      )
-                    }
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (
-                        e.key === 'Enter' ||
-                        e.key === ' '
-                      ) {
-                        e.preventDefault();
+             {displayedUniqueShades.map((shade) => {
+  const shadeTextColor = getContrastTextColor(shade.hex);
+  const isLightShade = shadeTextColor === '#111827';
 
-                        handleCopy(
-                          shade.hex,
-                          shade.id
-                        );
-                      }
-                    }}
-                  >
-                    <span className="relative z-10 px-3 text-center text-white text-sm sm:text-base font-bold drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)] transition-transform duration-300 group-hover:scale-105">
-                      {shade.name}
-                    </span>
+  return (
+    <div
+      key={shade.id}
+      className="group relative aspect-[1.35/1] flex items-center justify-center cursor-pointer transition-all duration-300 hover:z-10 hover:scale-[1.03] hover:shadow-xl"
+      style={{ backgroundColor: shade.hex }}
+      title={`${shade.name} - ${shade.hex}`}
+      onClick={() => handleCopy(shade.hex, shade.id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleCopy(shade.hex, shade.id);
+        }
+      }}
+    >
+      {/* ✅ Dynamic text color based on shade luminance */}
+      <span
+        className="relative z-10 px-3 text-center text-sm sm:text-base font-bold transition-transform duration-300 group-hover:scale-105"
+        style={{
+          color: shadeTextColor,
+          textShadow: isLightShade
+            ? '0 1px 2px rgba(255,255,255,0.4)'
+            : '0 2px 3px rgba(0,0,0,0.35)',
+        }}
+      >
+        {shade.name}
+      </span>
 
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+      <div
+        className={`absolute inset-0 transition-colors duration-300 ${
+          isLightShade ? 'group-hover:bg-black/5' : 'group-hover:bg-black/10'
+        }`}
+      />
 
-                    <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-medium text-white/0 group-hover:text-white/90 transition-all duration-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]">
-                      {shade.hex.toUpperCase()}
-                    </span>
+      {/* ✅ HEX code on hover — also dynamic */}
+      <span
+        className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-medium opacity-0 group-hover:opacity-90 transition-all duration-300"
+        style={{
+          color: shadeTextColor,
+          textShadow: isLightShade
+            ? '0 1px 2px rgba(255,255,255,0.5)'
+            : '0 1px 2px rgba(0,0,0,0.4)',
+        }}
+      >
+        {shade.hex.toUpperCase()}
+      </span>
 
-                    {copied === shade.id && (
-                      <div className="absolute top-2 right-2 z-20">
-                        <Check className="w-4 h-4 text-emerald-400 drop-shadow-lg" />
-                      </div>
-                    )}
-                  </div>
-                )
-              )}
+      {copied === shade.id && (
+        <div className="absolute top-2 right-2 z-20">
+          <Check
+            className="w-4 h-4 drop-shadow-lg"
+            style={{ color: isLightShade ? '#059669' : '#34d399' }}
+          />
+        </div>
+      )}
+    </div>
+  );
+})}
             </div>
 
             {hasMoreUniqueShades && (
@@ -1389,14 +1182,9 @@ export default function ShadesClient({
                   <button
                     type="button"
                     className="text-emerald-500 hover:underline"
-                    onClick={
-                      toggleShowAllShadeNames
-                    }
+                    onClick={toggleShowAllShadeNames}
                   >
-                    +{' '}
-                    {uniqueShadesWithNames.length -
-                      20}{' '}
-                    more
+                    + {uniqueShadesWithNames.length - 20} more
                   </button>
                 )}
               </div>
@@ -1404,151 +1192,102 @@ export default function ShadesClient({
           </div>
         )}
 
-        {/* ======================================================
-            SHADES GRID
-        ====================================================== */}
-
-        {Object.entries(groupedShades).map(
-          ([type, shades]) => (
-            <section
-              key={type}
-              className="space-y-3"
+        {/* SHADES GRID */}
+        {Object.entries(groupedShades).map(([type, shades]) => (
+          <section key={type} className="space-y-3">
+            <h2
+              className={`text-lg font-semibold flex items-center gap-2 ${
+                isDark ? 'text-gray-200' : 'text-gray-700'
+              }`}
             >
-              <h2
-                className={`text-lg font-semibold flex items-center gap-2 ${
-                  isDark
-                    ? 'text-gray-200'
-                    : 'text-gray-700'
+              {getTypeLabel(type)}
+              <span
+                className={`text-sm font-normal ${
+                  isDark ? 'text-gray-400' : 'text-gray-500'
                 }`}
               >
-                {getTypeLabel(type)}
+                ({shades.length})
+              </span>
+            </h2>
 
-                <span
-                  className={`text-sm font-normal ${
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+              {shades.map((shade) => (
+                <div
+                  key={shade.id}
+                  className={`group relative rounded-xl border overflow-hidden transition-all hover:scale-105 hover:shadow-xl ${
                     isDark
-                      ? 'text-gray-400'
-                      : 'text-gray-500'
+                      ? 'border-white/10 hover:border-white/30'
+                      : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  ({shades.length})
-                </span>
-              </h2>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-                {shades.map((shade) => (
                   <div
-                    key={shade.id}
-                    className={`group relative rounded-xl border overflow-hidden transition-all hover:scale-105 hover:shadow-xl ${
-                      isDark
-                        ? 'border-white/10 hover:border-white/30'
-                        : 'border-gray-200 hover:border-gray-300'
+                    className="w-full aspect-square"
+                    style={{ backgroundColor: shade.hex }}
+                  />
+
+                  <div
+                    className={`p-2 text-center ${
+                      isDark ? 'bg-[#0a0a14]' : 'bg-white'
                     }`}
                   >
-                    <div
-                      className="w-full aspect-square"
-                      style={{
-                        backgroundColor:
-                          shade.hex,
-                      }}
-                    />
-
-                    <div
-                      className={`p-2 text-center ${
-                        isDark
-                          ? 'bg-[#0a0a14]'
-                          : 'bg-white'
-                      }`}
+                    <p
+                      className="font-mono text-xs font-medium truncate cursor-pointer hover:text-[#7c3aed] transition-colors"
+                      onClick={() => handleCopy(shade.hex, shade.id)}
+                      title={`Click to copy ${shade.hex}`}
                     >
+                      {shade.hex}
+                    </p>
+
+                    {showNames && shade.name && (
                       <p
-                        className="font-mono text-xs font-medium truncate cursor-pointer hover:text-[#7c3aed] transition-colors"
-                        onClick={() =>
-                          handleCopy(
-                            shade.hex,
-                            shade.id
-                          )
-                        }
-                        title={`Click to copy ${shade.hex}`}
-                      >
-                        {shade.hex}
-                      </p>
-
-                      {showNames &&
-                        shade.name && (
-                          <p
-                            className={`text-[10px] truncate mt-0.5 ${
-                              isDark
-                                ? 'text-gray-300'
-                                : 'text-gray-600'
-                            }`}
-                            title={shade.name}
-                          >
-                            {shade.name}
-                          </p>
-                        )}
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleCopy(
-                            shade.hex,
-                            shade.id
-                          )
-                        }
-                        className={`mt-1 p-1 rounded-md transition-all opacity-0 group-hover:opacity-100 ${
-                          isDark
-                            ? 'hover:bg-white/10'
-                            : 'hover:bg-gray-100'
+                        className={`text-[10px] truncate mt-0.5 ${
+                          isDark ? 'text-gray-300' : 'text-gray-600'
                         }`}
-                        aria-label="Copy color"
+                        title={shade.name}
                       >
-                        {copied === shade.id ? (
-                          <Check className="w-3 h-3 text-emerald-400" />
-                        ) : (
-                          <Copy
-                            className={`w-3 h-3 ${
-                              isDark
-                                ? 'text-gray-400'
-                                : 'text-gray-500'
-                            }`}
-                          />
-                        )}
-                      </button>
-                    </div>
+                        {shade.name}
+                      </p>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(shade.hex, shade.id)}
+                      className={`mt-1 p-1 rounded-md transition-all opacity-0 group-hover:opacity-100 ${
+                        isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+                      }`}
+                      aria-label="Copy color"
+                    >
+                      {copied === shade.id ? (
+                        <Check className="w-3 h-3 text-emerald-400" />
+                      ) : (
+                        <Copy
+                          className={`w-3 h-3 ${
+                            isDark ? 'text-gray-400' : 'text-gray-500'
+                          }`}
+                        />
+                      )}
+                    </button>
                   </div>
-                ))}
-              </div>
-            </section>
-          )
-        )}
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
 
-        {/* ======================================================
-            EMPTY STATE
-        ====================================================== */}
-
+        {/* EMPTY STATE */}
         {filteredShades.length === 0 && (
           <div
             className={`text-center py-20 ${
-              isDark
-                ? 'text-gray-400'
-                : 'text-gray-500'
+              isDark ? 'text-gray-400' : 'text-gray-500'
             }`}
           >
             <Palette className="w-12 h-12 mx-auto mb-4 opacity-50" />
-
-            <p className="text-lg font-medium">
-              No shades found
-            </p>
-
-            <p className="text-sm">
-              Try adjusting your search or filter
-            </p>
+            <p className="text-lg font-medium">No shades found</p>
+            <p className="text-sm">Try adjusting your search or filter</p>
           </div>
         )}
 
-        {/* ======================================================
-            STATISTICS FOOTER
-        ====================================================== */}
-
+        {/* STATISTICS FOOTER */}
         <div
           className={`mt-8 p-4 rounded-xl border ${
             isDark
@@ -1560,19 +1299,14 @@ export default function ShadesClient({
             <div>
               <p
                 className={`text-2xl font-bold ${
-                  isDark
-                    ? 'text-white'
-                    : 'text-gray-800'
+                  isDark ? 'text-white' : 'text-gray-800'
                 }`}
               >
                 {filteredShades.length}
               </p>
-
               <p
                 className={`text-xs ${
-                  isDark
-                    ? 'text-gray-400'
-                    : 'text-gray-500'
+                  isDark ? 'text-gray-400' : 'text-gray-500'
                 }`}
               >
                 Total Shades
@@ -1582,19 +1316,14 @@ export default function ShadesClient({
             <div>
               <p
                 className={`text-2xl font-bold ${
-                  isDark
-                    ? 'text-white'
-                    : 'text-gray-800'
+                  isDark ? 'text-white' : 'text-gray-800'
                 }`}
               >
                 {Object.keys(groupedShades).length}
               </p>
-
               <p
                 className={`text-xs ${
-                  isDark
-                    ? 'text-gray-400'
-                    : 'text-gray-500'
+                  isDark ? 'text-gray-400' : 'text-gray-500'
                 }`}
               >
                 Color Families
@@ -1604,19 +1333,14 @@ export default function ShadesClient({
             <div>
               <p
                 className={`text-2xl font-bold ${
-                  isDark
-                    ? 'text-white'
-                    : 'text-gray-800'
+                  isDark ? 'text-white' : 'text-gray-800'
                 }`}
               >
                 {uniqueNames.length}
               </p>
-
               <p
                 className={`text-xs ${
-                  isDark
-                    ? 'text-gray-400'
-                    : 'text-gray-500'
+                  isDark ? 'text-gray-400' : 'text-gray-500'
                 }`}
               >
                 Unique Color Names
@@ -1626,19 +1350,14 @@ export default function ShadesClient({
             <div>
               <p
                 className={`text-2xl font-bold ${
-                  isDark
-                    ? 'text-white'
-                    : 'text-gray-800'
+                  isDark ? 'text-white' : 'text-gray-800'
                 }`}
               >
                 {allShades.length}
               </p>
-
               <p
                 className={`text-xs ${
-                  isDark
-                    ? 'text-gray-400'
-                    : 'text-gray-500'
+                  isDark ? 'text-gray-400' : 'text-gray-500'
                 }`}
               >
                 Total Variations
@@ -1647,7 +1366,12 @@ export default function ShadesClient({
           </div>
         </div>
       </div>
-        <ShadesFAQ colorName={colorName} hex={hex} colorFamily={colorFamily} />
+
+      <ShadesFAQ
+        colorName={colorName}
+        hex={hex}
+        colorFamily={colorFamily}
+      />
     </div>
   );
 }
