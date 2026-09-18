@@ -26,7 +26,6 @@ import { getColorName, getColorFamily } from '@/lib/color-utils';
  * CONSTANTS
  * ============================================================ */
 
-const DEFAULT_HEX = '32cd32';
 const INITIAL_VISIBLE_COUNT = 20;
 
 type FilterType = 'all' | 'light' | 'dark' | 'tint' | 'tone' | 'shade';
@@ -44,10 +43,10 @@ const FILTER_OPTIONS: FilterType[] = [
  * HELPERS
  * ============================================================ */
 
-function normalizeHex(value: string | undefined): string {
-  if (!value) return DEFAULT_HEX;
-  const cleanHex = value.replace(/^#/, '').trim().toLowerCase();
-  return /^[0-9a-f]{6}$/.test(cleanHex) ? cleanHex : DEFAULT_HEX;
+function cleanHex(value: string | undefined): string | null {
+  if (!value) return null;
+  const clean = value.replace(/^#/, '').trim().toLowerCase();
+  return /^[0-9a-f]{6}$/.test(clean) ? clean : null;
 }
 
 function isValidHex(value: string | undefined | null): boolean {
@@ -55,13 +54,28 @@ function isValidHex(value: string | undefined | null): boolean {
   return /^[0-9a-f]{6}$/i.test(value.replace(/^#/, '').trim());
 }
 
+/**
+ * WCAG-compliant relative luminance → contrast text color
+ * Uses sRGB → linear conversion (WCAG 2.1 spec)
+ */
+function srgbToLinear(c: number): number {
+  const v = c / 255;
+  return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+}
+
 function getContrastTextColor(hexColor: string): string {
   const clean = hexColor.replace('#', '');
   const r = parseInt(clean.slice(0, 2), 16);
   const g = parseInt(clean.slice(2, 4), 16);
   const b = parseInt(clean.slice(4, 6), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.55 ? '#111827' : '#ffffff';
+
+  const luminance =
+    0.2126 * srgbToLinear(r) +
+    0.7152 * srgbToLinear(g) +
+    0.0722 * srgbToLinear(b);
+
+  // WCAG threshold for white vs dark text
+  return luminance > 0.179 ? '#111827' : '#ffffff';
 }
 
 function getTypeLabel(type: string): string {
@@ -108,84 +122,83 @@ export default function ShadesClient({
   const [showAllShadeNames, setShowAllShadeNames] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  /* ---------- HEX RESOLUTION ---------- */
+  /* ---------- HEX FROM URL ---------- */
   const rawHexFromUrl = params?.hex as string | undefined;
 
   const hexFromUrl = useMemo(
-    () => normalizeHex(propInitialHex || rawHexFromUrl),
+    () => cleanHex(propInitialHex) ?? cleanHex(rawHexFromUrl),
     [propInitialHex, rawHexFromUrl]
   );
 
-  /* ---------- CONTEXT READY CHECK ---------- */
-  const isContextReady = useMemo(() => {
-    return isValidHex(currentColor);
-  }, [currentColor]);
+  /* ---------- CONTEXT READY ---------- */
+  const isContextReady = useMemo(
+    () => isValidHex(currentColor),
+    [currentColor]
+  );
 
   /* ============================================================
-   * ✅ INITIAL URL SYNC
+   * URL → CONTEXT SYNC
    * ============================================================
-   * Only runs when URL changes (not on picker change)
+   * - Ref only read/written inside effect (never render)
+   * - StrictMode-safe (idempotent)
+   * - No stale closures
    * ============================================================ */
-  const initializedUrlHexRef = useRef<string | null>(null);
+  const lastSyncedUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!hexFromUrl) return;
-    if (initializedUrlHexRef.current === hexFromUrl) return;
+    if (lastSyncedUrlRef.current === hexFromUrl) return;
 
-    initializedUrlHexRef.current = hexFromUrl;
+    lastSyncedUrlRef.current = hexFromUrl;
 
     if (currentColor !== hexFromUrl) {
       setColor(hexFromUrl);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hexFromUrl]); // ✅ Only hexFromUrl — picker changes preserved
+  }, [hexFromUrl, currentColor, setColor]);
 
   /* ============================================================
-   * ✅ HEX — URL priority for first render, context after
+   * HEX RESOLUTION — no fallback
    * ============================================================
-   * 1. URL hex valid + context not initialized → URL (no flash)
-   * 2. Context ready → context (picker dynamic)
-   * 3. Fallback → DEFAULT_HEX
+   * 1. Context ready → context (picker dynamic)
+   * 2. URL valid → URL (first render before context syncs)
+   * 3. Neither → null (caller must guard)
    * ============================================================ */
-  const hex = useMemo(() => {
-    // Priority 1: URL hex (before context sync — prevents flash)
-    if (
-      isValidHex(hexFromUrl) &&
-      initializedUrlHexRef.current !== hexFromUrl
-    ) {
-      return hexFromUrl;
-    }
-
-    // Priority 2: Context color (picker changes)
+  const hex = useMemo<string | null>(() => {
     if (isContextReady && currentColor) {
-      return normalizeHex(currentColor);
+      return currentColor.replace(/^#/, '').toLowerCase();
     }
-
-    // Priority 3: URL fallback
-    if (isValidHex(hexFromUrl)) {
+    if (hexFromUrl) {
       return hexFromUrl;
     }
-
-    return DEFAULT_HEX;
+    return null;
   }, [hexFromUrl, isContextReady, currentColor]);
 
-  const fullHex = useMemo(() => `#${hex.toUpperCase()}`, [hex]);
+  /* ---------- FULL HEX ---------- */
+  const fullHex = hex ? `#${hex.toUpperCase()}` : '';
 
   /* ---------- INPUT VALUE ---------- */
   const [inputValue, setInputValue] = useState(fullHex);
 
   useEffect(() => {
-    setInputValue(fullHex);
+    if (fullHex) setInputValue(fullHex);
   }, [fullHex]);
+
+  /* ---------- RESET "SHOW ALL" WHEN FILTER/SEARCH CHANGES ---------- */
+  useEffect(() => {
+    setShowAllNames(false);
+    setShowAllShadeNames(false);
+  }, [filter, searchTerm]);
 
   /* ---------- CONTRAST ---------- */
   const contrastColor = useMemo(
-    () => getContrastTextColor(fullHex),
+    () => (fullHex ? getContrastTextColor(fullHex) : '#111827'),
     [fullHex]
   );
 
   /* ---------- FORMAT DATA ---------- */
   const formatData = useMemo(() => {
+    if (!hex) return [];
+
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
@@ -223,16 +236,19 @@ export default function ShadesClient({
 
   /* ---------- COLOR NAME / FAMILY ---------- */
   const colorName = useMemo(() => {
+    if (!hex) return propColorName || 'Color';
     return getColorName(hex) || propColorName || 'Color';
   }, [hex, propColorName]);
 
   const colorFamily = useMemo(() => {
+    if (!hex) return propColorFamily || 'Color';
     return getColorFamily(hex) || propColorFamily || 'Color';
   }, [hex, propColorFamily]);
 
-  /* ---------- DYNAMIC H1 / TITLE ---------- */
+  /* ---------- DYNAMIC H1 / BREADCRUMB ---------- */
   useEffect(() => {
     if (typeof document === 'undefined') return;
+    if (!fullHex) return;
 
     const h1Name = document.getElementById('shades-h1-name');
     const h1Hex = document.getElementById('shades-h1-hex');
@@ -246,7 +262,10 @@ export default function ShadesClient({
   }, [colorName, fullHex]);
 
   /* ---------- SHADES GENERATION ---------- */
-  const allShades = useMemo(() => generateShades(hex, 120), [hex]);
+  const allShades = useMemo(
+    () => (hex ? generateShades(hex, 120) : []),
+    [hex]
+  );
 
   const filteredShades = useMemo(() => {
     let shades = allShades;
@@ -348,13 +367,13 @@ export default function ShadesClient({
     const value = e.target.value;
     setInputValue(value);
 
-    const cleanHex = value
+    const clean = value
       .replace(/^#/, '')
       .replace(/[^a-fA-F0-9]/g, '')
       .slice(0, 6);
 
-    if (cleanHex.length === 6 && /^[0-9a-fA-F]{6}$/.test(cleanHex)) {
-      setColor(cleanHex.toLowerCase());
+    if (clean.length === 6) {
+      setColor(clean.toLowerCase());
     }
   };
 
@@ -372,7 +391,7 @@ export default function ShadesClient({
 
   /* ---------- DOWNLOAD PNG ---------- */
   const handleDownloadShades = async () => {
-    if (isDownloading) return;
+    if (isDownloading || !hex) return;
     setIsDownloading(true);
 
     try {
@@ -544,12 +563,23 @@ export default function ShadesClient({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      // Cleanup canvas memory
+      canvas.width = 0;
+      canvas.height = 0;
     } catch (err) {
       console.error('Download failed:', err);
     } finally {
       setIsDownloading(false);
     }
   };
+
+  /* ============================================================
+   * RENDER GUARD — no hex means no render
+   * ============================================================ */
+  if (!hex || !fullHex) {
+    return null;
+  }
 
   /* ============================================================
    * RENDER
@@ -807,6 +837,7 @@ export default function ShadesClient({
               className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${
                 isDark ? 'text-gray-500' : 'text-gray-400'
               }`}
+              aria-hidden="true"
             />
 
             <input
@@ -860,17 +891,17 @@ export default function ShadesClient({
                       : 'bg-indigo-50 text-indigo-600'
                   }`}
                 >
-                  <Palette className="w-4 h-4" />
+                  <Palette className="w-4 h-4" aria-hidden="true" />
                 </div>
 
                 <div>
-                  <div
+                  <h2
                     className={`text-sm font-bold tracking-wide ${
                       isDark ? 'text-white' : 'text-gray-900'
                     }`}
                   >
                     Color Names Found
-                  </div>
+                  </h2>
 
                   <p
                     className={`text-[11px] ${
@@ -902,20 +933,29 @@ export default function ShadesClient({
                   </span>
 
                   {showAllNames ? (
-                    <ChevronUp className="w-3.5 h-3.5 transition-transform group-hover:-translate-y-0.5" />
+                    <ChevronUp
+                      className="w-3.5 h-3.5 transition-transform group-hover:-translate-y-0.5"
+                      aria-hidden="true"
+                    />
                   ) : (
-                    <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:translate-y-0.5" />
+                    <ChevronDown
+                      className="w-3.5 h-3.5 transition-transform group-hover:translate-y-0.5"
+                      aria-hidden="true"
+                    />
                   )}
                 </button>
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-700">
+            <ul
+              className="flex flex-wrap gap-2 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-700 list-none p-0 m-0"
+              aria-label="Color names found"
+            >
               {displayedNames.map((name) => {
                 const colorHex = nameToHex.get(name) ?? '#888888';
 
                 return (
-                  <span
+                  <li
                     key={`${name}-${colorHex}`}
                     className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 hover:-translate-y-0.5 ${
                       isDark
@@ -927,12 +967,13 @@ export default function ShadesClient({
                     <span
                       className="w-3 h-3 rounded-md flex-shrink-0 shadow-inner transition-transform group-hover:scale-110"
                       style={{ backgroundColor: colorHex }}
+                      aria-hidden="true"
                     />
                     <span className="capitalize tracking-tight">{name}</span>
-                  </span>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
 
             {hasMoreNames && (
               <div
@@ -980,7 +1021,7 @@ export default function ShadesClient({
                       : 'bg-emerald-50 text-emerald-600'
                   }`}
                 >
-                  <Palette className="w-4 h-4" />
+                  <Palette className="w-4 h-4" aria-hidden="true" />
                 </div>
 
                 <div>
@@ -1018,12 +1059,18 @@ export default function ShadesClient({
                 >
                   {isDownloading ? (
                     <>
-                      <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      <span
+                        className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"
+                        aria-hidden="true"
+                      />
                       <span>Preparing…</span>
                     </>
                   ) : (
                     <>
-                      <Download className="w-3.5 h-3.5 transition-transform group-hover:translate-y-0.5" />
+                      <Download
+                        className="w-3.5 h-3.5 transition-transform group-hover:translate-y-0.5"
+                        aria-hidden="true"
+                      />
                       <span>Download PNG</span>
                     </>
                   )}
@@ -1051,24 +1098,33 @@ export default function ShadesClient({
                     </span>
 
                     {showAllShadeNames ? (
-                      <ChevronUp className="w-3.5 h-3.5 transition-transform group-hover:-translate-y-0.5" />
+                      <ChevronUp
+                        className="w-3.5 h-3.5 transition-transform group-hover:-translate-y-0.5"
+                        aria-hidden="true"
+                      />
                     ) : (
-                      <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:translate-y-0.5" />
+                      <ChevronDown
+                        className="w-3.5 h-3.5 transition-transform group-hover:translate-y-0.5"
+                        aria-hidden="true"
+                      />
                     )}
                   </button>
                 )}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-0 overflow-hidden rounded-xl">
+            <ul
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-0 overflow-hidden rounded-xl list-none p-0 m-0"
+              aria-label={`${colorName} shades`}
+            >
               {displayedUniqueShades.map((shade) => {
                 const shadeTextColor = getContrastTextColor(shade.hex);
                 const isLightShade = shadeTextColor === '#111827';
 
                 return (
-                  <div
+                  <li
                     key={shade.id}
-                    className="group relative aspect-[1.35/1] flex items-center justify-center cursor-pointer transition-all duration-300 hover:z-10 hover:scale-[1.03] hover:shadow-xl"
+                    className="group relative aspect-[1.35/1] flex items-center justify-center cursor-pointer transition-all duration-300 hover:z-10 hover:scale-[1.03] hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] focus-visible:ring-offset-2"
                     style={{ backgroundColor: shade.hex }}
                     title={`${shade.name} - ${shade.hex}`}
                     onClick={() => handleCopy(shade.hex, shade.id)}
@@ -1099,6 +1155,7 @@ export default function ShadesClient({
                           ? 'group-hover:bg-black/5'
                           : 'group-hover:bg-black/10'
                       }`}
+                      aria-hidden="true"
                     />
 
                     <span
@@ -1120,13 +1177,14 @@ export default function ShadesClient({
                           style={{
                             color: isLightShade ? '#059669' : '#34d399',
                           }}
+                          aria-hidden="true"
                         />
                       </div>
                     )}
-                  </div>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
 
             {hasMoreUniqueShades && (
               <div
@@ -1176,9 +1234,12 @@ export default function ShadesClient({
               </span>
             </h2>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+            <ul
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 list-none p-0 m-0"
+              aria-label={`${getTypeLabel(type)} shades`}
+            >
               {shades.map((shade) => (
-                <div
+                <li
                   key={shade.id}
                   className={`group relative rounded-xl border overflow-hidden transition-all hover:scale-105 hover:shadow-xl ${
                     isDark
@@ -1189,6 +1250,7 @@ export default function ShadesClient({
                   <div
                     className="w-full aspect-square"
                     style={{ backgroundColor: shade.hex }}
+                    aria-hidden="true"
                   />
 
                   <div
@@ -1224,19 +1286,23 @@ export default function ShadesClient({
                       aria-label="Copy color"
                     >
                       {copiedId === shade.id ? (
-                        <Check className="w-3 h-3 text-emerald-400" />
+                        <Check
+                          className="w-3 h-3 text-emerald-400"
+                          aria-hidden="true"
+                        />
                       ) : (
                         <Copy
                           className={`w-3 h-3 ${
                             isDark ? 'text-gray-400' : 'text-gray-500'
                           }`}
+                          aria-hidden="true"
                         />
                       )}
                     </button>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </section>
         ))}
 
@@ -1247,7 +1313,10 @@ export default function ShadesClient({
               isDark ? 'text-gray-400' : 'text-gray-500'
             }`}
           >
-            <Palette className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <Palette
+              className="w-12 h-12 mx-auto mb-4 opacity-50"
+              aria-hidden="true"
+            />
             <p className="text-lg font-medium">No shades found</p>
             <p className="text-sm">Try adjusting your search or filter</p>
           </div>
