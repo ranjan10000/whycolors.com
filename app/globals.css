@@ -654,3 +654,24 @@ body {
 .dark .prose a:hover {
   color: var(--prose-link-hover);
 }
+
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(127, 127, 127, 0.08) 0%,
+    rgba(127, 127, 127, 0.18) 50%,
+    rgba(127, 127, 127, 0.08) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+}

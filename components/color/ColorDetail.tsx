@@ -30,7 +30,6 @@ import GradientGenerator from './GradientGenerator';
 import ColorShadesTailwind from './ColorShadesTailwind';
 import ColorDynamicFAQ from './ColorDynamicFAQ';
 import ColorChart from './ColorChart';
-import SocialShare from './SocialShare';
 
 interface ColorDetailProps {
   hex: string;
@@ -54,15 +53,21 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
   );
   const [mounted, setMounted] = useState(false);
 
-  const hex = currentColor;
+  /* ============================================================
+   * ✅ Context ready check
+   * ============================================================ */
+  const isContextReady = useMemo(
+    () => Boolean(currentColor && /^[0-9a-f]{6}$/i.test(currentColor)),
+    [currentColor]
+  );
+
+  // ✅ Context ready → context (picker), not ready → initialHex (no flash)
+  const hex = isContextReady ? currentColor : initialHex;
   const fullHex = `#${hex.toUpperCase()}`;
 
-  // ✅ Dynamic values
+  // Dynamic values
   const colorName = useMemo(() => getColorName(hex), [hex]);
-  const colorFamily = useMemo(
-    () => getColorFamily(hex) || 'Color',
-    [hex]
-  );
+  const colorFamily = useMemo(() => getColorFamily(hex) || 'Color', [hex]);
 
   const rgb = useMemo(() => hexToRgb(hex), [hex]);
   const hsl = useMemo(() => hexToHsl(hex), [hex]);
@@ -70,49 +75,34 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
   const cmyk = useMemo(() => hexToCmyk(hex), [hex]);
   const contrastColor = useMemo(() => getContrastColor(hex), [hex]);
 
-  /*
-   * ============================================================
-   * ✅ DYNAMIC H1 + BREADCRUMB UPDATE
-   *
-   * These are server-rendered in page.tsx. We update them
-   * directly via DOM whenever the live color changes.
-   * ============================================================
-   */
+  /* ============================================================
+   * ✅ DYNAMIC H1 + BREADCRUMB
+   * ============================================================ */
   useEffect(() => {
-    if (typeof document === 'undefined') {
-      return;
-    }
+    if (typeof document === 'undefined') return;
 
-    // H1
     const h1Name = document.getElementById('color-h1-name');
     const h1Hex = document.getElementById('color-h1-hex');
-
     if (h1Name) h1Name.textContent = colorName;
     if (h1Hex) h1Hex.textContent = fullHex;
 
-    // Breadcrumb pill
-    const breadcrumbDot = document.getElementById(
-      'color-breadcrumb-dot'
-    );
-    const breadcrumbHex = document.getElementById(
-      'color-breadcrumb-hex'
-    );
+    const breadcrumbDot = document.getElementById('color-breadcrumb-dot');
+    const breadcrumbHex = document.getElementById('color-breadcrumb-hex');
+    if (breadcrumbDot) breadcrumbDot.style.backgroundColor = fullHex;
+    if (breadcrumbHex) breadcrumbHex.textContent = fullHex;
 
-    if (breadcrumbDot) {
-      breadcrumbDot.style.backgroundColor = fullHex;
-    }
-    if (breadcrumbHex) {
-      breadcrumbHex.textContent = fullHex;
-    }
-
-    // Document title
     document.title = `${fullHex} ${colorName} - Color Details, HEX, RGB, Shades & Gradients`;
   }, [colorName, fullHex]);
 
-  // Handle hydration
+  // Hydration
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Update input value when hex changes (e.g. picker)
+  useEffect(() => {
+    setInputValue(fullHex);
+  }, [fullHex]);
 
   // Handle color selection from ColorChart
   const handleColorHistorySelect = useCallback(
@@ -124,23 +114,27 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
     [setColor]
   );
 
-  // Handle initial color load
+  /* ============================================================
+   * ✅ SYNC URL → CONTEXT (only on URL change)
+   * ============================================================
+   * ⚠️ IMPORTANT: dependency-ல initialHex மட்டும்.
+   * currentColor-ஐ சேர்க்கக்கூடாது — picker change-ஐ reset பண்ணும்.
+   * ============================================================ */
   useEffect(() => {
-    if (initialHex && initialHex !== hex) {
-      setIsLoading(true);
+    if (!initialHex) return;
 
-      requestAnimationFrame(() => {
-        setColor(initialHex);
-        setInputValue(`#${initialHex.toUpperCase()}`);
+    const cleanHex = initialHex.replace('#', '').toLowerCase();
+    if (!/^[0-9a-f]{6}$/i.test(cleanHex)) return;
 
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 100);
-      });
-    } else {
-      setIsLoading(false);
-    }
-  }, [initialHex]);
+    setIsLoading(true);
+    requestAnimationFrame(() => {
+      setColor(cleanHex);
+      setInputValue(`#${cleanHex.toUpperCase()}`);
+      setTimeout(() => setIsLoading(false), 100);
+    });
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialHex]); // ✅ Only initialHex — picker changes preserved
 
   const handleCopy = async (text: string, format: string = 'hex') => {
     if (!text || text === '—') return;
@@ -158,18 +152,14 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
   };
 
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value;
+    const value = e.target.value;
     setInputValue(value);
 
-    let cleanHex = value.replace('#', '').replace(/[^a-fA-F0-9]/g, '');
+    const cleanHex = value.replace('#', '').replace(/[^a-fA-F0-9]/g, '');
 
     if (cleanHex.length === 6 && isValidHex(cleanHex)) {
-      const newHex = cleanHex.toLowerCase();
-      setColor(newHex);
-    } else if (
-      cleanHex.length === 3 &&
-      /^[a-fA-F0-9]{3}$/i.test(cleanHex)
-    ) {
+      setColor(cleanHex.toLowerCase());
+    } else if (cleanHex.length === 3 && /^[a-fA-F0-9]{3}$/i.test(cleanHex)) {
       const expanded = cleanHex
         .split('')
         .map((c) => c + c)
@@ -178,9 +168,7 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
     }
   };
 
-  const handlePickerChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handlePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newHex = e.target.value.replace('#', '').toLowerCase();
     if (isValidHex(newHex)) {
       setColor(newHex);
@@ -203,13 +191,12 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
     { label: 'CMYK', value: cmyk, format: 'cmyk' },
   ];
 
-  // Don't render until mounted
-  if (!mounted) {
-    return null;
-  }
+  if (!mounted) return null;
 
-  // Show loading state
-  if (isLoading) {
+  /* ============================================================
+   * ✅ Loading — context ready ஆகும்வரை (initial)
+   * ============================================================ */
+  if (isLoading || !isContextReady) {
     return (
       <div
         className={`min-h-screen p-4 sm:p-6 md:p-10 ${
@@ -225,8 +212,8 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
                 className={`absolute inset-0 border-4 rounded-full ${
                   isDark ? 'border-white/10' : 'border-gray-200'
                 }`}
-              ></div>
-              <div className="absolute inset-0 border-4 border-[#7c3aed] rounded-full border-t-transparent animate-spin"></div>
+              />
+              <div className="absolute inset-0 border-4 border-[#7c3aed] rounded-full border-t-transparent animate-spin" />
             </div>
             <p
               className={`font-medium animate-pulse ${
@@ -240,10 +227,7 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
                 isDark ? 'text-gray-500' : 'text-gray-400'
               }`}
             >
-              <Loader2
-                className="w-4 h-4 animate-spin"
-                aria-hidden="true"
-              />
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
               <span>#{initialHex.toUpperCase()}</span>
             </div>
           </div>
@@ -259,11 +243,6 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
       }`}
     >
       <div className="max-w-7xl mx-auto space-y-8">
-        {/*
-          ✅ BREADCRUMB AND H1 ARE SERVER-RENDERED IN page.tsx.
-          Only SocialShare is rendered here, right-aligned.
-        */}
-       
         {/* Hero Banner Header */}
         <header
           className={`relative overflow-hidden backdrop-blur-xl border rounded-2xl p-6 sm:p-8 shadow-lg transition-all duration-300 ${
@@ -302,9 +281,7 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      document
-                        .getElementById('color-picker')
-                        ?.click();
+                      document.getElementById('color-picker')?.click();
                     }
                   }}
                 />
@@ -336,10 +313,7 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
               <div className="space-y-3 text-center sm:text-left w-full">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
                   <div className="relative inline-flex items-center">
-                    <label
-                      htmlFor="color-hex-input"
-                      className="sr-only"
-                    >
+                    <label htmlFor="color-hex-input" className="sr-only">
                       Enter HEX color code
                     </label>
                     <input
@@ -377,19 +351,12 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
                           aria-hidden="true"
                         />
                       ) : (
-                        <Copy
-                          className="w-5 h-5"
-                          aria-hidden="true"
-                        />
+                        <Copy className="w-5 h-5" aria-hidden="true" />
                       )}
                     </button>
                   </div>
                 </div>
 
-                {/*
-                  ✅ H1 REMOVED — server-rendered in page.tsx
-                  ✅ Only color family badge stays (dynamic, not SEO-critical)
-                */}
                 <div className="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap">
                   <span
                     className={`px-3.5 py-1 border rounded-full text-xs font-semibold tracking-wide backdrop-blur-md ${
@@ -433,10 +400,7 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
                       : `${item.label} not available`
                   }
                   onKeyDown={(e) => {
-                    if (
-                      (e.key === 'Enter' || e.key === ' ') &&
-                      item.value
-                    ) {
+                    if ((e.key === 'Enter' || e.key === ' ') && item.value) {
                       e.preventDefault();
                       handleCopy(item.value, item.format);
                     }
@@ -481,7 +445,7 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
           </div>
         </header>
 
-        {/* Recent Color History Swatches */}
+        {/* Recent Color History */}
         {recentColors.length > 0 && (
           <section
             className={`border rounded-2xl p-4 sm:p-5 shadow-sm ${
@@ -532,7 +496,7 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
           </section>
         )}
 
-        {/* Interactive Color Wheel Section */}
+        {/* Interactive Color Wheel */}
         <section
           className={`border rounded-2xl p-4 shadow-sm ${
             isDark
@@ -571,8 +535,7 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
                     isDark ? 'text-gray-400' : 'text-gray-500'
                   }`}
                 >
-                  Explore hues, lightness, and color harmonies in
-                  real-time
+                  Explore hues, lightness, and color harmonies in real-time
                 </p>
               </div>
             </div>
@@ -593,7 +556,7 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
           <ColorWheel hex={hex} onColorChange={handleColorWheelChange} />
         </section>
 
-        {/* ColorChart Component */}
+        {/* ColorChart */}
         <ColorChart
           currentHex={hex}
           isDark={isDark}

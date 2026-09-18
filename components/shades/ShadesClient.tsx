@@ -6,19 +6,14 @@ import { useColor } from '@/context/ColorContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import ShadesFAQ from '@/components/shades/ShadesFAQ';
 import {
-  ChevronRight,
   Copy,
   Check,
   Palette,
   Search,
-  Sliders,
-  Info,
   ChevronDown,
   ChevronUp,
-  Home,
   Download,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
   generateShades,
@@ -26,7 +21,63 @@ import {
   getUniqueColorNames,
 } from '@/components/shades/shade-generator';
 import { getColorName, getColorFamily } from '@/lib/color-utils';
-import SocialShare from '@/components/color/SocialShare';
+
+/* ============================================================
+ * CONSTANTS
+ * ============================================================ */
+
+const DEFAULT_HEX = '32cd32';
+const INITIAL_VISIBLE_COUNT = 20;
+
+type FilterType = 'all' | 'light' | 'dark' | 'tint' | 'tone' | 'shade';
+
+const FILTER_OPTIONS: FilterType[] = [
+  'all',
+  'light',
+  'dark',
+  'tint',
+  'tone',
+  'shade',
+];
+
+/* ============================================================
+ * HELPERS
+ * ============================================================ */
+
+function normalizeHex(value: string | undefined): string {
+  if (!value) return DEFAULT_HEX;
+  const cleanHex = value.replace(/^#/, '').trim().toLowerCase();
+  return /^[0-9a-f]{6}$/.test(cleanHex) ? cleanHex : DEFAULT_HEX;
+}
+
+function isValidHex(value: string | undefined | null): boolean {
+  if (!value) return false;
+  return /^[0-9a-f]{6}$/i.test(value.replace(/^#/, '').trim());
+}
+
+function getContrastTextColor(hexColor: string): string {
+  const clean = hexColor.replace('#', '');
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.55 ? '#111827' : '#ffffff';
+}
+
+function getTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    tint: 'Tints (Lighter)',
+    shade: 'Shades (Darker)',
+    tone: 'Tones (Muted)',
+    light: 'Light Variations',
+    dark: 'Dark Variations',
+  };
+  return labels[type] || type;
+}
+
+/* ============================================================
+ * PROPS
+ * ============================================================ */
 
 interface ShadesClientProps {
   colorName?: string;
@@ -35,95 +86,105 @@ interface ShadesClientProps {
   initialHex?: string;
 }
 
-const DEFAULT_HEX = '32cd32';
-
-function normalizeHex(value: string | undefined): string {
-  if (!value) {
-    return DEFAULT_HEX;
-  }
-
-  const cleanHex = value.replace(/^#/, '').trim().toLowerCase();
-
-  return /^[0-9a-f]{6}$/.test(cleanHex) ? cleanHex : DEFAULT_HEX;
-}
+/* ============================================================
+ * COMPONENT
+ * ============================================================ */
 
 export default function ShadesClient({
   colorName: propColorName,
   colorFamily: propColorFamily,
-  fullHex: propFullHex,
   initialHex: propInitialHex,
 }: ShadesClientProps) {
   const { isDark } = useTheme();
   const { currentColor, setColor } = useColor();
   const params = useParams();
 
-  const [copied, setCopied] = useState<string | null>(null);
+  /* ---------- STATE ---------- */
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filter, setFilter] = useState<
-    'all' | 'light' | 'dark' | 'tint' | 'tone' | 'shade'
-  >('all');
-  const [showColorWheel, setShowColorWheel] = useState(false);
-  const [showNames, setShowNames] = useState(true);
+  const [filter, setFilter] = useState<FilterType>('all');
   const [showAllNames, setShowAllNames] = useState(false);
   const [showAllShadeNames, setShowAllShadeNames] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
+  /* ---------- HEX RESOLUTION ---------- */
   const rawHexFromUrl = params?.hex as string | undefined;
 
-  const hexFromUrl = useMemo(() => {
-    return normalizeHex(propInitialHex || rawHexFromUrl);
-  }, [propInitialHex, rawHexFromUrl]);
+  const hexFromUrl = useMemo(
+    () => normalizeHex(propInitialHex || rawHexFromUrl),
+    [propInitialHex, rawHexFromUrl]
+  );
 
+  /* ---------- CONTEXT READY CHECK ---------- */
+  const isContextReady = useMemo(() => {
+    return isValidHex(currentColor);
+  }, [currentColor]);
+
+  /* ============================================================
+   * ✅ INITIAL URL SYNC
+   * ============================================================
+   * Only runs when URL changes (not on picker change)
+   * ============================================================ */
   const initializedUrlHexRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!hexFromUrl) {
-      return;
-    }
-
-    if (initializedUrlHexRef.current === hexFromUrl) {
-      return;
-    }
+    if (!hexFromUrl) return;
+    if (initializedUrlHexRef.current === hexFromUrl) return;
 
     initializedUrlHexRef.current = hexFromUrl;
 
     if (currentColor !== hexFromUrl) {
       setColor(hexFromUrl);
     }
-  }, [hexFromUrl, currentColor, setColor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hexFromUrl]); // ✅ Only hexFromUrl — picker changes preserved
 
+  /* ============================================================
+   * ✅ HEX — URL priority for first render, context after
+   * ============================================================
+   * 1. URL hex valid + context not initialized → URL (no flash)
+   * 2. Context ready → context (picker dynamic)
+   * 3. Fallback → DEFAULT_HEX
+   * ============================================================ */
   const hex = useMemo(() => {
-    const normalizedCurrentColor = normalizeHex(currentColor);
-
+    // Priority 1: URL hex (before context sync — prevents flash)
     if (
-      currentColor &&
-      /^[0-9a-f]{6}$/i.test(currentColor.replace(/^#/, '').trim())
+      isValidHex(hexFromUrl) &&
+      initializedUrlHexRef.current !== hexFromUrl
     ) {
-      return normalizedCurrentColor;
+      return hexFromUrl;
     }
 
-    return hexFromUrl;
-  }, [currentColor, hexFromUrl]);
+    // Priority 2: Context color (picker changes)
+    if (isContextReady && currentColor) {
+      return normalizeHex(currentColor);
+    }
 
-  const fullHex = `#${hex.toUpperCase()}`;
+    // Priority 3: URL fallback
+    if (isValidHex(hexFromUrl)) {
+      return hexFromUrl;
+    }
 
+    return DEFAULT_HEX;
+  }, [hexFromUrl, isContextReady, currentColor]);
+
+  const fullHex = useMemo(() => `#${hex.toUpperCase()}`, [hex]);
+
+  /* ---------- INPUT VALUE ---------- */
   const [inputValue, setInputValue] = useState(fullHex);
 
   useEffect(() => {
     setInputValue(fullHex);
   }, [fullHex]);
 
-  const contrastColor = useMemo(() => {
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
+  /* ---------- CONTRAST ---------- */
+  const contrastColor = useMemo(
+    () => getContrastTextColor(fullHex),
+    [fullHex]
+  );
 
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-    return luminance > 0.5 ? '#000000' : '#ffffff';
-  }, [hex]);
-
+  /* ---------- FORMAT DATA ---------- */
   const formatData = useMemo(() => {
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
@@ -138,28 +199,15 @@ export default function ShadesClient({
     const delta = max - min;
 
     let h = 0;
-
     if (delta !== 0) {
-      if (max === rNorm) {
-        h = 60 * (((gNorm - bNorm) / delta) % 6);
-      } else if (max === gNorm) {
-        h = 60 * ((bNorm - rNorm) / delta + 2);
-      } else {
-        h = 60 * ((rNorm - gNorm) / delta + 4);
-      }
+      if (max === rNorm) h = 60 * (((gNorm - bNorm) / delta) % 6);
+      else if (max === gNorm) h = 60 * ((bNorm - rNorm) / delta + 2);
+      else h = 60 * ((rNorm - gNorm) / delta + 4);
     }
-
-    if (h < 0) {
-      h += 360;
-    }
+    if (h < 0) h += 360;
 
     const l = (max + min) / 2;
-
-    let s = 0;
-
-    if (delta !== 0) {
-      s = delta / (1 - Math.abs(2 * l - 1));
-    }
+    const s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
 
     const hsl = `hsl(${Math.round(h)}, ${Math.round(
       s * 100
@@ -173,90 +221,40 @@ export default function ShadesClient({
     ];
   }, [hex, fullHex]);
 
+  /* ---------- COLOR NAME / FAMILY ---------- */
   const colorName = useMemo(() => {
-    const liveName = getColorName(hex);
-    return liveName || propColorName || 'Color';
+    return getColorName(hex) || propColorName || 'Color';
   }, [hex, propColorName]);
 
   const colorFamily = useMemo(() => {
-    const liveFamily = getColorFamily(hex);
-    return liveFamily || propColorFamily || 'Color';
+    return getColorFamily(hex) || propColorFamily || 'Color';
   }, [hex, propColorFamily]);
 
-  /*
-   * ============================================================
-   * ✅ DYNAMIC H1 UPDATE
-   * ============================================================
-   */
-
+  /* ---------- DYNAMIC H1 / TITLE ---------- */
   useEffect(() => {
-    if (typeof document === 'undefined') {
-      return;
-    }
+    if (typeof document === 'undefined') return;
 
     const h1Name = document.getElementById('shades-h1-name');
     const h1Hex = document.getElementById('shades-h1-hex');
-
-    if (h1Name) {
-      h1Name.textContent = colorName;
-    }
-
-    if (h1Hex) {
-      h1Hex.textContent = fullHex;
-    }
+    if (h1Name) h1Name.textContent = colorName;
+    if (h1Hex) h1Hex.textContent = fullHex;
 
     const breadcrumbDot = document.getElementById('shades-breadcrumb-dot');
     const breadcrumbHex = document.getElementById('shades-breadcrumb-hex');
+    if (breadcrumbDot) breadcrumbDot.style.backgroundColor = fullHex;
+    if (breadcrumbHex) breadcrumbHex.textContent = fullHex;
 
-    if (breadcrumbDot) {
-      breadcrumbDot.style.backgroundColor = fullHex;
-    }
-    if (breadcrumbHex) {
-      breadcrumbHex.textContent = fullHex;
-    }
-
-    if (typeof document !== 'undefined') {
-      document.title = `${fullHex} ${colorName} - 100+ Shades & Color Variations`;
-    }
+    document.title = `${fullHex} ${colorName} - 100+ Shades & Color Variations`;
   }, [colorName, fullHex]);
 
-  const allShades = useMemo(() => {
-    return generateShades(hex, 120);
-  }, [hex]);
-
-  const uniqueNames = useMemo(() => {
-    return getUniqueColorNames(allShades);
-  }, [allShades]);
-
-  const displayedNames = useMemo(() => {
-    if (showAllNames) {
-      return uniqueNames;
-    }
-    return uniqueNames.slice(0, 20);
-  }, [uniqueNames, showAllNames]);
-
-  const hasMoreNames = uniqueNames.length > 20;
-
-  // ✅ Helper: get contrast text color for any hex
-const getContrastTextColor = (hexColor: string): string => {
-  const clean = hexColor.replace('#', '');
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
-
-  // Relative luminance (WCAG style)
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-  return luminance > 0.55 ? '#111827' : '#ffffff';
-};
-
+  /* ---------- SHADES GENERATION ---------- */
+  const allShades = useMemo(() => generateShades(hex, 120), [hex]);
 
   const filteredShades = useMemo(() => {
     let shades = allShades;
 
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
-
       shades = shades.filter(
         (shade) =>
           shade.hex.toLowerCase().includes(term) ||
@@ -271,47 +269,79 @@ const getContrastTextColor = (hexColor: string): string => {
     return shades;
   }, [allShades, searchTerm, filter]);
 
-  const groupedShades = useMemo(() => {
-    const groups: Record<string, Shade[]> = {};
+  const uniqueNames = useMemo(
+    () => getUniqueColorNames(filteredShades),
+    [filteredShades]
+  );
 
-    filteredShades.forEach((shade) => {
-      if (!groups[shade.type]) {
-        groups[shade.type] = [];
-      }
-      groups[shade.type].push(shade);
-    });
+  const displayedNames = useMemo(
+    () =>
+      showAllNames
+        ? uniqueNames
+        : uniqueNames.slice(0, INITIAL_VISIBLE_COUNT),
+    [uniqueNames, showAllNames]
+  );
 
-    return groups;
-  }, [filteredShades]);
+  const hasMoreNames = uniqueNames.length > INITIAL_VISIBLE_COUNT;
 
   const uniqueShadesWithNames = useMemo(() => {
     const shadeMap = new Map<string, Shade>();
-
-    allShades.forEach((shade) => {
+    filteredShades.forEach((shade) => {
       if (shade.name && !shadeMap.has(shade.name)) {
         shadeMap.set(shade.name, shade);
       }
     });
-
     return Array.from(shadeMap.values());
-  }, [allShades]);
+  }, [filteredShades]);
 
-  const displayedUniqueShades = useMemo(() => {
-    if (showAllShadeNames) {
-      return uniqueShadesWithNames;
+  const displayedUniqueShades = useMemo(
+    () =>
+      showAllShadeNames
+        ? uniqueShadesWithNames
+        : uniqueShadesWithNames.slice(0, INITIAL_VISIBLE_COUNT),
+    [uniqueShadesWithNames, showAllShadeNames]
+  );
+
+  const hasMoreUniqueShades =
+    uniqueShadesWithNames.length > INITIAL_VISIBLE_COUNT;
+
+  const nameToHex = useMemo(() => {
+    const map = new Map<string, string>();
+    filteredShades.forEach((shade) => {
+      if (shade.name && !map.has(shade.name)) {
+        map.set(shade.name, shade.hex);
+      }
+    });
+    return map;
+  }, [filteredShades]);
+
+  const groupedShades = useMemo(() => {
+    const groups: Record<string, Shade[]> = {};
+    filteredShades.forEach((shade) => {
+      if (!groups[shade.type]) groups[shade.type] = [];
+      groups[shade.type].push(shade);
+    });
+    return groups;
+  }, [filteredShades]);
+
+  /* ---------- HANDLERS ---------- */
+  const handleCopy = async (text: string, id: string, format?: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setCopiedFormat(format ?? id);
+      window.setTimeout(() => {
+        setCopiedId(null);
+        setCopiedFormat(null);
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy:', error);
     }
-    return uniqueShadesWithNames.slice(0, 20);
-  }, [uniqueShadesWithNames, showAllShadeNames]);
-
-  const hasMoreUniqueShades = uniqueShadesWithNames.length > 20;
+  };
 
   const handlePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newHex = e.target.value.replace(/^#/, '').toLowerCase();
-
-    if (!/^[0-9a-f]{6}$/.test(newHex)) {
-      return;
-    }
-
+    if (!/^[0-9a-f]{6}$/.test(newHex)) return;
     setColor(newHex);
     setInputValue(`#${newHex.toUpperCase()}`);
   };
@@ -330,237 +360,202 @@ const getContrastTextColor = (hexColor: string): string => {
     }
   };
 
-  const handleCopy = async (text: string, id: string) => {
+  const handleHexKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const clean = inputValue.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{6}$/.test(clean)) {
+        setColor(clean.toLowerCase());
+      }
+    }
+  };
+
+  const toggleShowAllNames = () => setShowAllNames((p) => !p);
+  const toggleShowAllShadeNames = () => setShowAllShadeNames((p) => !p);
+
+  /* ---------- DOWNLOAD PNG ---------- */
+  const handleDownloadShades = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+
     try {
-      await navigator.clipboard.writeText(text);
-      setCopied(id);
-      setCopiedFormat(id);
+      const shadesToExport = uniqueShadesWithNames;
+      if (shadesToExport.length === 0) {
+        setIsDownloading(false);
+        return;
+      }
 
-      window.setTimeout(() => {
-        setCopied(null);
-        setCopiedFormat(null);
-      }, 2000);
-    } catch (error) {
-      console.error('Failed to copy:', error);
-    }
-  };
+      const COLS = 5;
+      const PADDING = 24;
+      const HEADER_HEIGHT = 80;
+      const FOOTER_HEIGHT = 56;
+      const CELL_W = 200;
+      const CELL_H = 148;
 
-  const getTypeLabel = (type: string): string => {
-    const labels: Record<string, string> = {
-      tint: 'Tints (Lighter)',
-      shade: 'Shades (Darker)',
-      tone: 'Tones (Muted)',
-      light: 'Light Variations',
-      dark: 'Dark Variations',
-    };
+      const rows = Math.ceil(shadesToExport.length / COLS);
+      const canvasW = COLS * CELL_W + PADDING * 2;
+      const canvasH =
+        rows * CELL_H + PADDING * 2 + HEADER_HEIGHT + FOOTER_HEIGHT;
 
-    return labels[type] || type;
-  };
+      const dpr = 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = canvasW * dpr;
+      canvas.height = canvasH * dpr;
 
-  const toggleShowAllNames = () => setShowAllNames((prev) => !prev);
-  const toggleShowAllShadeNames = () =>
-    setShowAllShadeNames((prev) => !prev);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context unavailable');
+      ctx.scale(dpr, dpr);
 
-/* ============================================================
- * ✅ DOWNLOAD UNIQUE SHADES AS PNG (ALL SHADES + WATERMARK)
- * ============================================================ */
-const handleDownloadShades = async () => {
-  if (isDownloading) return;
-  setIsDownloading(true);
+      // Background
+      ctx.fillStyle = isDark ? '#11111d' : '#ffffff';
+      ctx.fillRect(0, 0, canvasW, canvasH);
 
-  try {
-    const shadesToExport = uniqueShadesWithNames;
+      // Header
+      const headerY = PADDING;
+      const swatchSize = 48;
+      const r = 12;
 
-    if (shadesToExport.length === 0) {
-      setIsDownloading(false);
-      return;
-    }
+      ctx.fillStyle = fullHex;
+      ctx.beginPath();
+      ctx.moveTo(PADDING + r, headerY);
+      ctx.lineTo(PADDING + swatchSize - r, headerY);
+      ctx.quadraticCurveTo(
+        PADDING + swatchSize,
+        headerY,
+        PADDING + swatchSize,
+        headerY + r
+      );
+      ctx.lineTo(PADDING + swatchSize, headerY + swatchSize - r);
+      ctx.quadraticCurveTo(
+        PADDING + swatchSize,
+        headerY + swatchSize,
+        PADDING + swatchSize - r,
+        headerY + swatchSize
+      );
+      ctx.lineTo(PADDING + r, headerY + swatchSize);
+      ctx.quadraticCurveTo(
+        PADDING,
+        headerY + swatchSize,
+        PADDING,
+        headerY + swatchSize - r
+      );
+      ctx.lineTo(PADDING, headerY + r);
+      ctx.quadraticCurveTo(PADDING, headerY, PADDING + r, headerY);
+      ctx.closePath();
+      ctx.fill();
 
-    const COLS = 5;
-    const PADDING = 24;
-    const HEADER_HEIGHT = 80;
-    const FOOTER_HEIGHT = 56; // ✅ NEW: space for website footer
-    const CELL_W = 200;
-    const CELL_H = 148;
-    const GAP = 0;
+      const textX = PADDING + swatchSize + 16;
+      ctx.fillStyle = isDark ? '#ffffff' : '#111827';
+      ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+      ctx.textBaseline = 'top';
+      ctx.fillText(`${colorName} Shades`, textX, headerY + 2);
 
-    const rows = Math.ceil(shadesToExport.length / COLS);
-    const gridW = COLS * CELL_W;
-    const gridH = rows * CELL_H;
+      ctx.fillStyle = isDark ? '#9ca3af' : '#6b7280';
+      ctx.font = '14px system-ui, -apple-system, sans-serif';
+      ctx.fillText(
+        `${fullHex}  •  ${shadesToExport.length} unique named shades`,
+        textX,
+        headerY + 30
+      );
 
-    const canvasW = gridW + PADDING * 2;
-    // ✅ Add FOOTER_HEIGHT to canvas height
-    const canvasH = gridH + PADDING * 2 + HEADER_HEIGHT + FOOTER_HEIGHT;
+      // Grid
+      const gridStartY = PADDING + HEADER_HEIGHT;
 
-    const dpr = 2; // retina crispness
-    const canvas = document.createElement('canvas');
-    canvas.width = canvasW * dpr;
-    canvas.height = canvasH * dpr;
+      shadesToExport.forEach((shade, index) => {
+        const col = index % COLS;
+        const row = Math.floor(index / COLS);
+        const x = PADDING + col * CELL_W;
+        const y = gridStartY + row * CELL_H;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas context unavailable');
+        ctx.fillStyle = shade.hex;
+        ctx.fillRect(x, y, CELL_W, CELL_H);
 
-    ctx.scale(dpr, dpr);
+        const textColor = getContrastTextColor(shade.hex);
 
-    /* ---------- Background ---------- */
-    ctx.fillStyle = isDark ? '#11111d' : '#ffffff';
-    ctx.fillRect(0, 0, canvasW, canvasH);
+        ctx.fillStyle = textColor;
+        ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
 
-    /* ---------- Header ---------- */
-    const headerY = PADDING;
+        const maxTextWidth = CELL_W - 24;
+        let displayName = shade.name || 'Unnamed';
+        if (ctx.measureText(displayName).width > maxTextWidth) {
+          while (
+            displayName.length > 3 &&
+            ctx.measureText(displayName + '…').width > maxTextWidth
+          ) {
+            displayName = displayName.slice(0, -1);
+          }
+          displayName += '…';
+        }
 
-    // Color swatch square (rounded)
-    const swatchSize = 48;
-    const r = 12;
-    const sx = PADDING;
-    const sy = headerY;
+        ctx.fillText(displayName, x + CELL_W / 2, y + CELL_H / 2 - 8);
 
-    ctx.fillStyle = fullHex;
-    ctx.beginPath();
-    ctx.moveTo(sx + r, sy);
-    ctx.lineTo(sx + swatchSize - r, sy);
-    ctx.quadraticCurveTo(sx + swatchSize, sy, sx + swatchSize, sy + r);
-    ctx.lineTo(sx + swatchSize, sy + swatchSize - r);
-    ctx.quadraticCurveTo(
-      sx + swatchSize,
-      sy + swatchSize,
-      sx + swatchSize - r,
-      sy + swatchSize
-    );
-    ctx.lineTo(sx + r, sy + swatchSize);
-    ctx.quadraticCurveTo(sx, sy + swatchSize, sx, sy + swatchSize - r);
-    ctx.lineTo(sx, sy + r);
-    ctx.quadraticCurveTo(sx, sy, sx + r, sy);
-    ctx.closePath();
-    ctx.fill();
+        ctx.font = '12px ui-monospace, SFMono-Regular, monospace';
+        ctx.fillStyle = textColor;
+        ctx.globalAlpha = 0.85;
+        ctx.fillText(
+          shade.hex.toUpperCase(),
+          x + CELL_W / 2,
+          y + CELL_H / 2 + 16
+        );
+        ctx.globalAlpha = 1;
+      });
 
-    // Title text
-    const textX = PADDING + swatchSize + 16;
+      ctx.textAlign = 'left';
 
-    ctx.fillStyle = isDark ? '#ffffff' : '#111827';
-    ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
-    ctx.textBaseline = 'top';
-    ctx.fillText(`${colorName} Shades`, textX, headerY + 2);
+      // Footer watermark
+      const footerTop = canvasH - FOOTER_HEIGHT;
 
-    ctx.fillStyle = isDark ? '#9ca3af' : '#6b7280';
-    ctx.font = '14px system-ui, -apple-system, sans-serif';
-    ctx.fillText(
-      `${fullHex}  •  ${shadesToExport.length} unique named shades`,
-      textX,
-      headerY + 30
-    );
+      ctx.strokeStyle = isDark
+        ? 'rgba(255,255,255,0.08)'
+        : 'rgba(0,0,0,0.08)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(PADDING, footerTop);
+      ctx.lineTo(canvasW - PADDING, footerTop);
+      ctx.stroke();
 
-    /* ---------- Grid ---------- */
-    const gridStartY = PADDING + HEADER_HEIGHT;
-
-    shadesToExport.forEach((shade, index) => {
-      const col = index % COLS;
-      const row = Math.floor(index / COLS);
-
-      const x = PADDING + col * (CELL_W + GAP);
-      const y = gridStartY + row * (CELL_H + GAP);
-
-      // Background fill
-      ctx.fillStyle = shade.hex;
-      ctx.fillRect(x, y, CELL_W, CELL_H);
-
-      // Get contrast color for this shade
-      const sr = parseInt(shade.hex.slice(1, 3), 16);
-      const sg = parseInt(shade.hex.slice(3, 5), 16);
-      const sb = parseInt(shade.hex.slice(5, 7), 16);
-      const lum = (0.299 * sr + 0.587 * sg + 0.114 * sb) / 255;
-      const textColor = lum > 0.55 ? '#111827' : '#ffffff';
-
-      // Shade name (center)
-      ctx.fillStyle = textColor;
+      ctx.fillStyle = isDark ? '#9ca3af' : '#6b7280';
       ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-
-      // Truncate long names
-      const maxTextWidth = CELL_W - 24;
-      let displayName = shade.name || 'Unnamed';
-      if (ctx.measureText(displayName).width > maxTextWidth) {
-        while (
-          displayName.length > 3 &&
-          ctx.measureText(displayName + '…').width > maxTextWidth
-        ) {
-          displayName = displayName.slice(0, -1);
-        }
-        displayName += '…';
-      }
-
-      ctx.fillText(displayName, x + CELL_W / 2, y + CELL_H / 2 - 8);
-
-      // HEX code (bottom)
-      ctx.font = '12px ui-monospace, SFMono-Regular, monospace';
-      ctx.fillStyle = textColor;
-      ctx.globalAlpha = 0.85;
       ctx.fillText(
-        shade.hex.toUpperCase(),
-        x + CELL_W / 2,
-        y + CELL_H / 2 + 16
+        'www.whycolors.com',
+        canvasW / 2,
+        footerTop + FOOTER_HEIGHT / 2 - 6
       );
-      ctx.globalAlpha = 1;
-    });
 
-    // reset text alignment
-    ctx.textAlign = 'left';
+      ctx.font = '11px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = isDark ? '#6b7280' : '#9ca3af';
+      ctx.fillText(
+        'Free color tools, shades & palettes',
+        canvasW / 2,
+        footerTop + FOOTER_HEIGHT / 2 + 14
+      );
 
-    /* ============================================================
-     * ✅ WEBSITE FOOTER WATERMARK
-     * ============================================================ */
-    const footerTop = canvasH - FOOTER_HEIGHT;
+      // Download
+      const safeColorName = colorName
+        .replace(/[^a-z0-9]+/gi, '-')
+        .toLowerCase();
+      const filename = `${safeColorName}-${hex}-shades.png`;
 
-    // Divider line
-    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(PADDING, footerTop);
-    ctx.lineTo(canvasW - PADDING, footerTop);
-    ctx.stroke();
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Download failed:', err);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
-    // Website text (centered)
-    ctx.fillStyle = isDark ? '#9ca3af' : '#6b7280';
-    ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(
-      'www.whycolors.com',
-      canvasW / 2,
-      footerTop + FOOTER_HEIGHT / 2 - 6
-    );
-
-    // Small subtitle
-    ctx.font = '11px system-ui, -apple-system, sans-serif';
-    ctx.fillStyle = isDark ? '#6b7280' : '#9ca3af';
-    ctx.fillText(
-      'Free color tools, shades & palettes',
-      canvasW / 2,
-      footerTop + FOOTER_HEIGHT / 2 + 14
-    );
-
-    ctx.textAlign = 'left';
-
-    /* ---------- Download ---------- */
-    const safeColorName = colorName
-      .replace(/[^a-z0-9]+/gi, '-')
-      .toLowerCase();
-    const filename = `${safeColorName}-${hex}-shades.png`;
-
-    const dataUrl = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } catch (err) {
-    console.error('Download failed:', err);
-  } finally {
-    setIsDownloading(false);
-  }
-};
+  /* ============================================================
+   * RENDER
+   * ============================================================ */
   return (
     <div
       className={`min-h-screen p-4 sm:p-6 md:p-8 ${
@@ -568,7 +563,6 @@ const handleDownloadShades = async () => {
       }`}
     >
       <div className="max-w-7xl mx-auto space-y-6">
-
         {/* HERO + HEADER */}
         <header
           className={`relative overflow-hidden backdrop-blur-xl border rounded-2xl p-6 sm:p-8 shadow-lg transition-all duration-300 ${
@@ -650,6 +644,7 @@ const handleDownloadShades = async () => {
                       type="text"
                       value={inputValue}
                       onChange={handleColorChange}
+                      onKeyDown={handleHexKeyDown}
                       spellCheck={false}
                       autoComplete="off"
                       inputMode="text"
@@ -667,20 +662,20 @@ const handleDownloadShades = async () => {
 
                     <button
                       type="button"
-                      onClick={() => handleCopy(fullHex, 'hex')}
+                      onClick={() => handleCopy(fullHex, 'hex', 'hex')}
                       className={`ml-2.5 p-2.5 border rounded-xl transition-all active:scale-95 shadow-md ${
                         isDark
                           ? 'bg-white/10 hover:bg-white/20 border-white/10 text-white/90'
                           : 'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-700'
                       }`}
                       aria-label={
-                        copied && copiedFormat === 'hex'
+                        copiedId === 'hex' && copiedFormat === 'hex'
                           ? 'Copied!'
                           : 'Copy HEX Code'
                       }
                       title="Copy HEX Code"
                     >
-                      {copied && copiedFormat === 'hex' ? (
+                      {copiedId === 'hex' && copiedFormat === 'hex' ? (
                         <Check
                           className="w-5 h-5 text-emerald-400"
                           aria-hidden="true"
@@ -721,75 +716,82 @@ const handleDownloadShades = async () => {
               role="group"
               aria-label="Color format values"
             >
-              {formatData.map((item) => (
-                <div
-                  key={item.label}
-                  onClick={() =>
-                    item.value && handleCopy(item.value, item.format)
-                  }
-                  className={`group border rounded-xl p-3 transition-all ${
-                    isDark
-                      ? 'bg-white/[0.03] hover:bg-white/[0.08] border-white/10 hover:border-white/30'
-                      : 'bg-gray-50 hover:bg-gray-100 border-gray-200 hover:border-[#7c3aed]/30'
-                  } ${
-                    item.value
-                      ? 'cursor-pointer'
-                      : 'opacity-50 cursor-not-allowed'
-                  }`}
-                  role="button"
-                  tabIndex={item.value ? 0 : -1}
-                  aria-label={
-                    item.value
-                      ? `Copy ${item.label} value ${item.value}`
-                      : `${item.label} not available`
-                  }
-                  onKeyDown={(e) => {
-                    if (
-                      (e.key === 'Enter' || e.key === ' ') &&
-                      item.value
-                    ) {
-                      e.preventDefault();
-                      handleCopy(item.value, item.format);
+              {formatData.map((item) => {
+                const isCopied =
+                  copiedId === item.format &&
+                  copiedFormat === item.format;
+
+                return (
+                  <div
+                    key={item.label}
+                    onClick={() =>
+                      item.value &&
+                      handleCopy(item.value, item.format, item.format)
                     }
-                  }}
-                >
-                  <div className="flex justify-between items-center mb-1">
-                    <span
-                      className={`text-[10px] font-bold uppercase tracking-widest ${
-                        isDark ? 'text-gray-200' : 'text-gray-500'
+                    className={`group border rounded-xl p-3 transition-all ${
+                      isDark
+                        ? 'bg-white/[0.03] hover:bg-white/[0.08] border-white/10 hover:border-white/30'
+                        : 'bg-gray-50 hover:bg-gray-100 border-gray-200 hover:border-[#7c3aed]/30'
+                    } ${
+                      item.value
+                        ? 'cursor-pointer'
+                        : 'opacity-50 cursor-not-allowed'
+                    }`}
+                    role="button"
+                    tabIndex={item.value ? 0 : -1}
+                    aria-label={
+                      item.value
+                        ? `Copy ${item.label} value ${item.value}`
+                        : `${item.label} not available`
+                    }
+                    onKeyDown={(e) => {
+                      if (
+                        (e.key === 'Enter' || e.key === ' ') &&
+                        item.value
+                      ) {
+                        e.preventDefault();
+                        handleCopy(item.value, item.format, item.format);
+                      }
+                    }}
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-widest ${
+                          isDark ? 'text-gray-200' : 'text-gray-500'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+
+                      {item.value && (
+                        <div className="flex items-center gap-1">
+                          {isCopied ? (
+                            <Check
+                              className="w-3 h-3 text-emerald-400"
+                              aria-hidden="true"
+                            />
+                          ) : (
+                            <Copy
+                              className={`w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity ${
+                                isDark ? 'text-gray-500' : 'text-gray-400'
+                              }`}
+                              aria-hidden="true"
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <p
+                      className={`font-mono text-xs sm:text-sm font-medium truncate ${
+                        isDark ? 'text-white' : 'text-gray-800'
                       }`}
                     >
-                      {item.label}
-                    </span>
-
-                    {item.value && (
-                      <div className="flex items-center gap-1">
-                        {copied && copiedFormat === item.format ? (
-                          <Check
-                            className="w-3 h-3 text-emerald-400"
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <Copy
-                            className={`w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity ${
-                              isDark ? 'text-gray-500' : 'text-gray-400'
-                            }`}
-                            aria-hidden="true"
-                          />
-                        )}
-                      </div>
-                    )}
+                      {item.value || '—'}
+                    </p>
                   </div>
-
-                  <p
-                    className={`font-mono text-xs sm:text-sm font-medium truncate ${
-                      isDark ? 'text-white' : 'text-gray-800'
-                    }`}
-                  >
-                    {item.value || '—'}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </header>
@@ -823,11 +825,11 @@ const handleDownloadShades = async () => {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {['all', 'light', 'dark', 'tint', 'tone', 'shade'].map((type) => (
+            {FILTER_OPTIONS.map((type) => (
               <button
                 key={type}
                 type="button"
-                onClick={() => setFilter(type as typeof filter)}
+                onClick={() => setFilter(type)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${
                   filter === type
                     ? 'bg-[#7c3aed] text-white'
@@ -841,40 +843,6 @@ const handleDownloadShades = async () => {
             ))}
           </div>
         </div>
-
-        {/* COLOR WHEEL PREVIEW */}
-        {showColorWheel && (
-          <div
-            className={`p-4 rounded-xl border ${
-              isDark
-                ? 'bg-[#131322]/80 border-white/10'
-                : 'bg-white/90 border-gray-200'
-            }`}
-          >
-            <h3
-              className={`text-sm font-semibold mb-3 ${
-                isDark ? 'text-gray-300' : 'text-gray-600'
-              }`}
-            >
-              Color Wheel Preview ({allShades.length} colors)
-            </h3>
-
-            <div className="flex flex-wrap gap-1.5">
-              {allShades.slice(0, 48).map((shade) => (
-                <div
-                  key={shade.id}
-                  className="w-8 h-8 rounded-lg transition-transform hover:scale-110 cursor-pointer relative group"
-                  style={{ backgroundColor: shade.hex }}
-                  title={`${shade.hex} - ${shade.name || 'Unnamed'}`}
-                >
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 rounded text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white pointer-events-none">
-                    {shade.name || shade.hex}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* COLOR NAMES */}
         {uniqueNames.length > 0 && (
@@ -946,10 +914,7 @@ const handleDownloadShades = async () => {
 
             <div className="flex flex-wrap gap-2 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-700">
               {displayedNames.map((name) => {
-                const shadeWithName = allShades.find(
-                  (shade) => shade.name === name
-                );
-                const colorHex = shadeWithName?.hex || '#888888';
+                const colorHex = nameToHex.get(name) ?? '#888888';
 
                 return (
                   <span
@@ -982,7 +947,7 @@ const handleDownloadShades = async () => {
                 <span>
                   {showAllNames
                     ? `Showing all ${uniqueNames.length} names`
-                    : `Showing 20 of ${uniqueNames.length} names`}
+                    : `Showing ${INITIAL_VISIBLE_COUNT} of ${uniqueNames.length} names`}
                 </span>
 
                 {!showAllNames && (
@@ -991,7 +956,7 @@ const handleDownloadShades = async () => {
                     className="text-indigo-500 hover:underline"
                     onClick={toggleShowAllNames}
                   >
-                    + {uniqueNames.length - 20} more
+                    + {uniqueNames.length - INITIAL_VISIBLE_COUNT} more
                   </button>
                 )}
               </div>
@@ -1041,7 +1006,6 @@ const handleDownloadShades = async () => {
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
-                {/* ✅ DOWNLOAD BUTTON */}
                 <button
                   type="button"
                   onClick={handleDownloadShades}
@@ -1099,69 +1063,71 @@ const handleDownloadShades = async () => {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-0 overflow-hidden rounded-xl">
-             {displayedUniqueShades.map((shade) => {
-  const shadeTextColor = getContrastTextColor(shade.hex);
-  const isLightShade = shadeTextColor === '#111827';
+              {displayedUniqueShades.map((shade) => {
+                const shadeTextColor = getContrastTextColor(shade.hex);
+                const isLightShade = shadeTextColor === '#111827';
 
-  return (
-    <div
-      key={shade.id}
-      className="group relative aspect-[1.35/1] flex items-center justify-center cursor-pointer transition-all duration-300 hover:z-10 hover:scale-[1.03] hover:shadow-xl"
-      style={{ backgroundColor: shade.hex }}
-      title={`${shade.name} - ${shade.hex}`}
-      onClick={() => handleCopy(shade.hex, shade.id)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handleCopy(shade.hex, shade.id);
-        }
-      }}
-    >
-      {/* ✅ Dynamic text color based on shade luminance */}
-      <span
-        className="relative z-10 px-3 text-center text-sm sm:text-base font-bold transition-transform duration-300 group-hover:scale-105"
-        style={{
-          color: shadeTextColor,
-          textShadow: isLightShade
-            ? '0 1px 2px rgba(255,255,255,0.4)'
-            : '0 2px 3px rgba(0,0,0,0.35)',
-        }}
-      >
-        {shade.name}
-      </span>
+                return (
+                  <div
+                    key={shade.id}
+                    className="group relative aspect-[1.35/1] flex items-center justify-center cursor-pointer transition-all duration-300 hover:z-10 hover:scale-[1.03] hover:shadow-xl"
+                    style={{ backgroundColor: shade.hex }}
+                    title={`${shade.name} - ${shade.hex}`}
+                    onClick={() => handleCopy(shade.hex, shade.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleCopy(shade.hex, shade.id);
+                      }
+                    }}
+                  >
+                    <span
+                      className="relative z-10 px-3 text-center text-sm sm:text-base font-bold transition-transform duration-300 group-hover:scale-105"
+                      style={{
+                        color: shadeTextColor,
+                        textShadow: isLightShade
+                          ? '0 1px 1px rgba(0,0,0,0.15)'
+                          : '0 1px 2px rgba(0,0,0,0.5)',
+                      }}
+                    >
+                      {shade.name}
+                    </span>
 
-      <div
-        className={`absolute inset-0 transition-colors duration-300 ${
-          isLightShade ? 'group-hover:bg-black/5' : 'group-hover:bg-black/10'
-        }`}
-      />
+                    <div
+                      className={`absolute inset-0 transition-colors duration-300 ${
+                        isLightShade
+                          ? 'group-hover:bg-black/5'
+                          : 'group-hover:bg-black/10'
+                      }`}
+                    />
 
-      {/* ✅ HEX code on hover — also dynamic */}
-      <span
-        className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-medium opacity-0 group-hover:opacity-90 transition-all duration-300"
-        style={{
-          color: shadeTextColor,
-          textShadow: isLightShade
-            ? '0 1px 2px rgba(255,255,255,0.5)'
-            : '0 1px 2px rgba(0,0,0,0.4)',
-        }}
-      >
-        {shade.hex.toUpperCase()}
-      </span>
+                    <span
+                      className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-medium opacity-0 group-hover:opacity-90 transition-all duration-300"
+                      style={{
+                        color: shadeTextColor,
+                        textShadow: isLightShade
+                          ? '0 1px 1px rgba(0,0,0,0.2)'
+                          : '0 1px 2px rgba(0,0,0,0.5)',
+                      }}
+                    >
+                      {shade.hex.toUpperCase()}
+                    </span>
 
-      {copied === shade.id && (
-        <div className="absolute top-2 right-2 z-20">
-          <Check
-            className="w-4 h-4 drop-shadow-lg"
-            style={{ color: isLightShade ? '#059669' : '#34d399' }}
-          />
-        </div>
-      )}
-    </div>
-  );
-})}
+                    {copiedId === shade.id && (
+                      <div className="absolute top-2 right-2 z-20">
+                        <Check
+                          className="w-4 h-4 drop-shadow-lg"
+                          style={{
+                            color: isLightShade ? '#059669' : '#34d399',
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {hasMoreUniqueShades && (
@@ -1175,7 +1141,7 @@ const handleDownloadShades = async () => {
                 <span>
                   {showAllShadeNames
                     ? `Showing all ${uniqueShadesWithNames.length} unique shades`
-                    : `Showing 20 of ${uniqueShadesWithNames.length} unique shades`}
+                    : `Showing ${INITIAL_VISIBLE_COUNT} of ${uniqueShadesWithNames.length} unique shades`}
                 </span>
 
                 {!showAllShadeNames && (
@@ -1184,7 +1150,9 @@ const handleDownloadShades = async () => {
                     className="text-emerald-500 hover:underline"
                     onClick={toggleShowAllShadeNames}
                   >
-                    + {uniqueShadesWithNames.length - 20} more
+                    +{' '}
+                    {uniqueShadesWithNames.length - INITIAL_VISIBLE_COUNT}{' '}
+                    more
                   </button>
                 )}
               </div>
@@ -1238,7 +1206,7 @@ const handleDownloadShades = async () => {
                       {shade.hex}
                     </p>
 
-                    {showNames && shade.name && (
+                    {shade.name && (
                       <p
                         className={`text-[10px] truncate mt-0.5 ${
                           isDark ? 'text-gray-300' : 'text-gray-600'
@@ -1257,7 +1225,7 @@ const handleDownloadShades = async () => {
                       }`}
                       aria-label="Copy color"
                     >
-                      {copied === shade.id ? (
+                      {copiedId === shade.id ? (
                         <Check className="w-3 h-3 text-emerald-400" />
                       ) : (
                         <Copy
