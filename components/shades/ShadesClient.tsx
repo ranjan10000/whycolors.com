@@ -243,8 +243,6 @@ export default function ShadesClient({
     const breadcrumbHex = document.getElementById('shades-breadcrumb-hex');
     if (breadcrumbDot) breadcrumbDot.style.backgroundColor = fullHex;
     if (breadcrumbHex) breadcrumbHex.textContent = fullHex;
-
-    document.title = `${fullHex} ${colorName} - 100+ Shades & Color Variations`;
   }, [colorName, fullHex]);
 
   /* ---------- SHADES GENERATION ---------- */
@@ -866,13 +864,13 @@ export default function ShadesClient({
                 </div>
 
                 <div>
-                  <h2
+                  <div
                     className={`text-sm font-bold tracking-wide ${
                       isDark ? 'text-white' : 'text-gray-900'
                     }`}
                   >
                     Color Names Found
-                  </h2>
+                  </div>
 
                   <p
                     className={`text-[11px] ${

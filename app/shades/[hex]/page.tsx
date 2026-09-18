@@ -116,17 +116,17 @@ export default async function ShadesPage({ params }: ShadesPageProps) {
             SERVER-RENDERED H1
         ============================================================ */}
         <h1
-          id="shades-h1"
-          className="mt-4 sm:mt-6 text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-gray-900 dark:text-white"
-        >
-          Shades of <span id="shades-h1-name">{colorName}</span>
-          <span
-            id="shades-h1-hex"
-            className="ml-3 text-sm sm:text-base font-mono font-normal text-gray-500 dark:text-gray-400"
-          >
-            {fullHex}
-          </span>
-        </h1>
+  id="shades-h1"
+  className="mt-4 sm:mt-6 text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-gray-900 dark:text-white"
+>
+  Shades of <span id="shades-h1-name">{colorName}</span>
+ <span
+  id="shades-h1-hex"
+  className="ml-3 text-sm sm:text-base font-mono font-normal text-gray-500 dark:text-gray-400"
+>
+  {` ${fullHex}`}
+</span>
+</h1>
       </div>
 
       {/* Client component — interactive part only */}

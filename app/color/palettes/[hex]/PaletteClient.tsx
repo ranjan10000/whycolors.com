@@ -1,7 +1,7 @@
 // app/color/palettes/[hex]/PaletteClient.tsx
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Copy, Grid3x3, LayoutList, Check } from 'lucide-react';
 import {
@@ -49,10 +49,11 @@ export default function PaletteClient({
 
   /*
    * ============================================================
-   * ✅ DYNAMIC H1 + BREADCRUMB UPDATE
+   * ✅ DYNAMIC H1 + H2 + BREADCRUMB UPDATE
    *
-   * These are server-rendered in page.tsx. We update them
-   * via DOM whenever the user picks a new color.
+   * These are server-rendered in page.tsx (h1) and client-rendered
+   * here (h2). We update them via DOM whenever the user picks a
+   * new color.
    * ============================================================
    */
   useEffect(() => {
@@ -465,6 +466,22 @@ export default function PaletteClient({
           </button>
         </div>
       </div>
+
+      {/* ✅ Section h2 — sits between h1 (in page.tsx) and h3s below */}
+      {/* <h2
+        className={`mb-4 text-xl sm:text-2xl font-bold tracking-tight ${
+          isDark ? 'text-white' : 'text-gray-900'
+        }`}
+      >
+        Palettes for {currentColorName} Color 
+        <span
+          className={`ml-2 text-sm sm:text-base font-mono font-normal ${
+            isDark ? 'text-gray-400' : 'text-gray-500'
+          }`}
+        >
+          &nbsp;{currentColor}
+        </span>
+      </h2> */}
 
       {/* Palette Types */}
       <div className="grid grid-cols-1 gap-6">

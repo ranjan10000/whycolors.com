@@ -403,7 +403,7 @@ export default async function ColorPalettePage({
             id="palette-h1-hex"
             className="ml-3 text-sm sm:text-base font-mono font-normal text-gray-500 dark:text-gray-400"
           >
-            {fullHex}
+              {` ${fullHex}`}
           </span>
         </h1>
       </div>
