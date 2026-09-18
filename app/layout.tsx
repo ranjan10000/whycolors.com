@@ -12,9 +12,6 @@ export const metadata: Metadata = {
   title: 'WhyColors - Explore Every Color Shade & Palette',
   description:
     'Find the perfect color codes for your next project. Our color tools include a powerful color picker, interactive color wheel, detailed color chart, and complete HTML color names reference. Get Hex, RGB, HSL, and OKLCH values instantly. Start picking colors today!',
-  other: {
-    'google-adsense-account': 'ca-pub-2253099061976861',
-  },
 };
 
 function LoadingFallback() {

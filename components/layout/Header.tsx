@@ -21,33 +21,38 @@ export default function Header() {
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeHash, setActiveHash] = useState('');
   const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
+    setActiveHash(window.location.hash);
+
+    const onHashChange = () => setActiveHash(window.location.hash);
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  const handleNavClick = (
-    e: React.MouseEvent<HTMLAnchorElement>,
-    href: string
-  ) => {
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
     setMobileMenuOpen(false);
 
     const targetId = href.replace('#', '');
 
     if (pathname === '/') {
-      const element = document.getElementById(targetId);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        window.history.pushState(null, '', href);
+      const scroll = () => {
+        const el = document.getElementById(targetId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          window.history.pushState(null, '', href);
+          setActiveHash(href); // manual update since pushState doesn't fire hashchange
+        }
+      };
+
+      if (document.getElementById(targetId)) {
+        scroll();
       } else {
-        setTimeout(() => {
-          const el = document.getElementById(targetId);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        }, 300);
+        setTimeout(scroll, 300);
       }
     } else {
       window.location.href = `/${href}`;
@@ -63,9 +68,8 @@ export default function Header() {
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] flex items-center justify-center">
                 <Palette className="w-5 h-5 text-white" />
               </div>
-              {/* ✅ Improved logo — font-semibold with accent */}
-              <div className="text-lg font-semibold tracking-tight text-gray-800 dark:text-white">
-                Why<span className="text-[#7c3aed] font-bold">Colors</span>
+              <div className="text-lg font-bold text-gray-800 dark:text-white">
+                Why<span className="text-[#7c3aed]">Colors</span>
               </div>
             </div>
           </div>
@@ -79,38 +83,27 @@ export default function Header() {
       <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#131322]/90 backdrop-blur-xl border-b border-gray-200 dark:border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo - Link to home */}
-            <Link
-              href="/"
-              className="flex items-center gap-2.5 flex-shrink-0"
-              aria-label="WhyColors Home"
-            >
+            <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] flex items-center justify-center">
                 <Palette className="w-5 h-5 text-white" />
               </div>
-              {/* ✅ Improved logo — font-semibold with accent */}
-              <div className="text-lg font-semibold tracking-tight text-gray-800 dark:text-white">
-                Why<span className="text-[#7c3aed] font-bold">Colors</span>
+              <div className="text-lg font-bold text-gray-800 dark:text-white">
+                Why<span className="text-[#7c3aed]">Colors</span>
               </div>
             </Link>
 
-            {/* Desktop Navigation — font-medium (inactive) / font-semibold (active) */}
             <nav className="hidden md:flex items-center gap-1 lg:gap-2">
               {navLinks.map((link) => {
-                const isActive =
-                  pathname === '/' &&
-                  typeof window !== 'undefined' &&
-                  window.location.hash === link.href;
-
+                const isActive = pathname === '/' && activeHash === link.href;
                 return (
                   <a
                     key={link.href}
                     href={pathname === '/' ? link.href : `/${link.href}`}
                     onClick={(e) => handleNavClick(e, link.href)}
-                    className={`px-3 py-2 text-sm rounded-lg transition-all whitespace-nowrap ${
+                    className={`px-3 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                       isActive
-                        ? 'font-semibold text-[#7c3aed] dark:text-[#a78bfa] bg-purple-50 dark:bg-purple-900/20'
-                        : 'font-medium text-[#686b74] dark:text-[#a8abb4] hover:text-[#101114] dark:hover:text-[#f7f7f4] hover:bg-gray-100 dark:hover:bg-white/5'
+                        ? 'text-[#7c3aed] dark:text-[#a78bfa] bg-purple-50 dark:bg-purple-900/20'
+                        : 'text-[#686b74] dark:text-[#a8abb4] hover:text-[#101114] dark:hover:text-[#f7f7f4] hover:bg-gray-100 dark:hover:bg-white/5'
                     }`}
                   >
                     {link.label}
@@ -119,7 +112,6 @@ export default function Header() {
               })}
             </nav>
 
-            {/* Right side - Theme toggle + Mobile menu button */}
             <div className="flex items-center gap-2">
               <button
                 onClick={toggleTheme}
@@ -133,7 +125,6 @@ export default function Header() {
                 )}
               </button>
 
-              {/* Mobile Menu Button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="md:hidden p-2 rounded-xl bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 transition-all"
@@ -151,16 +142,13 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
           onClick={() => setMobileMenuOpen(false)}
-          aria-hidden="true"
         />
       )}
 
-      {/* Mobile Menu */}
       <div
         className={`fixed top-16 right-0 z-40 w-full max-w-sm h-[calc(100vh-4rem)] bg-white dark:bg-[#131322] shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden ${
           mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
@@ -173,20 +161,17 @@ export default function Header() {
                 key={link.href}
                 href={pathname === '/' ? link.href : `/${link.href}`}
                 onClick={(e) => handleNavClick(e, link.href)}
-                className="px-4 py-3 text-base font-semibold text-gray-700 dark:text-gray-300 hover:text-[#7c3aed] dark:hover:text-[#a78bfa] hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-all"
+                className="px-4 py-3 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-[#7c3aed] dark:hover:text-[#a78bfa] hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-all"
               >
                 {link.label}
               </a>
             ))}
           </div>
 
-          {/* Mobile Menu Footer */}
           <div className="mt-auto pt-4 border-t border-gray-200 dark:border-white/10">
             <div className="px-4 py-2">
-              <p className="text-xs font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">
-                WhyColors v1.0
-              </p>
-              <p className="text-xs font-normal text-gray-400 dark:text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400">WhyColors v1.0</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                 Color tools for everyone
               </p>
             </div>
