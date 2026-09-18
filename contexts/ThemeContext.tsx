@@ -7,33 +7,32 @@ type Theme = 'light' | 'dark';
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
-    isDark: boolean;
+  isDark: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // முதலில் null-ஆக initialize செய்யவும்
-  const [theme, setTheme] = useState<Theme | null>(null);
+  // ✅ Default 'light' — server-side la idhu use aagum
+  const [theme, setTheme] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const savedTheme = localStorage.getItem('theme') as Theme | null;
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
+
     if (savedTheme) {
       setTheme(savedTheme);
     } else if (prefersDark) {
       setTheme('dark');
-    } else {
-      setTheme('light'); // இங்கு மட்டுமே light-ஐ set செய்யவும்
     }
+    // else: light already default, no need to set
   }, []);
 
   useEffect(() => {
-    if (!mounted || theme === null) return;
-    
+    if (!mounted) return;
+
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -43,14 +42,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme, mounted]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
-  // mounted ஆகும் வரை அல்லது theme set ஆகும் வரை render செய்ய வேண்டாம்
-  if (!mounted || theme === null) {
-    return null; // அல்லது loading spinner
-  }
-
+  // ✅ NO "return null" gate — children always render
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, isDark: theme === 'dark' }}>
       {children}
