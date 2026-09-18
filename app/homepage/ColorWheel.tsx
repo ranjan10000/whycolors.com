@@ -397,22 +397,22 @@ export default function ColorWheel({ hex, onColorChange }: ColorWheelProps) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5 mb-6">
-        {HARMONY_MODES.map((mode) => (
-          <button
-            key={mode.id}
-            type="button"
-            onClick={() => setHarmonyMode(mode.id)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all whitespace-nowrap ${
-              harmonyMode === mode.id
-                ? "bg-[#101114] text-[#f7f7f4] dark:bg-[#f7f7f4] dark:text-[#101114] shadow-sm"
-                : "text-[#686b74] dark:text-[#a8abb4] hover:bg-[#101114]/5 dark:hover:bg-white/5"
-            }`}
-          >
-            {mode.label}
-          </button>
-        ))}
-      </div>
+     <div className="flex flex-wrap items-center gap-1.5 mb-6">
+  {HARMONY_MODES.map((mode) => (
+    <button
+      key={mode.id}
+      type="button"
+      onClick={() => setHarmonyMode(mode.id)}
+      className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-all whitespace-nowrap ${
+        harmonyMode === mode.id
+          ? "bg-[#101114] text-[#f7f7f4] dark:bg-[#f7f7f4] dark:text-[#101114] shadow-sm"
+          : "text-[#686b74] dark:text-[#a8abb4] hover:bg-[#101114]/5 dark:hover:bg-white/5"
+      }`}
+    >
+      {mode.label}
+    </button>
+  ))}
+</div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="flex flex-col items-center bg-white/76 dark:bg-[#191a1e]/76 border border-[#101114]/9 dark:border-white/11 rounded-2xl p-6 shadow-sm">
