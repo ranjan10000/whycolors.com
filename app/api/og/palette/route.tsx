@@ -339,7 +339,7 @@ export async function GET(request: Request) {
                     letterSpacing: '-0.065em',
                   }}
                 >
-                  {colorName} Palette
+                  {colorName} Color Palette
                 </h1>
 
                 <p

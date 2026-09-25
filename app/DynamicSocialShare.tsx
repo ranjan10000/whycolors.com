@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   FaTwitter,
   FaFacebook,
@@ -17,6 +17,51 @@ interface SocialShareProps {
   imageUrl?: string;
 }
 
+// ✅ Helper: hex → rgb
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const clean = hex.replace("#", "").trim();
+
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
+
+  return {
+    r: parseInt(clean.slice(0, 2), 16),
+    g: parseInt(clean.slice(2, 4), 16),
+    b: parseInt(clean.slice(4, 6), 16),
+  };
+}
+
+// ✅ Helper: hex → hsl
+function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+
+  const r = rgb.r / 255;
+  const g = rgb.g / 255;
+  const b = rgb.b / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+    else if (max === g) h = ((b - r) / d + 2) / 6;
+    else h = ((r - g) / d + 4) / 6;
+  }
+
+  return {
+    h: Math.round(h * 360),
+    s: Math.round(s * 100),
+    l: Math.round(l * 100),
+  };
+}
+
 export default function SocialShare({
   hex,
   colorName,
@@ -26,6 +71,10 @@ export default function SocialShare({
   const [url, setUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const [canNativeShare, setCanNativeShare] = useState(false);
+
+  // ✅ Compute RGB/HSL from hex
+  const rgb = useMemo(() => hexToRgb(hex), [hex]);
+  const hsl = useMemo(() => hexToHsl(hex), [hex]);
 
   useEffect(() => {
     const finalUrl = explicitUrl || window.location.href;
@@ -39,9 +88,16 @@ export default function SocialShare({
     }
   }, [explicitUrl]);
 
+  // ✅ Dynamic share text
   const shareTitle = `${colorName} ${hex.toUpperCase()}`;
-  const shareText = `Check out ${colorName} color (${hex.toUpperCase()})`;
-  const shareDescription = `Explore ${colorName} color details, palettes, shades & harmonies`;
+
+  const shareText = rgb && hsl
+    ? `Explore ${colorName} (${hex.toUpperCase()}) — RGB(${rgb.r}, ${rgb.g}, ${rgb.b}), HSL(${hsl.h}°, ${hsl.s}%, ${hsl.l}%). Discover its shades, tints, tones, palettes, complementary colors, and harmonies.`
+    : `Explore ${colorName} (${hex.toUpperCase()}) with shades, tints, tones, palettes, complementary colors, and harmonies.`;
+
+  const shareDescription = rgb && hsl
+    ? `Explore ${colorName} (${hex.toUpperCase()}) with RGB(${rgb.r}, ${rgb.g}, ${rgb.b}), HSL(${hsl.h}°, ${hsl.s}%, ${hsl.l}%), color shades, tints, tones, palettes, complementary colors, and harmonious combinations.`
+    : `Explore ${colorName} (${hex.toUpperCase()}) with shades, tints, tones, palettes, complementary colors, and harmonious combinations.`;
 
   const handleNativeShare = useCallback(async () => {
     if (!canNativeShare) return;
@@ -75,7 +131,6 @@ export default function SocialShare({
     }
   }, [url]);
 
-  // Placeholder — centered
   if (!url) {
     return <div className="flex justify-center items-center gap-2 h-10" />;
   }
@@ -89,7 +144,6 @@ export default function SocialShare({
     : `https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${encodedDesc}`;
 
   return (
-    // ✅ FIX: Added justify-center for centre alignment
     <div className="flex items-center justify-center gap-2 flex-wrap">
       {/* Native / Copy share */}
       {canNativeShare ? (
