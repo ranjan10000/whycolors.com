@@ -17,6 +17,8 @@ const footerLinks = {
     { label: 'Color Scales', href: '#color-scales' },
     { label: 'Image Palette', href: '#image-palette' },
     { label: 'Image Color Extractor', href: '#image-color-extractor' },
+    { label: 'Third Color Finder', href: '/third-color' },
+    { label: 'Color Mixer', href: '/color-mixer' },
   ],
   company: [
     { label: 'About', href: '/about' },

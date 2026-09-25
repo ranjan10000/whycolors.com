@@ -61,7 +61,7 @@ export default async function ColorPage({ params }: ColorPageProps) {
 
   // Step 5: Render
   return (
-    // ✅ FIX 1: Added background — matches PaletteClient dark bg
+
     <div className="min-h-screen bg-gray-50 dark:bg-[#090911] transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 pt-6 sm:pt-8">
         {/* ============================================================
@@ -156,6 +156,7 @@ export default async function ColorPage({ params }: ColorPageProps) {
         cmyk={cmyk}
         contrast={contrast}
       />
+      
     </div>
   );
 }

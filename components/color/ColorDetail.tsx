@@ -13,6 +13,7 @@ import {
   getColorFamily,
   isValidHex,
 } from '@/lib/color-utils';
+import DynamicSocialShare from '@/app/DynamicSocialShare';
 import {
   Copy,
   Check,
@@ -409,7 +410,7 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
                   <div className="flex justify-between items-center mb-1">
                     <span
                       className={`text-[10px] font-bold uppercase tracking-widest ${
-                        isDark ? 'text-gray-200' : 'text-gray-500'
+                        isDark ? 'text-gray-200' : 'text-gray-700'
                       }`}
                     >
                       {item.label}
@@ -457,7 +458,7 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
           >
             <h3
               className={`text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 ${
-                isDark ? 'text-gray-300' : 'text-gray-500'
+                isDark ? 'text-gray-300' : 'text-gray-700'
               }`}
             >
               <Layers
@@ -697,6 +698,14 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
           colorName={colorName}
           isDark={isDark}
         />
+            <div className="my-6">
+  <DynamicSocialShare
+  hex={hex}                              // ✅ Already clean
+  colorName={colorName}
+  url={`https://www.whycolors.com/color/${hex}`}   // ✅ Use hex
+  imageUrl={`https://www.whycolors.com/api/og/color?hex=${hex}`}  // ✅
+/>
+            </div>
       </div>
     </div>
   );

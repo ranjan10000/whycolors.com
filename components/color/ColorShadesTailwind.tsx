@@ -81,7 +81,7 @@ export default function ColorShadesTailwind({ hex }: ColorShadesProps) {
           isDark ? 'border-white/5' : 'border-gray-100'
         }`}>
           <h4 className={`text-xs font-semibold uppercase tracking-wider ${
-            isDark ? 'text-gray-300' : 'text-gray-500'
+            isDark ? 'text-gray-300' : 'text-gray-700'
           }`}>
             Tints (Lighter)
           </h4>
@@ -140,7 +140,7 @@ export default function ColorShadesTailwind({ hex }: ColorShadesProps) {
           isDark ? 'border-white/5' : 'border-gray-100'
         }`}>
           <h4 className={`text-xs font-semibold uppercase tracking-wider ${
-            isDark ? 'text-gray-300' : 'text-gray-500'
+            isDark ? 'text-gray-300' : 'text-gray-700'
           }`}>
             Shades (Darker)
           </h4>

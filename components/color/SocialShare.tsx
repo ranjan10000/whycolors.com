@@ -172,7 +172,7 @@ export default function SocialShare({
             {/* Header */}
             <div
               className={`px-2 py-1 mb-1 text-xs font-semibold uppercase tracking-wider ${
-                isDark ? 'text-gray-400' : 'text-gray-500'
+                isDark ? 'text-gray-400' : 'text-gray-700'
               }`}
             >
               Share on

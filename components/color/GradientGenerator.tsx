@@ -259,7 +259,7 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
         {/* Left Column */}
         <div className="space-y-4">
           <label className={`text-xs font-semibold uppercase tracking-wider ${
-            isDark ? 'text-gray-400' : 'text-gray-500'
+            isDark ? 'text-gray-400' : 'text-gray-700'
           }`}>
             Gradient Style
           </label>
@@ -284,7 +284,7 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
           {gradientType === 'linear' && (
             <>
               <label className={`text-xs font-semibold uppercase tracking-wider block pt-2 ${
-                isDark ? 'text-gray-400' : 'text-gray-500'
+                isDark ? 'text-gray-400' : 'text-gray-700'
               }`}>
                 Direction Angle
               </label>
@@ -313,7 +313,7 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <label className={`text-xs font-semibold uppercase tracking-wider ${
-              isDark ? 'text-gray-400' : 'text-gray-500'
+              isDark ? 'text-gray-400' : 'text-gray-700'
             }`}>
               Color Stops ({colorStops.length}/5)
             </label>

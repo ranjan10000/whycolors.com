@@ -102,7 +102,7 @@ export default function ColorShades({ hex }: ColorShadesProps) {
       <div className="space-y-3">
         <div className="flex justify-between items-center">
           <h4 className={`text-xs font-semibold uppercase tracking-wider ${
-            isDark ? 'text-gray-200' : 'text-gray-500'
+            isDark ? 'text-gray-200' : 'text-gray-700'
           }`}>Tints (Lighter)</h4>
           <span className={`text-[10px] font-mono ${isDark ? 'text-white' : 'text-black'}`}>
             +White Mix
@@ -168,7 +168,7 @@ export default function ColorShades({ hex }: ColorShadesProps) {
       <div className="space-y-3">
         <div className="flex justify-between items-center">
           <h4 className={`text-xs font-semibold uppercase tracking-wider ${
-            isDark ? 'text-gray-200' : 'text-gray-500'
+            isDark ? 'text-gray-200' : 'text-gray-700'
           }`}>Shades (Darker)</h4>
           <span className={`text-[10px] font-mono ${isDark ? 'text-white' : 'text-black'}`}>
             +Black Mix

@@ -13,6 +13,7 @@ import {
 import ShadesClient from '@/components/shades/ShadesClient';
 import SocialShare from '@/components/color/SocialShare';
 
+
 interface ShadesPageProps {
   params: Promise<{ hex: string }>;
 }
@@ -41,8 +42,11 @@ export default async function ShadesPage({ params }: ShadesPageProps) {
   const colorFamily = getColorFamily(cleanHex) || 'Color';
   const fullHex = `#${cleanHex.toUpperCase()}`;
 
+    const pageTitle = `Shades Of ${colorName} - ${fullHex}`;
+  const pageDescription = `Explore 100+ shades of ${colorName} (${fullHex}) including tints, tones, and dark variations.`;
+  const ogImage = `https://www.whycolors.com/api/og/shades?hex=${cleanHex}`;
+  
   return (
-    // ✅ FIX 1: Added background — matches all other pages dark bg
     <div className="min-h-screen bg-gray-50 dark:bg-[#090911] transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 pt-6 sm:pt-8">
         {/* ============================================================

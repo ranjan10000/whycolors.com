@@ -21,6 +21,7 @@ import {
   getUniqueColorNames,
 } from '@/components/shades/shade-generator';
 import { getColorName, getColorFamily } from '@/lib/color-utils';
+import DynamicSocialShare from '@/app/DynamicSocialShare';
 
 /* ============================================================
  * CONSTANTS
@@ -739,88 +740,89 @@ export default function ShadesClient({
             </div>
 
             {/* COLOR FORMAT DATA */}
-            <div
-              className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 w-full lg:w-auto min-w-[280px]"
-              role="group"
-              aria-label="Color format values"
-            >
-              {formatData.map((item) => {
-                const isCopied =
-                  copiedId === item.format &&
-                  copiedFormat === item.format;
+            {/* COLOR FORMAT DATA */}
+<div
+  className="grid grid-cols-1 sm:grid-cols-4 lg:grid-cols-2 gap-3 w-full lg:w-auto min-w-[280px]"
+  role="group"
+  aria-label="Color format values"
+>
+  {formatData.map((item) => {
+    const isCopied =
+      copiedId === item.format &&
+      copiedFormat === item.format;
 
-                return (
-                  <div
-                    key={item.label}
-                    onClick={() =>
-                      item.value &&
-                      handleCopy(item.value, item.format, item.format)
-                    }
-                    className={`group border rounded-xl p-3 transition-all ${
-                      isDark
-                        ? 'bg-white/[0.03] hover:bg-white/[0.08] border-white/10 hover:border-white/30'
-                        : 'bg-gray-50 hover:bg-gray-100 border-gray-200 hover:border-[#7c3aed]/30'
-                    } ${
-                      item.value
-                        ? 'cursor-pointer'
-                        : 'opacity-50 cursor-not-allowed'
-                    }`}
-                    role="button"
-                    tabIndex={item.value ? 0 : -1}
-                    aria-label={
-                      item.value
-                        ? `Copy ${item.label} value ${item.value}`
-                        : `${item.label} not available`
-                    }
-                    onKeyDown={(e) => {
-                      if (
-                        (e.key === 'Enter' || e.key === ' ') &&
-                        item.value
-                      ) {
-                        e.preventDefault();
-                        handleCopy(item.value, item.format, item.format);
-                      }
-                    }}
-                  >
-                    <div className="flex justify-between items-center mb-1">
-                      <span
-                        className={`text-[10px] font-bold uppercase tracking-widest ${
-                          isDark ? 'text-gray-200' : 'text-gray-500'
-                        }`}
-                      >
-                        {item.label}
-                      </span>
+    return (
+      <div
+        key={item.label}
+        onClick={() =>
+          item.value &&
+          handleCopy(item.value, item.format, item.format)
+        }
+        className={`group border rounded-xl p-3 transition-all ${
+          isDark
+            ? 'bg-white/[0.03] hover:bg-white/[0.08] border-white/10 hover:border-white/30'
+            : 'bg-gray-50 hover:bg-gray-100 border-gray-200 hover:border-[#7c3aed]/30'
+        } ${
+          item.value
+            ? 'cursor-pointer'
+            : 'opacity-50 cursor-not-allowed'
+        }`}
+        role="button"
+        tabIndex={item.value ? 0 : -1}
+        aria-label={
+          item.value
+            ? `Copy ${item.label} value ${item.value}`
+            : `${item.label} not available`
+        }
+        onKeyDown={(e) => {
+          if (
+            (e.key === 'Enter' || e.key === ' ') &&
+            item.value
+          ) {
+            e.preventDefault();
+            handleCopy(item.value, item.format, item.format);
+          }
+        }}
+      >
+        <div className="flex justify-between items-center mb-1">
+          <span
+            className={`text-[10px] font-bold uppercase tracking-widest ${
+              isDark ? 'text-gray-200' : 'text-gray-700'
+            }`}
+          >
+            {item.label}
+          </span>
 
-                      {item.value && (
-                        <div className="flex items-center gap-1">
-                          {isCopied ? (
-                            <Check
-                              className="w-3 h-3 text-emerald-400"
-                              aria-hidden="true"
-                            />
-                          ) : (
-                            <Copy
-                              className={`w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity ${
-                                isDark ? 'text-gray-500' : 'text-gray-400'
-                              }`}
-                              aria-hidden="true"
-                            />
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <p
-                      className={`font-mono text-xs sm:text-sm font-medium truncate ${
-                        isDark ? 'text-white' : 'text-gray-800'
-                      }`}
-                    >
-                      {item.value || '—'}
-                    </p>
-                  </div>
-                );
-              })}
+          {item.value && (
+            <div className="flex items-center gap-1">
+              {isCopied ? (
+                <Check
+                  className="w-3 h-3 text-emerald-400"
+                  aria-hidden="true"
+                />
+              ) : (
+                <Copy
+                  className={`w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity ${
+                    isDark ? 'text-gray-500' : 'text-gray-400'
+                  }`}
+                  aria-hidden="true"
+                />
+              )}
             </div>
+          )}
+        </div>
+
+        <p
+          className={`font-mono text-xs sm:text-sm font-medium truncate ${
+            isDark ? 'text-white' : 'text-gray-800'
+          }`}
+        >
+          {item.value || '—'}
+        </p>
+      </div>
+    );
+  })}
+</div>
           </div>
         </header>
 
@@ -1259,7 +1261,7 @@ export default function ShadesClient({
                     }`}
                   >
                     <p
-                      className="font-mono text-xs font-medium truncate cursor-pointer hover:text-[#7c3aed] transition-colors"
+                      className="font-mono text-xs font-bold truncate cursor-pointer hover:text-[#7c3aed] transition-colors"
                       onClick={() => handleCopy(shade.hex, shade.id)}
                       title={`Click to copy ${shade.hex}`}
                     >
@@ -1267,14 +1269,14 @@ export default function ShadesClient({
                     </p>
 
                     {shade.name && (
-                      <p
-                        className={`text-[10px] truncate mt-0.5 ${
-                          isDark ? 'text-gray-300' : 'text-gray-600'
-                        }`}
-                        title={shade.name}
-                      >
-                        {shade.name}
-                      </p>
+                     <p
+  className={`text-[10px] font-semibold truncate mt-0.5 ${
+    isDark ? 'text-gray-400' : 'text-gray-500'
+  }`}
+  title={shade.name}
+>
+  {shade.name}
+</p>
                     )}
 
                     <button
@@ -1407,6 +1409,14 @@ export default function ShadesClient({
         hex={hex}
         colorFamily={colorFamily}
       />
+             <div className="mt-8">
+        <DynamicSocialShare
+          hex={hex}                              // ✅ Live state
+          colorName={colorName}                  // ✅ Live state
+          imageUrl={`https://www.whycolors.com/api/og/shades?hex=${hex}`}  // ✅
+        />
+      </div>
     </div>
+    
   );
 }

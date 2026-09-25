@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { marked } from "marked";
 import Link from "next/link";
-import SocialShare from "../SocialShare";
+import SocialShare from "../ButtomSocialShare";
 import RelatedPostsScroll from "../RelatedPostsScroll";
 import Image from "next/image";
 

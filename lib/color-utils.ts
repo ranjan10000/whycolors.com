@@ -572,3 +572,112 @@ export function preCacheColorNames() {
 if (typeof window === 'undefined') {
   preCacheColorNames();
 }
+
+// lib/color-utils.ts la add pannunga
+
+export interface MixResult {
+  hex: string;
+  name: string;
+  rgb: [number, number, number];
+  ratio: { white: number; black: number };
+}
+
+/**
+ * Mix white and black at a given ratio (0-1).
+ * @param whiteRatio 0 = all black, 1 = all white, 0.5 = 50-50
+ */
+export function mixWhiteBlack(whiteRatio: number): MixResult {
+  const w = Math.max(0, Math.min(1, whiteRatio));
+  const value = Math.round(w * 255); // 0-255 gray level
+  
+  const hex = rgbToHex([value, value, value]);
+  const pct = Math.round(w * 100);
+  
+  return {
+    hex,
+    name: getColorName(hex),
+    rgb: [value, value, value],
+    ratio: { white: pct, black: 100 - pct },
+  };
+}
+
+/**
+ * Mix two arbitrary colors at a given ratio using chroma.
+ * @param ratio 0 = all color1, 1 = all color2
+ */
+export function mixColors(
+  color1: string,
+  color2: string,
+  ratio: number
+): { hex: string; name: string } {
+  const r = Math.max(0, Math.min(1, ratio));
+  const mixed = chroma.mix(
+    `#${sanitizeHex(color1)}`,
+    `#${sanitizeHex(color2)}`,
+    r,
+    'rgb'
+  );
+  const hex = mixed.hex().toUpperCase();
+  return { hex, name: getColorName(hex) };
+}
+
+/**
+ * Generate a full gradient between two colors (useful for UI sliders).
+ */
+export function generateMixGradient(
+  color1: string,
+  color2: string,
+  steps: number = 11
+): MixResult[] {
+  const results: MixResult[] = [];
+  for (let i = 0; i < steps; i++) {
+    const ratio = i / (steps - 1);
+    const r = Math.max(0, Math.min(1, ratio));
+    const mixed = chroma.mix(
+      `#${sanitizeHex(color1)}`,
+      `#${sanitizeHex(color2)}`,
+      r,
+      'rgb'
+    );
+    const hex = mixed.hex().toUpperCase();
+    const rgb = hexToRgbArray(hex) ?? [0, 0, 0];
+    
+    results.push({
+      hex,
+      name: getColorName(hex),
+      rgb,
+      ratio: { white: Math.round((1 - r) * 100), black: Math.round(r * 100) },
+    });
+  }
+  return results;
+}
+
+// ============ PERCENTAGE DISTRIBUTION (Largest Remainder Method) ============
+/**
+ * Distribute percentages so they sum exactly to 100.
+ * Uses the largest remainder method (Hare quota).
+ */
+export function distributePercentages(weights: number[]): number[] {
+  const total = weights.reduce((s, w) => s + w, 0);
+  if (total <= 0 || weights.length === 0) {
+    return weights.map(() => 0);
+  }
+
+  const exact = weights.map((w) => (w / total) * 100);
+  const floored = exact.map((v) => Math.floor(v));
+  const remainders = exact.map((v, i) => v - floored[i]);
+  const currentTotal = floored.reduce((s, v) => s + v, 0);
+  const deficit = 100 - currentTotal;
+
+  // Sort indices by remainder desc
+  const sortedIdx = remainders
+    .map((r, i) => ({ i, r }))
+    .sort((a, b) => b.r - a.r);
+
+  const result = [...floored];
+  for (let k = 0; k < deficit && k < sortedIdx.length; k++) {
+    result[sortedIdx[k].i] += 1;
+  }
+
+  return result;
+}

@@ -197,6 +197,10 @@ export default async function ColorPalettePage({
     notFound();
   }
 
+   const pageTitle = `${colorName} Color Palettes (${fullHex})`;
+  const pageDescription = `Explore ${colorName} color palettes including shades, complementary, analogous, triadic, and harmonious combinations.`;
+  const ogImage = `https://www.whycolors.com/api/og/palette?hex=${cleanHex}`;
+
   // ALL palette types
   const paletteTypes = [
     // Basic harmonies
@@ -312,7 +316,6 @@ export default async function ColorPalettePage({
   );
 
   return (
-    // ✅ FIX 1: dark:bg-gray-900 → dark:bg-[#090911] (match PaletteClient)
     <div className="min-h-screen bg-gray-50 dark:bg-[#090911] transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 pt-6 sm:pt-8">
         {/* ============================================================

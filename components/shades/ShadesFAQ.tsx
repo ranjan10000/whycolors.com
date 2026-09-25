@@ -179,7 +179,7 @@ export default function ShadesFAQ({
                   isDark ? 'bg-white/5' : 'bg-gray-50'
                 }`}
               >
-                <p className="text-xs opacity-75">RGB</p>
+                <p className="text-xs">RGB</p>
                 <p className="text-sm font-mono">
                   {data.rgb.r}, {data.rgb.g}, {data.rgb.b}
                 </p>
@@ -189,7 +189,7 @@ export default function ShadesFAQ({
                   isDark ? 'bg-white/5' : 'bg-gray-50'
                 }`}
               >
-                <p className="text-xs opacity-75">HSL</p>
+                <p className="text-xs">HSL</p>
                 <p className="text-sm font-mono">
                   {data.hsl.h}°, {data.hsl.s}%, {data.hsl.l}%
                 </p>
@@ -199,7 +199,7 @@ export default function ShadesFAQ({
                   isDark ? 'bg-white/5' : 'bg-gray-50'
                 }`}
               >
-                <p className="text-xs opacity-75">CMYK</p>
+                <p className="text-xs">CMYK</p>
                 <p className="text-sm font-mono">
                   {data.cmyk.c}%, {data.cmyk.m}%, {data.cmyk.y}%,{' '}
                   {data.cmyk.k}%
@@ -210,7 +210,7 @@ export default function ShadesFAQ({
                   isDark ? 'bg-white/5' : 'bg-gray-50'
                 }`}
               >
-                <p className="text-xs opacity-75">HSV</p>
+                <p className="text-xs">HSV</p>
                 <p className="text-sm font-mono">
                   {data.hsv.h}°, {data.hsv.s}%, {data.hsv.v}%
                 </p>
@@ -242,7 +242,7 @@ export default function ShadesFAQ({
                       <p className="text-xs font-medium truncate">
                         {color.name}
                       </p>
-                      <p className="text-[10px] font-mono opacity-75">
+                      <p className="text-[12px] font-mono">
                         {color.hex}
                       </p>
                     </div>
@@ -294,7 +294,7 @@ export default function ShadesFAQ({
                   title={`#${lightenHex(hex, 0.3)}`}
                 />
               </div>
-              <p className="text-xs opacity-75 mt-1">
+              <p className="text-xs mt-1">
                 {fullHex} + {data.complementary} + dark/light variations
               </p>
             </div>
@@ -330,7 +330,7 @@ export default function ShadesFAQ({
                   style={{ backgroundColor: `#${darkenHex(hex, 0.6)}` }}
                 />
               </div>
-              <p className="text-xs opacity-75 mt-1">
+              <p className="text-xs mt-1">
                 Various shades of {baseColor}
               </p>
             </div>
@@ -526,12 +526,12 @@ export default function ShadesFAQ({
                   />
                   <div className="min-w-0">
                     <p className="text-xs font-medium">Complementary</p>
-                    <p className="text-[10px] font-mono opacity-75">
+                    <p className="text-[12px] font-mono">
                       {data.complementary}
                     </p>
                   </div>
                 </div>
-                <p className="text-[10px] opacity-60 mt-1.5">
+                <p className="text-[12px] mt-1.5">
                   Direct opposite on color wheel (180°)
                 </p>
               </div>
@@ -551,12 +551,12 @@ export default function ShadesFAQ({
                   />
                   <div className="min-w-0">
                     <p className="text-xs font-medium">Split-Complement</p>
-                    <p className="text-[10px] font-mono opacity-75">
+                    <p className="text-[12px] font-mono">
                       #{data.splitComplement1}
                     </p>
                   </div>
                 </div>
-                <p className="text-[10px] opacity-60 mt-1.5">
+                <p className="text-[12px] mt-1.5">
                   Adjacent to complementary (+150°)
                 </p>
               </div>
@@ -576,12 +576,12 @@ export default function ShadesFAQ({
                   />
                   <div className="min-w-0">
                     <p className="text-xs font-medium">Split-Complement</p>
-                    <p className="text-[10px] font-mono opacity-75">
+                    <p className="text-[12px] font-mono">
                       #{data.splitComplement2}
                     </p>
                   </div>
                 </div>
-                <p className="text-[10px] opacity-60 mt-1.5">
+                <p className="text-[12px] mt-1.5">
                   Adjacent to complementary (−150°)
                 </p>
               </div>
@@ -787,7 +787,7 @@ export default function ShadesFAQ({
               isDark ? 'text-gray-400' : 'text-gray-500'
             }`}
           >
-            📊 Data from actual color analysis • {faqItems.length} color
+            Data from actual color analysis • {faqItems.length} color
             insights
           </p>
           <div className="flex items-center gap-3">
