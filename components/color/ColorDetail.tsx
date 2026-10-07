@@ -565,7 +565,7 @@ export default function ColorDetail({ hex: initialHex }: ColorDetailProps) {
         />
 
         {/* Detailed Modular Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
           <section
             className={`border rounded-2xl p-4 shadow-sm ${
               isDark

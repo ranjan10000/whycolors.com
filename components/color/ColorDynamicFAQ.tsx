@@ -350,22 +350,22 @@ Check the "Color Harmonies" section for visual examples.`
 
   return (
     <section 
-      className={`border rounded-2xl p-4 shadow-sm ${
+      className={`border rounded-2xl p-5 shadow-sm ${
         isDark ? 'bg-[#131322]/80 border-white/10' : 'bg-white/90 border-gray-200'
       }`}
       aria-labelledby="faq-title"
     >
-      <div className="flex items-center gap-2.5 mb-6 pb-4 border-b border-gray-200 dark:border-white/10">
-        <div className={`p-2 border rounded-lg ${
+      <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200 dark:border-white/10">
+        <div className={`p-2.5 border rounded-lg ${
           isDark ? 'bg-[#8b5cf6]/20 border-[#8b5cf6]/30 text-[#a78bfa]' : 'bg-[#7c3aed]/10 border-[#7c3aed]/20 text-[#7c3aed]'
         }`} aria-hidden="true">
-          <HelpCircle className="w-5 h-5" />
+          <HelpCircle className="w-6 h-6" />
         </div>
         <div>
-          <h2 id="faq-title" className={`text-lg sm:text-xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+          <h2 id="faq-title" className={`text-xl sm:text-2xl md:text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
             Color FAQ
           </h2>
-          <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          <p className={`text-sm sm:text-base ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
             Frequently Asked Questions about {colorName} ({fullHex})
           </p>
         </div>
@@ -391,14 +391,14 @@ Check the "Color Harmonies" section for visual examples.`
             >
               <span
                 id={`faq-question-${index}`}
-                className={`font-medium text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}
+                className={`font-medium text-base sm:text-lg ${isDark ? 'text-gray-100' : 'text-gray-900'}`}
               >
                 {item.question}
               </span>
               {openIndex === index ? (
-                <ChevronUp className={`w-4 h-4 flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} aria-hidden="true" />
+                <ChevronUp className={`w-5 h-5 flex-shrink-0 ${isDark ? 'text-gray-300' : 'text-gray-700'}`} aria-hidden="true" />
               ) : (
-                <ChevronDown className={`w-4 h-4 flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} aria-hidden="true" />
+                <ChevronDown className={`w-5 h-5 flex-shrink-0 ${isDark ? 'text-gray-300' : 'text-gray-700'}`} aria-hidden="true" />
               )}
             </button>
             
@@ -410,8 +410,8 @@ Check the "Color Harmonies" section for visual examples.`
                 openIndex === index ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
               }`}
             >
-              <div className={`px-4 pb-4 text-sm leading-relaxed whitespace-pre-line ${
-                isDark ? 'text-gray-300' : 'text-gray-600'
+              <div className={`px-4 pb-4 text-base sm:text-lg leading-relaxed whitespace-pre-line ${
+                isDark ? 'text-gray-200' : 'text-gray-800'
               }`}>
                 {item.answer}
               </div>

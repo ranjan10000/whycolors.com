@@ -1,6 +1,6 @@
 // lib/dynamic-palettes.ts
 import chroma from 'chroma-js';
-import { getCachedColors, generateColorName, hexToRgb } from './colors.shared';
+import { getCachedColors } from './colors.shared';
 import { getColorName } from './color-utils';
 
 // ============ VALIDATION & HELPERS ============
@@ -9,7 +9,7 @@ export function normalizeHex(hex: string): string {
   let clean = hex.trim();
   clean = clean.replace(/^#/, '');
   if (clean.length === 3) {
-    clean = clean.split('').map(c => c + c).join('');
+    clean = clean.split('').map((c) => c + c).join('');
   }
   if (!/^[0-9A-Fa-f]{6}$/.test(clean)) {
     throw new Error(`Invalid hex color format: ${hex}. Expected format: #RRGGBB or RRGGBB`);
@@ -19,103 +19,222 @@ export function normalizeHex(hex: string): string {
 
 export function isValidHex(hex: string): boolean {
   try {
-    const normalized = normalizeHex(hex);
-    return /^#[0-9A-Fa-f]{6}$/.test(normalized);
+    normalizeHex(hex);
+    return true;
   } catch {
     return false;
   }
 }
 
+/** Throws on invalid hex input — an invalid color is not the same as "zero contrast". */
 export function getContrastRatio(color1: string, color2: string): number {
-  try {
-    return chroma.contrast(normalizeHex(color1), normalizeHex(color2));
-  } catch {
-    return 0;
-  }
+  return chroma.contrast(normalizeHex(color1), normalizeHex(color2));
 }
 
+/** Boolean check: returns false if either color is invalid. */
 export function isAccessible(color1: string, color2: string, level: 'AA' | 'AAA' = 'AA'): boolean {
+  if (!isValidHex(color1) || !isValidHex(color2)) return false;
   const ratio = getContrastRatio(color1, color2);
   return level === 'AA' ? ratio >= 4.5 : ratio >= 7;
 }
 
-// ============ SAFE COLOR HELPER ============
+// ============ CORE HELPERS — HSL-based color manipulation ============
+// These preserve hue and saturation, unlike chroma.brighten/darken
+// which operate in LAB space and desaturate colors.
+// NOTE: HSL lightness is NOT perceptually uniform (use OKLCH if you need that).
 
-function safeSetColor(
-  base: chroma.Color,
-  hue: number,
-  saturation: number,
-  lightness: number
-): string {
-  try {
-    const h = ((hue % 360) + 360) % 360;
-    const s = Math.min(1, Math.max(0, saturation));
-    const l = Math.min(1, Math.max(0, lightness));
-    return chroma(h, s, l, 'hsl').hex();
-  } catch (error) {
-    console.warn(`Chroma failed for h:${hue}, s:${saturation}, l:${lightness}`, error);
-    return base.hex();
-  }
+interface HSL {
+  h: number; // 0–360
+  s: number; // 0–1
+  l: number; // 0–1
 }
 
-function safeSetHue(base: chroma.Color, hue: number): string {
-  try {
-    const h = ((hue % 360) + 360) % 360;
-    const s = base.get('hsl.s');
-    const l = base.get('hsl.l');
-    return chroma(h, s, l, 'hsl').hex();
-  } catch (error) {
-    console.warn(`Hue set failed for: ${hue}`, error);
-    return base.hex();
+const MIN_L = 0.02; // fromHSL clamps lightness to [MIN_L, MAX_L]
+const MAX_L = 0.98;
+
+/** Palette-level lightness range: themed palettes never collapse to near-black / near-white. */
+const PAL_MIN_L = 0.12;
+const PAL_MAX_L = 0.92;
+
+/** Saturation used when the input is gray, so hue-based harmonies still produce color. */
+const ACHROMATIC_THRESHOLD = 0.05;
+const ACHROMATIC_FALLBACK_S = 0.45;
+
+const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+
+/** True HSL of a hex color (gray stays gray). */
+function getTrueHSL(hex: string): HSL {
+  const c = chroma(normalizeHex(hex));
+  return {
+    h: c.get('hsl.h') || 0,
+    s: c.get('hsl.s') || 0,
+    l: c.get('hsl.l'),
+  };
+}
+
+/** HSL used by harmony generators — gray inputs get a fallback saturation. */
+function getHSL(hex: string): HSL {
+  const hslVal = getTrueHSL(hex);
+  if (hslVal.s < ACHROMATIC_THRESHOLD) {
+    return { ...hslVal, s: ACHROMATIC_FALLBACK_S };
   }
+  return hslVal;
+}
+
+/** Build a hex from HSL — clamped safely */
+function fromHSL(h: number, s: number, l: number): string {
+  const hh = (((h % 360) + 360) % 360) || 0;
+  const ss = Math.max(0, Math.min(1, Number.isFinite(s) ? s : 0));
+  const ll = Math.max(MIN_L, Math.min(MAX_L, Number.isFinite(l) ? l : 0.5)); // keep off pure black/white
+  return chroma(hh, ss, ll, 'hsl').hex().toUpperCase();
+}
+
+/** Full-range HSL builder (used by shade/tint ladders and intentionally dark/light palettes). */
+function hslFull(h: number, s: number, l: number): string {
+  return fromHSL(h, s, l);
+}
+
+/** Palette-safe HSL builder: lightness is kept inside [PAL_MIN_L, PAL_MAX_L]. */
+function hsl(h: number, s: number, l: number): string {
+  return fromHSL(h, s, clamp(Number.isFinite(l) ? l : 0.5, PAL_MIN_L, PAL_MAX_L));
+}
+
+/** Shift hue by degrees (preserves saturation and lightness) */
+function shiftHue(hex: string, degrees: number): string {
+  const { h, s, l } = getHSL(hex);
+  return fromHSL(h + degrees, s, l);
+}
+
+/** Darken by HSL lightness delta (positive value = darker) */
+function darken(hex: string, delta: number): string {
+  const { h, s, l } = getHSL(hex);
+  return fromHSL(h, s, l - delta);
+}
+
+/**
+ * Pull lightness toward mid-range so dark/light bases both give usable ladders.
+ * (0.02 -> 0.33, 0.5 -> 0.5, 0.98 -> 0.67)
+ */
+const midL = (l: number) => 0.5 + (l - 0.5) * 0.35;
+
+/**
+ * Absolute lightness target with a small base-dependent nudge.
+ * `k` controls how much of the (compressed) base lightness leaks into the target.
+ */
+const slot = (target: number, l: number, k = 0.6) =>
+  clamp(target + (midL(l) - 0.5) * k, PAL_MIN_L, PAL_MAX_L);
+
+/** "Light" slot derived from a multiplier (> 1) on compressed lightness — always actually light. */
+const lt = (l: number, mult: number) => clamp(midL(l) * mult, 0.62, PAL_MAX_L);
+
+/** Pastel-friendly saturation: never gray, never neon. */
+const pastelSat = (s: number, mult = 1) => clamp(s * mult, 0.35, 0.85);
+
+/** Vivid saturation: always punchy. */
+const vividSat = (s: number) => clamp(s * 1.1, 0.7, 1);
+
+// ---- Hue windows (named themes keep their identity, anchored on the base hue) ----
+
+type HueWindow = readonly [number, number];
+
+/**
+ * Pull a hue into [lo, hi] (degrees, lo may be negative to wrap through 0).
+ * Inside the window -> unchanged. Outside -> snapped to the nearest edge.
+ */
+function pullIntoWindow(h: number, [lo, hi]: HueWindow): number {
+  const mid = (lo + hi) / 2;
+  const half = (hi - lo) / 2;
+  const d = ((((h - mid) % 360) + 540) % 360) - 180; // signed distance from window center, [-180, 180)
+  return Math.abs(d) <= half ? mid + d : mid + Math.sign(d) * half;
+}
+
+const HUE_WINDOWS = {
+  sunset: [-70, 50], // purple / magenta / red / orange / yellow
+  forest: [90, 160], // yellow-green -> green -> green-teal
+  earth: [15, 80], // browns / ochre / olive
+  matcha: [70, 130], // tea greens
+  mocha: [15, 40], // coffee browns
+  caramel: [20, 48], // caramel / toffee
+  honey: [30, 52], // honey / almond
+  moonlit: [190, 240], // cool gray-blue
+  aurora: [120, 290], // green -> teal -> blue -> violet
+  warm: [-30, 65], // reds -> oranges -> yellows
+  cool: [150, 270], // greens -> blues -> violets
+} as const satisfies Record<string, HueWindow>;
+
+/**
+ * Build `count` colors. `t` goes 0 → 1 (safe for count = 1, no divide-by-zero).
+ * Count is floored and clamped to at least 1.
+ */
+function scale(count: number, fn: (t: number, i: number) => string): string[] {
+  const n = Math.max(1, Math.floor(Number.isFinite(count) ? count : 1));
+  return Array.from({ length: n }, (_, i) => fn(n > 1 ? i / (n - 1) : 0, i));
+}
+
+/** Like `scale`, but slot 1 is always the user's base color. */
+function baseFirst(
+  base: string,
+  count: number,
+  fn: (t: number, i: number) => string
+): string[] {
+  const n = Math.max(1, Math.floor(Number.isFinite(count) ? count : 1));
+  if (n === 1) return [base];
+  return [base, ...scale(n - 1, fn)];
+}
+
+/** Nudge lightness of `color` until it meets `min` contrast against `bg`. */
+function ensureContrast(color: string, bg: string, min: number): string {
+  const { h, s, l } = getTrueHSL(color);
+  const bgIsLight = chroma(normalizeHex(bg)).luminance() > 0.5;
+  const dir = bgIsLight ? -1 : 1;
+  let cur = l;
+  for (let k = 0; k < 100; k++) {
+    const candidate = fromHSL(h, s, cur);
+    if (getContrastRatio(candidate, bg) >= min) return candidate;
+    cur += dir * 0.01;
+  }
+  return bgIsLight ? '#000000' : '#FFFFFF';
 }
 
 // ============ SHADE GENERATION ============
 
-export function generateShades(
-  hex: string,
-  count: number = 9
-): string[] {
-  const color = chroma(normalizeHex(hex));
-  const baseLightness = color.get('hsl.l');
+export function generateShades(hex: string, count: number = 9): string[] {
+  const normalized = normalizeHex(hex);
+  const { h, s, l: baseL } = getTrueHSL(normalized);
 
-  const darkCount = Math.floor((count - 1) / 2);
-  const lightCount = count - 1 - darkCount;
+  if (!Number.isFinite(count) || count <= 1) return [normalized];
+  const n = Math.floor(count);
 
-  const minLightness = 0.05;
-  const maxLightness = 0.95;
+  // Bounds adapt to the base so the order (dark → base → light) never breaks
+  // (kept inside fromHSL's clamp range so shades never collapse onto the clamp)
+  const minL = clamp(Math.min(0.05, baseL * 0.5), MIN_L, Math.max(MIN_L, baseL));
+  const maxL = clamp(Math.max(0.95, baseL + (1 - baseL) * 0.5), Math.min(MAX_L, baseL), MAX_L);
+
+  // Split dark/light shade counts proportionally to where the base sits
+  const total = n - 1;
+  const darkRatio = (baseL - minL) / (maxL - minL);
+  const darkCount = clamp(Math.round(total * darkRatio), 0, total);
+  const lightCount = total - darkCount;
 
   const shades: string[] = [];
 
-  // Dark shades
   for (let i = 0; i < darkCount; i++) {
     const t = (i + 1) / (darkCount + 1);
-    const lightness =
-      minLightness +
-      (baseLightness - minLightness) * t;
-
-    shades.push(
-      color.set('hsl.l', lightness).hex()
-    );
+    const lightness = minL + (baseL - minL) * t;
+    shades.push(hslFull(h, s * (0.85 + 0.15 * t), lightness)); // slightly desaturate the dark end
   }
 
-  // Exact BASE
-  shades.push(color.hex());
+  shades.push(normalized);
 
-  // Light shades
   for (let i = 0; i < lightCount; i++) {
     const t = (i + 1) / (lightCount + 1);
-    const lightness =
-      baseLightness +
-      (maxLightness - baseLightness) * t;
-
-    shades.push(
-      color.set('hsl.l', lightness).hex()
-    );
+    const lightness = baseL + (maxL - baseL) * t;
+    shades.push(hslFull(h, s * (1 - 0.15 * t), lightness)); // slightly desaturate the light end
   }
 
   return shades;
 }
+
 // ============ COLOR NAMES ============
 
 let colorNamesCache: string[] | null = null;
@@ -123,13 +242,13 @@ let colorDefinitionCache: Map<string, { name: string; hex: string }> | null = nu
 
 export function getAllColorNames(): string[] {
   if (colorNamesCache) return colorNamesCache;
-  
+
   const allColors = getCachedColors(500);
   const names: string[] = [];
   const usedNames = new Set<string>();
-  
+
   for (const hex of allColors) {
-    let baseName = getColorName(`#${hex}`);
+    const baseName = getColorName(`#${hex}`);
     let uniqueName = baseName;
     let counter = 1;
     while (usedNames.has(uniqueName)) {
@@ -138,7 +257,7 @@ export function getAllColorNames(): string[] {
     usedNames.add(uniqueName);
     names.push(uniqueName);
   }
-  
+
   colorNamesCache = names;
   return names;
 }
@@ -149,16 +268,16 @@ export function getColorCount(): number {
 
 function buildColorDefinitionCache() {
   if (colorDefinitionCache) return colorDefinitionCache;
-  
+
   colorDefinitionCache = new Map();
   const names = getAllColorNames();
   const colors = getCachedColors(500);
-  
+
   for (let i = 0; i < Math.min(names.length, colors.length); i++) {
     const hex = `#${colors[i].toUpperCase()}`;
     colorDefinitionCache.set(names[i], { name: names[i], hex });
   }
-  
+
   return colorDefinitionCache;
 }
 
@@ -166,7 +285,7 @@ export function getColorDefinition(colorName: string) {
   const cache = buildColorDefinitionCache();
   const result = cache.get(colorName);
   if (!result) return null;
-  
+
   return {
     name: result.name.charAt(0).toUpperCase() + result.name.slice(1),
     hex: result.hex,
@@ -176,9 +295,7 @@ export function getColorDefinition(colorName: string) {
 
 export function getColorNameFromHex(hex: string): string {
   try {
-    const normalizedHex = normalizeHex(hex);
-    const name = getColorName(normalizedHex);
-    return name;
+    return getColorName(normalizeHex(hex));
   } catch {
     return 'Unknown Color';
   }
@@ -186,1530 +303,1151 @@ export function getColorNameFromHex(hex: string): string {
 
 // ============ HARMONIC PALETTES ============
 
+/** [light base, light complement, BASE, dark base, dark complement] — partners stay usable on dark/light bases. */
 export function generateComplementary(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-
-  const base = color;
-  const complementary = color.set('hsl.h', '+180');
-
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const lightL = slot(0.78, l, 0.5);
+  const darkL = slot(0.24, l, 0.5);
   return [
-    base.brighten(0.5).hex(),          // LIGHT
-    complementary.brighten(0.5).hex(), // LIFT
-    base.hex(),                        // BASE
-    base.darken(0.5).hex(),            // DEPTH
-    complementary.darken(0.5).hex()    // ANCHOR
+    hsl(h, s, lightL),
+    hsl(h + 180, s, lightL),
+    norm,
+    hsl(h, s, darkL),
+    hsl(h + 180, s, darkL),
   ];
 }
 
-export function generateAnalogous(
-  hex: string,
-  count: number = 5
-): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-
-  const baseHue = color.get('hsl.h');
-
-  if (count === 1) {
-    return [color.hex()];
-  }
-
-  const step = 60 / (count - 1);
-
-  for (let i = 0; i < count; i++) {
-    const offset = -30 + i * step;
-    const hue = (baseHue + offset + 360) % 360;
-
-    colors.push(
-      color.set('hsl.h', hue).hex()
-    );
-  }
-
-  return colors;
+export function generateAnalogous(hex: string, count: number = 5): string[] {
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  return scale(count, (t) => hslFull(h - 30 + t * 60, s, l));
 }
 
 export function generateTriadic(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  return [0, 120, 240].map(hue => color.set('hsl.h', `+${hue}`).hex());
+  const norm = normalizeHex(hex);
+  return [0, 120, 240].map((deg) => shiftHue(norm, deg));
 }
 
+/** Tetradic (rectangle): two complementary pairs, 60° apart */
 export function generateTetradic(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  return [0, 90, 180, 270].map(hue => color.set('hsl.h', `+${hue}`).hex());
+  const norm = normalizeHex(hex);
+  return [0, 60, 180, 240].map((deg) => shiftHue(norm, deg));
 }
 
 export function generateSplitComplementary(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    color.set('hsl.h', '+150').hex(),
-    color.set('hsl.h', '+210').hex(),
-    color.set('hsl.h', '+150').brighten(0.5).hex(),
-    color.set('hsl.h', '+210').darken(0.5).hex()
+    norm,
+    hsl(h + 150, s, m),
+    hsl(h + 210, s, m),
+    hsl(h + 150, s, m + 0.2),
+    hsl(h + 210, s, m - 0.15),
   ];
 }
 
+/** Square: four colors evenly spaced 90° apart */
 export function generateSquare(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  return [0, 90, 180, 270].map(hue => color.set('hsl.h', `+${hue}`).hex());
+  const norm = normalizeHex(hex);
+  return [0, 90, 180, 270].map((deg) => shiftHue(norm, deg));
 }
 
-// ============ FIXED: Monochromatic ============
-
 export function generateMonochromatic(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const lightness = 0.15 + t * 0.6;
-    const saturation = baseSat * (1 - t * 0.2);
-    colors.push(chroma(h, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s } = getTrueHSL(norm);
+  return scale(count, (t) => hslFull(h, s * (1 - t * 0.2), 0.15 + t * 0.6));
 }
 
 export function generateCompound(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma(color).set('hsl.h', h + 15).brighten(0.2).hex(),
-    chroma(color).set('hsl.h', h + 30).darken(0.3).hex(),
-    chroma(color).set('hsl.h', h + 45).saturate(0.2).hex(),
-    chroma(color).set('hsl.h', h + 60).desaturate(0.2).hex(),
+    norm,
+    hsl(h + 15, s, m + 0.15),
+    hsl(h + 30, s * 0.9, m - 0.15),
+    hsl(h + 45, Math.min(1, s * 1.2), m),
+    hsl(h + 60, s * 0.8, m),
   ];
 }
 
-export function generateSplit(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  return [
-    hex,
-    safeSetHue(color, h + 120),
-    safeSetHue(color, h + 240),
-    safeSetHue(color, h + 60),
-    safeSetHue(color, h + 300),
-  ];
+/** Hexadic: six-ish hues at 0/60/120/240/300 (complement omitted) */
+export function generateHexadic(hex: string): string[] {
+  const norm = normalizeHex(hex);
+  return [0, 120, 240, 60, 300].map((deg) => shiftHue(norm, deg));
 }
 
 export function generateDoubleSplit(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  return [
-    hex,
-    safeSetHue(color, h + 30),
-    safeSetHue(color, h + 60),
-    safeSetHue(color, h + 180),
-    safeSetHue(color, h + 210),
-    safeSetHue(color, h + 240),
-  ];
+  const norm = normalizeHex(hex);
+  return [0, 30, 60, 180, 210, 240].map((deg) => shiftHue(norm, deg));
 }
-
-// ============ FIXED: Adjacent ============
 
 export function generateAdjacent(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
-  // Center the palette around the base color
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
   const range = 40;
   const startHue = h - range / 2;
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const hue = (startHue + t * range) % 360;
-    const saturation = baseSat * (0.7 + t * 0.3);
-    const lightness = baseLight * (0.7 + t * 0.3);
-    colors.push(chroma(hue, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  return scale(count, (t) =>
+    hslFull(startHue + t * range, s * (0.85 + t * 0.15), l * (0.85 + t * 0.15))
+  );
 }
 
-// ============ FIXED: Alternating ============
-
+/**
+ * Alternating: base first, then base-hue / complement alternate while lightness
+ * progresses, so every slot is distinct.
+ */
 export function generateAlternating(hex: string, count: number = 6): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
-  for (let i = 0; i < count; i++) {
-    const hue = i % 2 === 0 ? h : (h + 180) % 360;
-    const saturation = baseSat * 0.9;
-    const lightness = baseLight * (0.8 + (i % 2) * 0.15);
-    colors.push(chroma(hue, saturation, lightness, 'hsl').hex());
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
+  const n = Math.max(1, Math.floor(Number.isFinite(count) ? count : 1));
+  if (n === 1) return [norm];
+
+  const out: string[] = [norm];
+  for (let i = 1; i < n; i++) {
+    const t = i / (n - 1);
+    const isComp = i % 2 === 1;
+    const lightness = m + (isComp ? 0.1 : -0.1) + (t - 0.5) * 0.3;
+    out.push(hsl(isComp ? h + 180 : h, s * (0.9 + (isComp ? 0.1 : 0)), lightness));
   }
-  return colors;
+  return out;
 }
 
-// ============ FIXED: Rainbow ============
-
+/** Rainbow anchored on the base hue: base first, then evenly spaced hues around the wheel. */
 export function generateRainbow(hex: string, count: number = 6): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
-  // Full spectrum rainbow hues
-  const rainbowHues = [0, 60, 120, 180, 240, 300];
-  
-  for (let i = 0; i < Math.min(count, rainbowHues.length); i++) {
-    const hue = rainbowHues[i];
-    const saturation = Math.min(1, baseSat * 1.2);
-    const lightness = 0.5 + (i / (rainbowHues.length - 1)) * 0.1;
-    colors.push(chroma(hue, saturation, lightness, 'hsl').hex());
+  const norm = normalizeHex(hex);
+  const { h, s } = getHSL(norm);
+  const n = Math.max(1, Math.floor(Number.isFinite(count) ? count : 1));
+  if (n === 1) return [norm];
+
+  const sat = clamp(s * 1.1, 0.6, 0.95);
+  const out: string[] = [norm];
+  for (let i = 1; i < n; i++) {
+    out.push(hsl(h + (i * 360) / n, sat, 0.5 + ((i % 3) - 1) * 0.04));
   }
-  
-  while (colors.length < count) {
-    const lastIndex = colors.length;
-    const hue = (lastIndex * 60) % 360;
-    colors.push(chroma(hue, 0.8, 0.5, 'hsl').hex());
-  }
-  
-  return colors;
+  return out;
 }
 
 // ============ MOOD-BASED PALETTES ============
 
 export function generatePastel(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const hue = (h - 20 + i * 10) % 360;
-    const saturation = baseSat * (0.2 + t * 0.2);
-    const lightness = 0.6 + t * 0.3;
-    colors.push(chroma(hue, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s } = getHSL(norm);
+  return scale(count, (t, i) => hslFull(h - 20 + i * 10, s * (0.25 + t * 0.15), 0.7 + t * 0.15));
 }
 
 export function generateVibrant(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const sv = clamp(s * 1.2, 0.65, 1);
   return [
-    chroma(h - 20, Math.min(1, baseSat * 1.1), baseLight * 0.6, 'hsl').hex(),
-    chroma(h - 10, Math.min(1, baseSat * 1.2), baseLight * 0.7, 'hsl').hex(),
-    chroma(h, Math.min(1, baseSat * 1.3), baseLight * 0.8, 'hsl').hex(),
-    chroma(h + 10, Math.min(1, baseSat * 1.1), baseLight * 0.9, 'hsl').hex(),
-    chroma(h + 20, baseSat * 0.9, baseLight * 1.0, 'hsl').hex(),
+    hsl(h - 20, sv, slot(0.38, l, 0.4)),
+    hsl(h - 10, sv, slot(0.45, l, 0.4)),
+    hsl(h, Math.min(1, sv * 1.05), slot(0.5, l, 0.4)),
+    hsl(h + 10, sv, slot(0.57, l, 0.4)),
+    hsl(h + 20, sv, slot(0.64, l, 0.4)),
   ];
 }
 
 export function generateMuted(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
-  const colors: string[] = [];
-  for (let i = 0; i < 5; i++) {
-    const t = i / 4;
-    const hue = (h - 20 + i * 10) % 360;
-    const saturation = baseSat * (0.15 + t * 0.15);
-    const lightness = baseLight * (0.6 + t * 0.3);
-    colors.push(chroma(hue, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  return scale(5, (t, i) => hsl(h - 20 + i * 10, s * (0.2 + t * 0.15), slot(0.4 + t * 0.3, l, 0.4)));
 }
 
-// ============ FIXED: Dark and Light ============
-
 export function generateDark(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const lightness = 0.05 + t * 0.35;
-    const saturation = s * (1 - t * 0.2);
-    colors.push(chroma(h, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s } = getTrueHSL(norm);
+  return scale(count, (t) => hslFull(h, s * (1 - t * 0.2), 0.05 + t * 0.35));
 }
 
 export function generateLight(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const lightness = l + t * (0.9 - l);
-    const saturation = s * (1 - t * 0.2);
-    colors.push(chroma(h, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getTrueHSL(norm);
+  return scale(count, (t) => hslFull(h, s * (1 - t * 0.2), l + t * (0.9 - l)));
 }
 
-// ============ FIXED: Warm and Cool ============
-
+/** Warm palette — hues stay inside the warm window (reds → oranges → yellows) */
 export function generateWarmPalette(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
-  // Start at the complementary hue (opposite on color wheel)
-  const startHue = (h + 180) % 360;
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const warmHue = (startHue + i * 15) % 360;
-    const saturation = baseSat * (0.6 + t * 0.4);
-    const lightness = baseLight * (0.4 + t * 0.5);
-    colors.push(chroma(warmHue, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const W = HUE_WINDOWS.warm;
+  const a = pullIntoWindow(h, W);
+  const sat = clamp(s, 0.45, 0.95);
+  return scale(count, (t) =>
+    hsl(pullIntoWindow(a - 20 + t * 40, W), sat * (0.75 + t * 0.25), slot(0.32 + t * 0.38, l, 0.3))
+  );
 }
 
+/** Cool palette — hues stay inside the cool window (greens → blues → violets) */
 export function generateCoolPalette(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
-  // Start at the base hue and move cooler
-  const startHue = (h - 20) % 360;
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const coolHue = (startHue - i * 15) % 360;
-    const saturation = baseSat * (0.5 + t * 0.5);
-    const lightness = baseLight * (0.3 + t * 0.5);
-    colors.push(chroma(coolHue, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const W = HUE_WINDOWS.cool;
+  const a = pullIntoWindow(h, W);
+  const sat = clamp(s, 0.45, 0.95);
+  return scale(count, (t) =>
+    hsl(pullIntoWindow(a - 30 + t * 60, W), sat * (0.7 + t * 0.3), slot(0.32 + t * 0.38, l, 0.3))
+  );
 }
-
-// ============ FIXED: Neutral ============
 
 export function generateNeutralPalette(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const baseHue = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const saturation = baseSat * (0.05 + t * 0.15);
-    const lightness = 0.2 + t * 0.5;
-    colors.push(chroma(baseHue, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s } = getTrueHSL(norm);
+  return scale(count, (t) => hslFull(h, s * (0.05 + t * 0.15), 0.2 + t * 0.5));
 }
-
-// ============ FIXED: Gradient ============
 
 export function generateGradient(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const hue = (h - 20 + t * 40) % 360;
-    const saturation = baseSat * (0.6 + t * 0.4);
-    const lightness = baseLight * (0.4 + t * 0.6);
-    colors.push(chroma(hue, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  return scale(count, (t) =>
+    hsl(h - 20 + t * 40, clamp(s, 0.35, 1) * (0.7 + t * 0.3), slot(0.32 + t * 0.38, l, 0.3))
+  );
 }
-
-// ============ FIXED: Thematic Palettes ============
 
 export function generateNeon(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  
-  for (let i = 0; i < count; i++) {
-    const hue = (h - 40 + i * 20) % 360;
-    const saturation = Math.min(1, baseSat * 1.3);
-    const lightness = 0.45 + (i / (count - 1)) * 0.3;
-    colors.push(chroma(hue, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s } = getHSL(norm);
+  return scale(count, (t, i) => hslFull(h - 40 + i * 20, Math.min(1, s * 1.3), 0.45 + t * 0.3));
 }
 
+/** Earth: base first, then browns / ochre / olive from the earth hue window. */
 export function generateEarth(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const baseHue = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
-  const earthHues = [
-    baseHue,
-    (baseHue + 30) % 360,
-    (baseHue + 60) % 360,
-    (baseHue + 90) % 360,
-    (baseHue + 120) % 360
-  ];
-  
-  for (let i = 0; i < count; i++) {
-    const saturation = baseSat * (0.3 + (i / (count - 1)) * 0.3);
-    const lightness = baseLight * (0.4 + (i / (count - 1)) * 0.4);
-    colors.push(chroma(earthHues[i], saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const W = HUE_WINDOWS.earth;
+  const a = pullIntoWindow(h, W);
+  const sat = clamp(s, 0.25, 0.55);
+  return baseFirst(norm, count, (t) =>
+    hsl(pullIntoWindow(a + (t - 0.5) * 50, W), sat * (0.8 + 0.2 * t), slot(0.28 + t * 0.36, l, 0.3))
+  );
 }
 
 export function generateOcean(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const baseHue = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const hue = (baseHue - 20 + i * 10) % 360;
-    const saturation = baseSat * (0.6 + t * 0.4);
-    const lightness = baseLight * (0.3 + t * 0.5);
-    colors.push(chroma(hue, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  return scale(count, (t, i) => hslFull(h - 20 + i * 10, s * (0.7 + t * 0.3), l * (0.4 + t * 0.4)));
 }
 
+/** Sunset: base first, then purple → magenta → red → orange → yellow (window-constrained). */
 export function generateSunset(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const baseHue = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
-  const sunsetHues = [
-    (baseHue + 300) % 360,
-    (baseHue + 315) % 360,
-    (baseHue + 330) % 360,
-    (baseHue + 345) % 360,
-    (baseHue + 360) % 360
-  ];
-  
-  for (let i = 0; i < count; i++) {
-    const saturation = Math.min(1, baseSat * (0.7 + (i / (count - 1)) * 0.3));
-    const lightness = baseLight * (0.4 + (i / (count - 1)) * 0.5);
-    colors.push(chroma(sunsetHues[i], saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const W = HUE_WINDOWS.sunset;
+  const a = pullIntoWindow(h, W);
+  const sat = clamp(s, 0.6, 0.95);
+  return baseFirst(norm, count, (t) =>
+    hsl(pullIntoWindow(a + (t - 0.5) * 90, W), sat, slot(0.35 + t * 0.35, l, 0.3))
+  );
 }
 
+/** Forest: base first, then greens from the forest hue window, dark → light. */
 export function generateForest(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const baseHue = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
-  const forestHues = [
-    (baseHue + 80) % 360,
-    (baseHue + 95) % 360,
-    (baseHue + 110) % 360,
-    (baseHue + 125) % 360,
-    (baseHue + 140) % 360
-  ];
-  
-  for (let i = 0; i < count; i++) {
-    const saturation = baseSat * (0.3 + (i / (count - 1)) * 0.3);
-    const lightness = baseLight * (0.25 + (i / (count - 1)) * 0.5);
-    colors.push(chroma(forestHues[i], saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const W = HUE_WINDOWS.forest;
+  const a = pullIntoWindow(h, W);
+  const sat = clamp(s, 0.35, 0.7);
+  return baseFirst(norm, count, (t) =>
+    hsl(pullIntoWindow(a + (t - 0.5) * 50, W), sat * (0.8 + 0.2 * t), slot(0.22 + t * 0.4, l, 0.3))
+  );
 }
 
 export function generateVintage(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const baseHue = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const hue = (baseHue - 20 + i * 10) % 360;
-    const saturation = baseSat * (0.15 + t * 0.15);
-    const lightness = baseLight * (0.4 + t * 0.4);
-    colors.push(chroma(hue, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  return scale(count, (t, i) => hsl(h - 20 + i * 10, s * (0.2 + t * 0.15), slot(0.45 + t * 0.3, l, 0.4)));
 }
 
 export function generateModern(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const baseHue = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const hue = (baseHue - 30 + i * 15) % 360;
-    const saturation = Math.min(1, baseSat * (0.7 + t * 0.3));
-    const lightness = baseLight * (0.5 + t * 0.4);
-    colors.push(chroma(hue, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  return scale(count, (t, i) =>
+    hsl(h - 30 + i * 15, Math.min(1, s * (0.8 + t * 0.2)), slot(0.4 + t * 0.3, l, 0.4))
+  );
 }
 
 export function generatePastelNeon(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const baseHue = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  
-  for (let i = 0; i < count; i++) {
-    const hue = (baseHue - 40 + i * 20) % 360;
+  const norm = normalizeHex(hex);
+  const { h, s } = getHSL(norm);
+  return scale(count, (_t, i) => {
     const isPastel = i % 2 === 0;
-    const saturation = isPastel ? baseSat * 0.3 : Math.min(1, baseSat * 1.3);
-    const lightness = isPastel ? 0.7 : 0.5;
-    colors.push(chroma(hue, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+    return hslFull(h - 40 + i * 20, isPastel ? s * 0.35 : Math.min(1, s * 1.3), isPastel ? 0.75 : 0.5);
+  });
 }
 
-// ============ FIXED: Monochrome Dark and Light ============
-
 export function generateMonochromeDark(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const lightness = 0.02 + t * 0.28;
-    const saturation = s * (1 - t * 0.2);
-    colors.push(chroma(h, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s } = getTrueHSL(norm);
+  return scale(count, (t) => hslFull(h, s * (1 - t * 0.2), 0.03 + t * 0.27));
 }
 
 export function generateMonochromeLight(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const lightness = l + t * (0.92 - l);
-    const saturation = s * (1 - t * 0.2);
-    colors.push(chroma(h, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getTrueHSL(norm);
+  return scale(count, (t) => hslFull(h, s * (1 - t * 0.2), l + t * (0.92 - l)));
 }
-
-// ============ FIXED: Accent ============
 
 export function generateAccent(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const baseHue = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  const colors: string[] = [hex];
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const lightness = [0.5, 0.58, 0.46, 0.54];
+  const colors: string[] = [norm];
   for (let i = 0; i < 4; i++) {
-    const hue = (baseHue + 45 + i * 45) % 360;
-    const saturation = baseSat * (0.7 + i * 0.1);
-    const lightness = baseLight * (0.6 + i * 0.15);
-    colors.push(chroma(hue, saturation, lightness, 'hsl').hex());
+    colors.push(
+      hsl(h + 45 + i * 45, clamp(s * (0.8 + i * 0.05), 0.4, 0.95), slot(lightness[i], l, 0.3))
+    );
   }
   return colors;
 }
 
-// ============ FIXED: Gradient Warm and Cool ============
-
+/** Warm gradient: stays inside the warm hue window. */
 export function generateGradientWarm(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
-  const startHue = (h + 180) % 360;
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const hue = (startHue + t * 30) % 360;
-    const saturation = baseSat * (0.6 + t * 0.4);
-    const lightness = baseLight * (0.4 + t * 0.5);
-    colors.push(chroma(hue, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const W = HUE_WINDOWS.warm;
+  const a = pullIntoWindow(h, W);
+  const sat = clamp(s, 0.45, 0.95);
+  return scale(count, (t) =>
+    hsl(pullIntoWindow(a - 15 + t * 30, W), sat * (0.7 + t * 0.3), slot(0.32 + t * 0.38, l, 0.3))
+  );
 }
 
+/** Cool gradient: stays inside the cool hue window. */
 export function generateGradientCool(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const baseSat = color.get('hsl.s');
-  const baseLight = color.get('hsl.l');
-  
-  const startHue = (h - 20) % 360;
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const hue = (startHue - t * 30) % 360;
-    const saturation = baseSat * (0.5 + t * 0.5);
-    const lightness = baseLight * (0.3 + t * 0.5);
-    colors.push(chroma(hue, saturation, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const W = HUE_WINDOWS.cool;
+  const a = pullIntoWindow(h, W);
+  const sat = clamp(s, 0.45, 0.95);
+  return scale(count, (t) =>
+    hsl(pullIntoWindow(a + 15 - t * 30, W), sat * (0.7 + t * 0.3), slot(0.32 + t * 0.38, l, 0.3))
+  );
 }
-// ============ MAKEUP PALETTES ============
 
-// 5. Soft Glam - Natural, elegant, everyday
+// ============ MAKEUP ============
+
 export function generateSoftGlam(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma(h, s * 0.5, Math.min(1, l * 1.3), 'hsl').hex(), // light shimmer
-    chroma((h + 10) % 360, s * 0.6, l * 0.7, 'hsl').hex(), // mid tone
-    chroma((h + 20) % 360, s * 0.4, Math.min(1, l * 1.5), 'hsl').hex(), // highlight
-    chroma(h, s * 0.3, l * 0.4, 'hsl').hex(), // crease shade
-    chroma((h + 30) % 360, s * 0.7, l * 0.6, 'hsl').hex(), // accent
+    norm,
+    hsl(h, s * 0.6, lt(l, 1.3)),
+    hsl(h + 10, s * 0.7, m * 0.75),
+    hsl(h + 20, s * 0.5, lt(l, 1.4)),
+    hsl(h, s * 0.4, m * 0.5),
+    hsl(h + 30, s * 0.7, m * 0.7),
   ];
 }
 
-// 6. Berry Martini - Deep berry, plummy, bold
 export function generateBerryMartini(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma((h + 20) % 360, s * 0.9, l * 0.8, 'hsl').hex(), // bright berry
-    chroma((h - 20 + 360) % 360, s * 0.8, l * 0.5, 'hsl').hex(), // deep berry
-    chroma((h + 40) % 360, s * 0.6, l * 0.9, 'hsl').hex(), // light berry
-    chroma((h + 60) % 360, s * 0.5, l * 0.3, 'hsl').hex(), // dark plum
+    norm,
+    hsl(h + 20, s * 0.95, m * 0.85),
+    hsl(h - 20, s * 0.85, m * 0.55),
+    hsl(h + 40, s * 0.7, lt(l, 1.2)),
+    hsl(h + 60, s * 0.6, m * 0.35),
   ];
 }
 
-// 7. Neutrals - Everyday natural shades
 export function generateNeutrals(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma(h, s * 0.1, Math.min(1, l * 1.4), 'hsl').hex(), // light neutral
-    chroma(h, s * 0.2, l * 0.8, 'hsl').hex(), // mid neutral
-    chroma(h, s * 0.05, l * 0.5, 'hsl').hex(), // grayish
-    chroma(h, s * 0.15, l * 0.3, 'hsl').hex(), // dark neutral
+    norm,
+    hsl(h, s * 0.15, lt(l, 1.4)),
+    hsl(h, s * 0.25, m * 0.85),
+    hsl(h, s * 0.1, m * 0.55),
+    hsl(h, s * 0.2, m * 0.35),
   ];
 }
 
-// lib/dynamic-palettes.ts - Add these new functions
+// ============ DESIGN & AESTHETIC ============
 
-// ============ DESIGN & AESTHETIC PALETTES ============
-
-// 1. Quiet Luxury - Minimalist, high-end, neutral tones
 export function generateQuietLuxury(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  // Muted, sophisticated tones
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma(h, s * 0.2, l * 0.9, 'hsl').hex(), // soft neutral
-    chroma((h + 20) % 360, s * 0.3, l * 0.7, 'hsl').hex(), // muted accent
-    chroma(h, s * 0.1, l * 0.3, 'hsl').hex(), // deep neutral
-    chroma((h + 40) % 360, s * 0.15, l * 0.5, 'hsl').hex(), // earthy
+    norm,
+    hsl(h, s * 0.25, lt(l, 1.4)),
+    hsl(h + 20, s * 0.35, m * 0.8),
+    hsl(h, s * 0.15, m * 0.4),
+    hsl(h + 40, s * 0.2, m * 0.6),
   ];
 }
 
-// 2. Gothic Noir - Dark, dramatic, mysterious
+/** Intentionally dark palette, but never pure black. */
 export function generateGothicNoir(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma(h, s, Math.min(1, l * 0.3), 'hsl').hex(), // very dark
-    chroma((h + 180) % 360, s * 0.5, l * 0.2, 'hsl').hex(), // dark complement
-    chroma(h, s * 0.3, l * 0.6, 'hsl').hex(), // muted mid-tone
-    chroma((h + 90) % 360, s * 0.2, l * 0.1, 'hsl').hex(), // deep shadow
+    norm,
+    hslFull(h, s, Math.max(0.06, m * 0.35)),
+    hslFull(h + 180, s * 0.6, Math.max(0.05, m * 0.25)),
+    hsl(h, s * 0.4, m * 0.65),
+    hslFull(h + 90, s * 0.3, Math.max(0.04, m * 0.15)),
   ];
 }
 
-// 3. Cozy Campfire - Warm, inviting, rustic
 export function generateCozyCampfire(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  // Warm, earthy tones
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma((h + 30) % 360, s * 0.8, l * 0.8, 'hsl').hex(), // warm glow
-    chroma((h + 60) % 360, s * 0.6, l * 0.4, 'hsl').hex(), // earthy
-    chroma((h + 15) % 360, s * 0.7, l * 0.9, 'hsl').hex(), // warm light
-    chroma((h + 45) % 360, s * 0.5, l * 0.3, 'hsl').hex(), // deep warmth
+    norm,
+    hsl(h + 30, s * 0.85, lt(l, 1.2)),
+    hsl(h + 60, s * 0.7, m * 0.55),
+    hsl(h + 15, s * 0.75, lt(l, 1.35)),
+    hsl(h + 45, s * 0.6, m * 0.4),
   ];
 }
 
-// 4. Lavender Lullaby - Soft, calming, dreamy
 export function generateLavenderLullaby(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  // Soft, pastel, dreamy tones
+  const norm = normalizeHex(hex);
+  const { h, s } = getHSL(norm);
+  const ps = pastelSat(s);
   return [
-    hex,
-    chroma((h + 20) % 360, s * 0.3, Math.min(1, l * 1.2), 'hsl').hex(), // light pastel
-    chroma((h + 40) % 360, s * 0.2, Math.min(1, l * 1.4), 'hsl').hex(), // very light
-    chroma((h + 180) % 360, s * 0.3, l * 0.9, 'hsl').hex(), // soft complement
-    chroma((h + 60) % 360, s * 0.25, l * 0.95, 'hsl').hex(), // dreamy
+    norm,
+    hsl(h + 20, ps, 0.86),
+    hsl(h + 40, ps, 0.9),
+    hsl(h + 180, ps, 0.82),
+    hsl(h + 60, ps, 0.88),
   ];
 }
 
-// ============ NEW PALETTES ============
-
-// 1. Tint & Shade Scale (10 colors)
 export function generateTintShadeScale(hex: string, count: number = 10): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const lightness = 0.05 + t * 0.9;
-    colors.push(chroma(h, s, lightness, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, s } = getTrueHSL(norm);
+  return scale(count, (t) => hslFull(h, s, 0.05 + t * 0.9));
 }
 
-// 2. UI Palette (Primary, Secondary, Success, Warning, Danger)
+/**
+ * UI palette: primary (base) + two analogous neighbors + a soft neutral surface + one complement accent.
+ * Saturation is capped so it reads like a real product palette, not a clash.
+ */
 export function generateUIPalette(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const sat = clamp(Math.min(s, 0.6), 0.25, 0.6);
+  const m = midL(l);
   return [
-    hex, // Primary
-    chroma((h + 30) % 360, Math.min(1, s * 0.8), Math.min(1, l * 0.9), 'hsl').hex(), // Secondary
-    chroma((h + 120) % 360, Math.min(1, s * 0.7), Math.min(1, l * 0.5), 'hsl').hex(), // Success
-    chroma((h + 50) % 360, Math.min(1, s * 0.9), Math.min(1, l * 0.6), 'hsl').hex(), // Warning
-    chroma((h + 180) % 360, Math.min(1, s * 0.9), Math.min(1, l * 0.5), 'hsl').hex(), // Danger
+    norm,
+    hsl(h + 25, sat, m),
+    hsl(h - 25, sat * 0.9, m + 0.1),
+    hsl(h, 0.12, 0.92),
+    hsl(h + 180, sat, 0.5),
   ];
 }
 
-// 3. Clash Palette (High contrast)
 export function generateClash(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma((h + 120) % 360, s, Math.min(1, l * 1.2), 'hsl').hex(),
-    chroma((h + 240) % 360, s * 0.8, l * 0.8, 'hsl').hex(),
-    chroma((h + 60) % 360, s * 0.9, Math.min(1, l * 1.1), 'hsl').hex(),
-    chroma((h + 300) % 360, s * 0.7, l * 0.7, 'hsl').hex(),
+    norm,
+    hsl(h + 120, s, lt(l, 1.15)),
+    hsl(h + 240, s * 0.9, m * 0.85),
+    hsl(h + 60, s * 0.95, lt(l, 1.1)),
+    hsl(h + 300, s * 0.85, m * 0.75),
   ];
 }
 
-// 4. Saturation Scale (Same hue, varying saturation)
 export function generateSaturationScale(hex: string, count: number = 5): string[] {
-  const color = chroma(normalizeHex(hex));
-  const colors: string[] = [];
-  const h = color.get('hsl.h');
-  const l = color.get('hsl.l');
-  
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const saturation = 0.1 + t * 0.9;
-    colors.push(chroma(h, saturation, l, 'hsl').hex());
-  }
-  return colors;
+  const norm = normalizeHex(hex);
+  const { h, l } = getHSL(norm);
+  return scale(count, (t) => hslFull(h, 0.1 + t * 0.9, l));
 }
 
-// ============ CAFE & FLAVORS (Food/Culinary Vibes) ============
+// ============ CAFE & FLAVORS ============
 
-// 1. Vanilla Latte - Warm, creamy, comforting
+/** Creamy light tones + one roast accent. */
 export function generateVanillaLatte(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h } = getHSL(norm);
   return [
-    hex,
-    chroma(h, s * 0.3, Math.min(1, l * 1.4), 'hsl').hex(), // creamy white
-    chroma((h + 20) % 360, s * 0.4, l * 0.8, 'hsl').hex(), // warm beige
-    chroma((h + 10) % 360, s * 0.2, l * 0.6, 'hsl').hex(), // caramel
-    chroma((h + 30) % 360, s * 0.5, l * 0.3, 'hsl').hex(), // espresso
+    norm,
+    hsl(h, 0.4, 0.92),
+    hsl(h + 20, 0.45, 0.82),
+    hsl(h + 10, 0.35, 0.7),
+    hsl(h + 30, 0.5, 0.5),
   ];
 }
 
-// 2. Salted Caramel - Sweet, salty, warm
+/** Caramel: base + toffee / dark caramel / cream / salt (caramel hue window). */
 export function generateSaltedCaramel(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const W = HUE_WINDOWS.caramel;
+  const a = pullIntoWindow(h, W);
+  const sat = clamp(s, 0.45, 0.85);
   return [
-    hex,
-    chroma((h + 30) % 360, s * 0.8, l * 1.2, 'hsl').hex(), // golden caramel
-    chroma((h + 15) % 360, s * 0.6, l * 0.5, 'hsl').hex(), // deep caramel
-    chroma((h + 45) % 360, s * 0.4, l * 0.9, 'hsl').hex(), // butterscotch
-    chroma((h + 60) % 360, s * 0.3, l * 0.3, 'hsl').hex(), // dark toffee
+    norm,
+    hsl(pullIntoWindow(a + 8, W), sat, slot(0.5, l, 0.3)),
+    hsl(pullIntoWindow(a - 5, W), sat * 0.8, slot(0.32, l, 0.3)),
+    hsl(pullIntoWindow(a + 14, W), sat * 0.6, 0.78),
+    hsl(pullIntoWindow(a + 18, W), 0.2, 0.92),
   ];
 }
 
-// 3. Matcha Latte - Earthy, green, calming
+/** Matcha: base + tea greens / milk / dark leaf (matcha hue window). */
 export function generateMatchaLatte(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const W = HUE_WINDOWS.matcha;
+  const a = pullIntoWindow(h, W);
+  const sat = clamp(s, 0.35, 0.7);
   return [
-    hex,
-    chroma((h + 120) % 360, s * 0.4, l * 0.7, 'hsl').hex(), // matcha green
-    chroma((h + 100) % 360, s * 0.3, Math.min(1, l * 1.3), 'hsl').hex(), // matcha cream
-    chroma((h + 140) % 360, s * 0.5, l * 0.4, 'hsl').hex(), // deep matcha
-    chroma((h + 90) % 360, s * 0.2, l * 0.9, 'hsl').hex(), // light green
+    norm,
+    hsl(a, sat, slot(0.42, l, 0.3)),
+    hsl(pullIntoWindow(a + 15, W), sat * 0.6, 0.62),
+    hsl(pullIntoWindow(a - 10, W), sat * 0.4, 0.85),
+    hsl(pullIntoWindow(a - 5, W), sat * 0.8, 0.25),
   ];
 }
 
-// 4. Berry Blast - Fruity, vibrant, refreshing
 export function generateBerryBlast(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma((h + 40) % 360, s * 0.9, l * 0.8, 'hsl').hex(), // raspberry
-    chroma((h + 20) % 360, s * 0.8, l * 1.1, 'hsl').hex(), // strawberry
-    chroma((h + 60) % 360, s * 0.7, l * 0.6, 'hsl').hex(), // blueberry
-    chroma((h + 80) % 360, s * 0.6, l * 0.9, 'hsl').hex(), // blackberry
+    norm,
+    hsl(h + 40, s * 0.95, m * 0.85),
+    hsl(h + 20, s * 0.85, lt(l, 1.15)),
+    hsl(h + 60, s * 0.8, m * 0.65),
+    hsl(h + 80, s * 0.7, m * 0.9),
   ];
 }
 
-// 5. Honey Almond - Warm, nutty, golden
+/** Honey almond: base + honey / almond / toasted tones (honey hue window). */
 export function generateHoneyAlmond(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const W = HUE_WINDOWS.honey;
+  const a = pullIntoWindow(h, W);
+  const sat = clamp(s, 0.4, 0.85);
   return [
-    hex,
-    chroma((h + 30) % 360, s * 0.5, l * 1.3, 'hsl').hex(), // honey
-    chroma((h + 15) % 360, s * 0.3, l * 0.8, 'hsl').hex(), // almond
-    chroma((h + 45) % 360, s * 0.4, l * 0.5, 'hsl').hex(), // toasted almond
-    chroma((h + 60) % 360, s * 0.2, l * 0.4, 'hsl').hex(), // walnut
+    norm,
+    hsl(pullIntoWindow(a + 5, W), sat, slot(0.62, l, 0.3)),
+    hsl(a, sat * 0.5, 0.82),
+    hsl(pullIntoWindow(a - 8, W), sat * 0.45, 0.7),
+    hsl(pullIntoWindow(a - 12, W), sat * 0.5, 0.35),
   ];
 }
 
-// 6. Mocha - Rich, chocolatey, deep
+/** Mocha: base + dark roast / mid / latte / cream (mocha hue window). */
 export function generateMocha(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const W = HUE_WINDOWS.mocha;
+  const a = pullIntoWindow(h, W);
+  const sat = clamp(s, 0.3, 0.6);
   return [
-    hex,
-    chroma((h + 10) % 360, s * 0.6, l * 0.7, 'hsl').hex(), // milk chocolate
-    chroma((h + 20) % 360, s * 0.4, l * 0.4, 'hsl').hex(), // dark chocolate
-    chroma((h + 30) % 360, s * 0.3, l * 0.9, 'hsl').hex(), // cream
-    chroma((h + 40) % 360, s * 0.5, l * 0.5, 'hsl').hex(), // mocha
+    norm,
+    hsl(a, sat, slot(0.3, l, 0.3)),
+    hsl(pullIntoWindow(a + 8, W), sat * 0.9, 0.5),
+    hsl(pullIntoWindow(a + 15, W), sat * 0.7, 0.72),
+    hsl(pullIntoWindow(a + 22, W), sat * 0.5, 0.88),
   ];
 }
 
+// ============ COSMIC & DREAMY ============
 
-// ============ COSMIC & DREAMY (Sci-Fi/Fantasy Vibes) ============
-
-// 7. Stardust - Sparkling, celestial, magical
 export function generateStardust(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma((h + 180) % 360, s * 0.2, Math.min(1, l * 1.6), 'hsl').hex(), // starlight
-    chroma((h + 240) % 360, s * 0.3, l * 0.8, 'hsl').hex(), // twilight
-    chroma((h + 300) % 360, s * 0.4, l * 0.6, 'hsl').hex(), // nebula
-    chroma((h + 60) % 360, s * 0.1, Math.min(1, l * 1.5), 'hsl').hex(), // moonbeam
+    norm,
+    hsl(h + 180, s * 0.3, lt(l, 1.4)),
+    hsl(h + 240, s * 0.4, m * 0.85),
+    hsl(h + 300, s * 0.5, m * 0.65),
+    hsl(h + 60, s * 0.2, lt(l, 1.35)),
   ];
 }
 
-// 8. Cyberpunk Night - Neon, dark, futuristic
 export function generateCyberpunkNight(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { s, l } = getHSL(norm);
   return [
-    hex,
-    chroma((h + 180) % 360, s * 0.9, l * 0.3, 'hsl').hex(), // cyan
-    chroma((h + 300) % 360, s * 0.8, l * 0.4, 'hsl').hex(), // magenta
-    chroma((h + 60) % 360, s * 0.5, l * 0.1, 'hsl').hex(), // neon green
-    chroma((h + 240) % 360, s * 0.7, l * 0.2, 'hsl').hex(), // blue
+    norm,
+    hslFull(180, s * 0.95, Math.max(0.35, l * 0.75)),
+    hslFull(300, s * 0.9, Math.max(0.4, l * 0.9)),
+    hslFull(60, s * 0.6, Math.max(0.15, l * 0.4)),
+    hslFull(240, s * 0.8, Math.max(0.25, l * 0.5)),
   ];
 }
 
-// 9. Moonlit Silver - Mystical, silvery, ethereal
+/** Moonlit silver: base + cool gray-blue silvers (moonlit hue window, low saturation). */
 export function generateMoonlitSilver(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h } = getHSL(norm);
+  const W = HUE_WINDOWS.moonlit;
+  const a = pullIntoWindow(h, W);
   return [
-    hex,
-    chroma((h + 200) % 360, s * 0.1, Math.min(1, l * 1.5), 'hsl').hex(), // silver
-    chroma((h + 180) % 360, s * 0.2, l * 0.7, 'hsl').hex(), // moon gray
-    chroma((h + 160) % 360, s * 0.3, Math.min(1, l * 1.3), 'hsl').hex(), // mist
-    chroma((h + 220) % 360, s * 0.4, l * 0.3, 'hsl').hex(), // midnight
+    norm,
+    hsl(a, 0.12, 0.88),
+    hsl(pullIntoWindow(a + 10, W), 0.18, 0.7),
+    hsl(pullIntoWindow(a - 10, W), 0.25, 0.5),
+    hsl(pullIntoWindow(a + 15, W), 0.35, 0.28),
   ];
 }
 
-// 10. Aurora Borealis - Magical, flowing, colorful
+/** Aurora: base + green → teal → blue → violet bands (aurora hue window). */
 export function generateAuroraBorealis(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const W = HUE_WINDOWS.aurora;
+  const a = pullIntoWindow(h, W);
+  const sat = clamp(s, 0.55, 0.9);
+  const offsets = [-60, -20, 25, 65];
+  const lights = [0.5, 0.55, 0.6, 0.68];
   return [
-    hex,
-    chroma((h + 120) % 360, s * 0.7, l * 0.6, 'hsl').hex(), // aurora green
-    chroma((h + 180) % 360, s * 0.6, l * 0.7, 'hsl').hex(), // aurora blue
-    chroma((h + 240) % 360, s * 0.5, l * 0.8, 'hsl').hex(), // aurora purple
-    chroma((h + 300) % 360, s * 0.4, l * 0.9, 'hsl').hex(), // aurora pink
+    norm,
+    ...offsets.map((off, i) =>
+      hsl(pullIntoWindow(a + off, W), sat * (0.95 - i * 0.07), slot(lights[i], l, 0.3))
+    ),
   ];
 }
 
-// 11. Galaxy - Deep space, cosmic, mysterious
+/** Galaxy: intentionally deep, but never pure black. */
 export function generateGalaxy(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma((h + 240) % 360, s * 0.8, l * 0.15, 'hsl').hex(), // deep space
-    chroma((h + 300) % 360, s * 0.6, l * 0.5, 'hsl').hex(), // nebula purple
-    chroma((h + 180) % 360, s * 0.5, l * 0.3, 'hsl').hex(), // cosmic blue
-    chroma((h + 60) % 360, s * 0.3, l * 0.6, 'hsl').hex(), // starlight
+    norm,
+    hslFull(h + 240, s * 0.85, Math.max(0.08, m * 0.4)),
+    hsl(h + 300, s * 0.7, m * 0.55),
+    hsl(h + 180, s * 0.6, m * 0.4),
+    hsl(h + 60, s * 0.4, m * 0.7),
   ];
 }
 
-// 12. Dreamscape - Surreal, ethereal, floating
 export function generateDreamscape(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s } = getHSL(norm);
+  const ps = pastelSat(s);
   return [
-    hex,
-    chroma((h + 60) % 360, s * 0.2, Math.min(1, l * 1.4), 'hsl').hex(), // dreamy pink
-    chroma((h + 120) % 360, s * 0.3, l * 0.8, 'hsl').hex(), // ethereal green
-    chroma((h + 180) % 360, s * 0.2, Math.min(1, l * 1.3), 'hsl').hex(), // misty blue
-    chroma((h + 240) % 360, s * 0.1, l * 0.9, 'hsl').hex(), // soft purple
+    norm,
+    hsl(h + 60, ps, 0.88),
+    hsl(h + 120, ps, 0.82),
+    hsl(h + 180, ps, 0.86),
+    hsl(h + 240, ps, 0.84),
   ];
 }
 
-// ============ VINTAGE & EDITORIAL (Classy/Aesthetic Vibes) ============
+// ============ VINTAGE & EDITORIAL ============
 
-// 1. Velvet Romance - Rich, luxurious, passionate
 export function generateVelvetRomance(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma((h + 10) % 360, s * 0.9, l * 0.6, 'hsl').hex(), // deep velvet
-    chroma((h + 20) % 360, s * 0.7, l * 0.8, 'hsl').hex(), // soft romance
-    chroma((h + 40) % 360, s * 0.5, l * 0.9, 'hsl').hex(), // dusty rose
-    chroma((h + 60) % 360, s * 0.3, Math.min(1, l * 1.2), 'hsl').hex(), // blush
+    norm,
+    hsl(h + 10, s * 0.95, m * 0.7),
+    hsl(h + 20, s * 0.8, m * 0.85),
+    hsl(h + 40, s * 0.6, lt(l, 1.15)),
+    hsl(h + 60, s * 0.4, lt(l, 1.25)),
   ];
 }
 
-// 2. Antique Parchment - Aged, timeless, vintage
 export function generateAntiqueParchment(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma((h + 30) % 360, s * 0.2, Math.min(1, l * 1.4), 'hsl').hex(), // parchment
-    chroma((h + 20) % 360, s * 0.3, l * 0.8, 'hsl').hex(), // aged paper
-    chroma((h + 40) % 360, s * 0.15, l * 0.6, 'hsl').hex(), // sepia
-    chroma((h + 50) % 360, s * 0.1, l * 0.4, 'hsl').hex(), // vintage ink
+    norm,
+    hsl(h + 30, s * 0.3, lt(l, 1.35)),
+    hsl(h + 20, s * 0.4, m * 0.85),
+    hsl(h + 40, s * 0.2, m * 0.65),
+    hsl(h + 50, s * 0.15, m * 0.45),
   ];
 }
 
-// 3. Retro Funk - Bold, groovy, playful
 export function generateRetroFunk(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
   return [
-    hex,
-    chroma((h + 60) % 360, s * 0.9, l * 0.7, 'hsl').hex(), // funky yellow
-    chroma((h + 120) % 360, s * 0.8, l * 0.6, 'hsl').hex(), // groovy green
-    chroma((h + 180) % 360, s * 0.7, l * 0.7, 'hsl').hex(), // disco blue
-    chroma((h + 240) % 360, s * 0.6, l * 0.8, 'hsl').hex(), // retro purple
+    norm,
+    hsl(h + 60, s * 0.95, slot(0.5, l, 0.4)),
+    hsl(h + 120, s * 0.9, slot(0.45, l, 0.4)),
+    hsl(h + 180, s * 0.8, slot(0.52, l, 0.4)),
+    hsl(h + 240, s * 0.7, slot(0.58, l, 0.4)),
   ];
 }
 
-// 4. Desert Oasis - Warm, earthy, serene
 export function generateDesertOasis(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma((h + 30) % 360, s * 0.6, l * 0.7, 'hsl').hex(), // desert sand
-    chroma((h + 180) % 360, s * 0.5, l * 0.6, 'hsl').hex(), // oasis water
-    chroma((h + 60) % 360, s * 0.4, l * 0.5, 'hsl').hex(), // dry grass
-    chroma((h + 20) % 360, s * 0.3, Math.min(1, l * 1.3), 'hsl').hex(), // warm light
+    norm,
+    hsl(h + 30, s * 0.7, m * 0.8),
+    hsl(h + 180, s * 0.6, m * 0.7),
+    hsl(h + 60, s * 0.5, m * 0.55),
+    hsl(h + 20, s * 0.4, lt(l, 1.3)),
   ];
 }
 
-// 5. Vintage Rose - Romantic, faded, timeless
 export function generateVintageRose(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma((h + 15) % 360, s * 0.5, l * 0.8, 'hsl').hex(), // faded rose
-    chroma((h + 30) % 360, s * 0.3, Math.min(1, l * 1.2), 'hsl').hex(), // antique pink
-    chroma((h + 45) % 360, s * 0.4, l * 0.6, 'hsl').hex(), // dusty mauve
-    chroma((h + 60) % 360, s * 0.2, l * 0.9, 'hsl').hex(), // cream
+    norm,
+    hsl(h + 15, s * 0.6, m * 0.85),
+    hsl(h + 30, s * 0.4, lt(l, 1.2)),
+    hsl(h + 45, s * 0.5, m * 0.65),
+    hsl(h + 60, s * 0.3, m * 0.9),
   ];
 }
 
-// 6. Editorial - Sophisticated, editorial, classic
 export function generateEditorial(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
   return [
-    hex,
-    chroma(h, s * 0.1, l * 0.2, 'hsl').hex(), // near black
-    chroma((h + 30) % 360, s * 0.2, l * 0.7, 'hsl').hex(), // warm gray
-    chroma(h, s * 0.05, Math.min(1, l * 1.4), 'hsl').hex(), // off-white
-    chroma((h + 180) % 360, s * 0.2, l * 0.5, 'hsl').hex(), // muted accent
+    norm,
+    hslFull(h, s * 0.15, Math.max(0.08, m * 0.25)),
+    hsl(h + 30, s * 0.3, m * 0.75),
+    hsl(h, s * 0.1, lt(l, 1.4)),
+    hsl(h + 180, s * 0.3, m * 0.55),
   ];
 }
 
+// ============ TECH & FUNCTIONAL ============
 
-// ============ TECH & FUNCTIONAL (UI Extensions) ============
-
-// 7. Glassmorphism Bases - Frosted, modern, clean
 export function generateGlassmorphism(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { h, s } = getHSL(norm);
   return [
-    hex,
-    chroma(h, s * 0.1, Math.min(1, l * 1.8), 'hsl').hex(), // frosted white
-    chroma((h + 30) % 360, s * 0.15, Math.min(1, l * 1.6), 'hsl').hex(), // glass
-    chroma(h, s * 0.05, l * 0.9, 'hsl').hex(), // semi-transparent
-    chroma(h, s * 0.1, l * 0.3, 'hsl').hex(), // dark glass
+    norm,
+    hsl(h, clamp(s * 0.4, 0.2, 0.5), 0.95),
+    hsl(h + 30, clamp(s * 0.35, 0.2, 0.45), 0.9),
+    hsl(h, 0.2, 0.82),
+    hsl(h, 0.2, 0.3),
   ];
 }
 
-// 8. Retro Terminal (Hacker) - Green/Amber CRT monitor
 export function generateRetroTerminal(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
+  const norm = normalizeHex(hex);
+  const { s, l } = getHSL(norm);
   return [
-    hex,
-    chroma(120, s * 0.8, l * 0.4, 'hsl').hex(), // CRT green
-    chroma(60, s * 0.9, l * 0.6, 'hsl').hex(), // amber glow
-    chroma(120, s * 0.2, l * 0.1, 'hsl').hex(), // dark screen
-    chroma(120, s * 0.3, l * 0.8, 'hsl').hex(), // bright text
+    norm,
+    hslFull(120, s * 0.85, Math.max(0.4, l * 0.85)),
+    hslFull(60, s * 0.9, Math.max(0.55, l * 0.9)),
+    hslFull(120, s * 0.3, Math.max(0.05, l * 0.2)),
+    hslFull(120, s * 0.4, Math.max(0.75, l * 1.1)),
   ];
 }
 
-// 9. Accessible High Contrast (A11y) - WCAG compliant
+/**
+ * Palette with contrast-adjusted text/accent colors.
+ * Returns [base, on-base text, light background, body text, accent, brand-on-light].
+ * Contrast targets are enforced only where a color is explicitly adjusted:
+ *  - on-base text: better of black/white against the base
+ *  - body text: >= 7:1 on the light background
+ *  - accent and brand-on-light: >= 4.5:1 on the light background
+ * NOTE: brand-on-light is a lightness-adjusted variant of the base. When the base already
+ * passes contrast (so the adjustment would return the base itself), a slightly darker variant
+ * is used instead so slots 01 and 06 are never duplicates (except for extreme near-black bases
+ * where no darker variant exists).
+ */
 export function generateAccessibleHighContrast(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  return [
-    hex,
-    chroma(h, s * 0.9, l * 0.9, 'hsl').hex(), // light variant
-    chroma(h, s * 0.9, l * 0.1, 'hsl').hex(), // dark variant
-    chroma((h + 180) % 360, s * 0.8, l * 0.8, 'hsl').hex(), // contrast companion
-    '#FFFFFF', // pure white
-    '#000000', // pure black
-  ];
-}
+  const norm = normalizeHex(hex);
+  const { h, s } = getHSL(norm);
 
-// 10. Brand Identity - Primary, secondary, accent
-export function generateBrandIdentity(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  return [
-    hex, // Primary
-    chroma(h, s * 0.8, l * 0.7, 'hsl').hex(), // Secondary
-    chroma(h, s * 0.9, l * 0.5, 'hsl').hex(), // Primary dark
-    chroma((h + 180) % 360, s * 0.6, l * 0.6, 'hsl').hex(), // Complementary
-    chroma(h, s * 0.3, Math.min(1, l * 1.4), 'hsl').hex(), // Light
-    chroma(h, s * 0.5, l * 0.2, 'hsl').hex(), // Dark
-  ];
-}
+  const bgLight = hslFull(h, s * 0.3, 0.96);
+  const text = ensureContrast(hslFull(h, s * 0.5, 0.2), bgLight, 7);
+  const accent = ensureContrast(shiftHue(norm, 180), bgLight, 4.5);
 
-// 11. Neubrutalism - Bold, raw, unpolished
-export function generateNeubrutalism(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  return [
-    hex,
-    chroma((h + 60) % 360, s * 0.9, l * 0.8, 'hsl').hex(), // bold yellow
-    chroma((h + 180) % 360, s * 0.8, l * 0.7, 'hsl').hex(), // bold blue
-    chroma((h + 300) % 360, s * 0.7, l * 0.7, 'hsl').hex(), // bold pink
-    '#000000', // black
-  ];
-}
-
-// 12. Dark Mode UI - Elevation layers
-export function generateDarkModeUI(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  return [
-    hex, // Primary accent
-    chroma(h, s * 0.3, l * 0.1, 'hsl').hex(), // Surface 0
-    chroma(h, s * 0.4, l * 0.15, 'hsl').hex(), // Surface 1
-    chroma(h, s * 0.5, l * 0.2, 'hsl').hex(), // Surface 2
-    chroma(h, s * 0.6, l * 0.3, 'hsl').hex(), // Surface 3
-  ];
-}
-
-// ============ CYBER/BRAT ============
-
-// 1. Cyber Lime / Brat - Neon green, edgy, rebellious
-export function generateCyberLime(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  return [
-    hex,
-    chroma(90, s * 0.9, l * 0.6, 'hsl').hex(), // lime green
-    chroma(180, s * 0.8, l * 0.5, 'hsl').hex(), // cyber teal
-    chroma(300, s * 0.7, l * 0.7, 'hsl').hex(), // neon purple
-    chroma(60, s * 0.6, l * 0.4, 'hsl').hex(), // acid yellow
-  ];
-}
-
-
-// ============ NORDIC/MINIMALIST ============
-
-// 2. Nordic Scandi - Minimalist, clean, functional
-export function generateNordicScandi(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  return [
-    hex,
-    chroma(h, s * 0.05, Math.min(1, l * 1.5), 'hsl').hex(), // pure white
-    chroma(h, s * 0.1, l * 0.7, 'hsl').hex(), // warm gray
-    chroma((h + 180) % 360, s * 0.3, l * 0.8, 'hsl').hex(), // muted blue
-    chroma(h, s * 0.08, l * 0.3, 'hsl').hex(), // charcoal
-  ];
-}
-
-
-// ============ INDUSTRIAL ============
-
-// 3. Industrial Concrete - Raw, urban, utilitarian
-export function generateIndustrialConcrete(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  return [
-    hex,
-    chroma(h, s * 0.05, l * 0.9, 'hsl').hex(), // concrete
-    chroma(h, s * 0.1, l * 0.6, 'hsl').hex(), // weathered steel
-    chroma((h + 30) % 360, s * 0.2, l * 0.4, 'hsl').hex(), // rust
-    chroma(h, s * 0.02, l * 0.15, 'hsl').hex(), // asphalt
-  ];
-}
-
-
-// ============ MEDITERRANEAN ============
-
-// 4. Mediterranean Villa - Sun, sea, warmth
-export function generateMediterranean(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  return [
-    hex,
-    chroma(200, s * 0.7, l * 0.7, 'hsl').hex(), // sea blue
-    chroma(40, s * 0.6, l * 0.8, 'hsl').hex(), // terracotta
-    chroma(60, s * 0.4, Math.min(1, l * 1.3), 'hsl').hex(), // sandy
-    chroma(120, s * 0.5, l * 0.5, 'hsl').hex(), // olive
-  ];
-}
-
-
-// ============ SEASONAL ============
-
-// 5. Spring Bloom - Fresh, floral, vibrant
-export function generateSpringBloom(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  return [
-    hex,
-    chroma((h + 30) % 360, s * 0.6, Math.min(1, l * 1.3), 'hsl').hex(), // peach
-    chroma(120, s * 0.5, l * 0.7, 'hsl').hex(), // fresh green
-    chroma(180, s * 0.4, Math.min(1, l * 1.4), 'hsl').hex(), // sky blue
-    chroma((h + 60) % 360, s * 0.3, Math.min(1, l * 1.5), 'hsl').hex(), // cream
-  ];
-}
-
-// 6. Autumn Whimsy - Warm, nostalgic, colorful
-export function generateAutumnWhimsy(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  return [
-    hex,
-    chroma((h + 30) % 360, s * 0.8, l * 0.5, 'hsl').hex(), // rust
-    chroma(50, s * 0.7, l * 0.6, 'hsl').hex(), // golden
-    chroma(120, s * 0.4, l * 0.4, 'hsl').hex(), // olive
-    chroma((h + 45) % 360, s * 0.5, l * 0.8, 'hsl').hex(), // caramel
-  ];
-}
-
-// 7. Winter Solstice - Cool, crisp, magical
-export function generateWinterSolstice(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  return [
-    hex,
-    chroma(200, s * 0.2, Math.min(1, l * 1.5), 'hsl').hex(), // ice blue
-    chroma(220, s * 0.3, l * 0.8, 'hsl').hex(), // winter sky
-    chroma(h, s * 0.05, l * 0.9, 'hsl').hex(), // snow
-    chroma(240, s * 0.4, l * 0.2, 'hsl').hex(), // midnight
-  ];
-}
-
-
-// ============ SYNTHWAVE/RETRO ============
-
-// 8. Synthwave 80s - Neon, retro, vaporwave
-export function generateSynthwave80s(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  return [
-    hex,
-    chroma(300, s * 0.9, l * 0.7, 'hsl').hex(), // neon pink
-    chroma(180, s * 0.8, l * 0.6, 'hsl').hex(), // cyan
-    chroma(240, s * 0.7, l * 0.5, 'hsl').hex(), // synthwave blue
-    chroma(60, s * 0.6, l * 0.8, 'hsl').hex(), // retro yellow
-  ];
-}
-
-
-// ============ KAWAII/PASTEL ============
-
-// 9. Kawaii Pastel - Cute, soft, playful
-export function generateKawaiiPastel(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  return [
-    hex,
-    chroma(340, s * 0.4, Math.min(1, l * 1.4), 'hsl').hex(), // soft pink
-    chroma(180, s * 0.3, Math.min(1, l * 1.5), 'hsl').hex(), // mint
-    chroma(240, s * 0.3, Math.min(1, l * 1.3), 'hsl').hex(), // baby blue
-    chroma(60, s * 0.2, Math.min(1, l * 1.6), 'hsl').hex(), // pastel yellow
-  ];
-}
-
-
-// ============ RENAISSANCE ============
-
-// 10. Renaissance Oil - Classical, rich, painterly
-export function generateRenaissance(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  return [
-    hex,
-    chroma((h + 20) % 360, s * 0.6, l * 0.5, 'hsl').hex(), // burnt sienna
-    chroma((h + 40) % 360, s * 0.5, l * 0.7, 'hsl').hex(), // gold leaf
-    chroma((h + 180) % 360, s * 0.4, l * 0.6, 'hsl').hex(), // teal
-    chroma((h + 60) % 360, s * 0.2, l * 0.9, 'hsl').hex(), // cream
-  ];
-}
-
-
-// ============ POP ART ============
-
-// 11. 60s Pop Art - Bold, vibrant, comic
-export function generatePopArt(hex: string): string[] {
-  const color = chroma(normalizeHex(hex));
-  const h = color.get('hsl.h');
-  const s = color.get('hsl.s');
-  const l = color.get('hsl.l');
-  
-  return [
-    hex,
-    chroma(0, s * 0.9, l * 0.6, 'hsl').hex(), // pop red
-    chroma(60, s * 0.9, l * 0.7, 'hsl').hex(), // pop yellow
-    chroma(220, s * 0.8, l * 0.5, 'hsl').hex(), // pop blue
-    '#000000', // black
-  ];
-}
-
-
-// ============ CACHING ============
-
-const paletteCache = new Map<string, ReturnType<typeof generateAllPalettes>>();
-
-export function getCachedPalettes(hex: string) {
-  const normalizedHex = normalizeHex(hex);
-  if (!paletteCache.has(normalizedHex)) {
-    paletteCache.set(normalizedHex, generateAllPalettes(normalizedHex));
+  let brandOnLight = ensureContrast(norm, bgLight, 4.5);
+  if (brandOnLight === norm) {
+    for (const delta of [0.08, 0.05, 0.03]) {
+      const alt = ensureContrast(darken(norm, delta), bgLight, 4.5);
+      if (alt !== norm) {
+        brandOnLight = alt;
+        break;
+      }
+    }
   }
-  return paletteCache.get(normalizedHex)!;
+
+  const onBase =
+    getContrastRatio('#FFFFFF', norm) >= getContrastRatio('#000000', norm) ? '#FFFFFF' : '#000000';
+
+  return [norm, onBase, bgLight, text, accent, brandOnLight];
+}
+
+export function generateBrandIdentity(hex: string): string[] {
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  return [
+    norm,
+    hsl(h, s * 0.9, slot(0.42, l, 0.4)),
+    hsl(h, s * 0.95, slot(0.28, l, 0.4)),
+    hsl(h + 180, s * 0.7, slot(0.55, l, 0.4)),
+    hsl(h, clamp(s * 0.4, 0.15, 0.5), 0.9),
+    hsl(h, s * 0.6, slot(0.16, l, 0.3)),
+  ];
+}
+
+export function generateNeubrutalism(hex: string): string[] {
+  const norm = normalizeHex(hex);
+  const { h, s } = getHSL(norm);
+  const sv = vividSat(s);
+  return [
+    norm,
+    hsl(h + 60, sv, 0.62),
+    hsl(h + 180, sv, 0.6),
+    hsl(h + 300, sv, 0.65),
+    '#000000',
+  ];
+}
+
+export function generateDarkModeUI(hex: string): string[] {
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  return [
+    norm,
+    hslFull(h, s * 0.4, Math.max(0.08, l * 0.3)),
+    hslFull(h, s * 0.5, Math.max(0.12, l * 0.35)),
+    hslFull(h, s * 0.55, Math.max(0.18, l * 0.45)),
+    hslFull(h, s * 0.65, Math.max(0.28, l * 0.65)),
+  ];
+}
+
+// ============ MORE THEMED PALETTES ============
+
+/** Cyber lime: base + brat-style lime, cyan, magenta, yellow — all vivid. */
+export function generateCyberLime(hex: string): string[] {
+  const norm = normalizeHex(hex);
+  const { s } = getHSL(norm);
+  const sv = vividSat(s);
+  return [
+    norm,
+    hsl(74, 1, 0.45),
+    hsl(180, sv, 0.5),
+    hsl(300, sv, 0.6),
+    hsl(58, sv, 0.55),
+  ];
+}
+
+export function generateNordicScandi(hex: string): string[] {
+  const norm = normalizeHex(hex);
+  const { h } = getHSL(norm);
+  return [
+    norm,
+    hsl(h, 0.12, 0.94),
+    hsl(h, 0.15, 0.84),
+    hsl(h + 180, 0.3, 0.82),
+    hsl(h, 0.12, 0.38),
+  ];
+}
+
+export function generateIndustrialConcrete(hex: string): string[] {
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
+  return [
+    norm,
+    hsl(h, s * 0.1, m * 0.9 + 0.2),
+    hsl(h, s * 0.2, m * 0.65 + 0.1),
+    hsl(h + 30, s * 0.3, m * 0.45),
+    hsl(h, s * 0.05, m * 0.18),
+  ];
+}
+
+export function generateMediterranean(hex: string): string[] {
+  const norm = normalizeHex(hex);
+  const { s, l } = getHSL(norm);
+  const m = midL(l);
+  return [
+    norm,
+    hsl(200, s * 0.8, m * 0.9),
+    hsl(40, s * 0.7, m * 1.1),
+    hsl(60, s * 0.5, lt(l, 1.3)),
+    hsl(120, s * 0.6, m * 0.7),
+  ];
+}
+
+export function generateSpringBloom(hex: string): string[] {
+  const norm = normalizeHex(hex);
+  const { h, s } = getHSL(norm);
+  const ps = pastelSat(s);
+  return [
+    norm,
+    hsl(h + 30, ps, 0.82),
+    hsl(120, ps, 0.75),
+    hsl(180, ps, 0.85),
+    hsl(h + 60, ps, 0.88),
+  ];
+}
+
+export function generateAutumnWhimsy(hex: string): string[] {
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
+  return [
+    norm,
+    hsl(h + 30, s * 0.9, m * 0.9),
+    hsl(50, s * 0.8, m * 1.1),
+    hsl(120, s * 0.5, m * 0.75),
+    hsl(h + 45, s * 0.6, lt(l, 1.3)),
+  ];
+}
+
+export function generateWinterSolstice(hex: string): string[] {
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
+  return [
+    norm,
+    hsl(200, s * 0.3, lt(l, 1.4)),
+    hsl(220, s * 0.4, m * 1.1),
+    hsl(h, 0.1, 0.9),
+    hsl(240, s * 0.5, m * 0.4),
+  ];
+}
+
+export function generateSynthwave80s(hex: string): string[] {
+  const norm = normalizeHex(hex);
+  const { s } = getHSL(norm);
+  const sv = vividSat(s);
+  return [
+    norm,
+    hsl(310, sv, 0.6),
+    hsl(180, sv, 0.55),
+    hsl(270, clamp(sv * 0.9, 0.6, 1), 0.45),
+    hsl(50, sv, 0.6),
+  ];
+}
+
+export function generateKawaiiPastel(hex: string): string[] {
+  const norm = normalizeHex(hex);
+  const { s } = getHSL(norm);
+  const ps = pastelSat(s);
+  return [
+    norm,
+    hsl(340, ps, 0.86),
+    hsl(180, ps, 0.85),
+    hsl(240, ps, 0.88),
+    hsl(60, ps, 0.85),
+  ];
+}
+
+export function generateRenaissance(hex: string): string[] {
+  const norm = normalizeHex(hex);
+  const { h, s, l } = getHSL(norm);
+  const m = midL(l);
+  return [
+    norm,
+    hsl(h + 20, s * 0.7, m * 0.8),
+    hsl(h + 40, s * 0.6, m * 1.05),
+    hsl(h + 180, s * 0.5, m * 0.9),
+    hsl(h + 60, s * 0.3, lt(l, 1.3)),
+  ];
+}
+
+export function generatePopArt(hex: string): string[] {
+  const norm = normalizeHex(hex);
+  const { s } = getHSL(norm);
+  const sv = vividSat(s);
+  return [
+    norm,
+    hsl(0, sv, 0.52),
+    hsl(52, sv, 0.58),
+    hsl(220, sv, 0.5),
+    '#000000',
+  ];
+}
+
+// ============ PALETTE REGISTRY ============
+// Single source of truth. Keys are kebab-case so CSS variables / Tailwind keys stay consistent.
+
+type PaletteGenerator = (hex: string, count?: number) => string[];
+
+const PALETTE_GENERATORS = {
+  // Basic harmonies
+  'shades': generateShades,
+  'complementary': generateComplementary,
+  'analogous': generateAnalogous,
+  'triadic': generateTriadic,
+  'tetradic': generateTetradic,
+  'split-complementary': generateSplitComplementary,
+  'square': generateSquare,
+
+  // Mood-based
+  'pastel': generatePastel,
+  'vibrant': generateVibrant,
+  'muted': generateMuted,
+  'dark': generateDark,
+  'light': generateLight,
+  'warm': generateWarmPalette,
+  'cool': generateCoolPalette,
+
+  // Design palettes
+  'quiet-luxury': generateQuietLuxury,
+  'gothic-noir': generateGothicNoir,
+  'cozy-campfire': generateCozyCampfire,
+  'lavender-lullaby': generateLavenderLullaby,
+
+  // Makeup palettes
+  'soft-glam': generateSoftGlam,
+  'berry-martini': generateBerryMartini,
+  'neutrals': generateNeutrals,
+
+  // Advanced harmonies
+  'monochromatic': generateMonochromatic,
+  'compound': generateCompound,
+  'neutral': generateNeutralPalette,
+  'gradient': generateGradient,
+
+  // Thematic
+  'neon': generateNeon,
+  'earth': generateEarth,
+  'ocean': generateOcean,
+  'sunset': generateSunset,
+  'forest': generateForest,
+  'vintage': generateVintage,
+  'modern': generateModern,
+
+  // Special combinations
+  'pastel-neon': generatePastelNeon,
+  'monochrome-dark': generateMonochromeDark,
+  'monochrome-light': generateMonochromeLight,
+  'accent': generateAccent,
+  'gradient-warm': generateGradientWarm,
+  'gradient-cool': generateGradientCool,
+  'hexadic': generateHexadic,
+  'double-split': generateDoubleSplit,
+  'adjacent': generateAdjacent,
+  'alternating': generateAlternating,
+  'rainbow': generateRainbow,
+
+  'tint-shade-scale': generateTintShadeScale,
+  'ui-palette': generateUIPalette,
+  'clash': generateClash,
+  'saturation-scale': generateSaturationScale,
+
+  // Cafe & flavors
+  'vanilla-latte': generateVanillaLatte,
+  'salted-caramel': generateSaltedCaramel,
+  'matcha-latte': generateMatchaLatte,
+  'berry-blast': generateBerryBlast,
+  'honey-almond': generateHoneyAlmond,
+  'mocha': generateMocha,
+
+  // Cosmic & dreamy
+  'stardust': generateStardust,
+  'cyberpunk-night': generateCyberpunkNight,
+  'moonlit-silver': generateMoonlitSilver,
+  'aurora-borealis': generateAuroraBorealis,
+  'galaxy': generateGalaxy,
+  'dreamscape': generateDreamscape,
+
+  // Vintage & editorial
+  'velvet-romance': generateVelvetRomance,
+  'antique-parchment': generateAntiqueParchment,
+  'retro-funk': generateRetroFunk,
+  'desert-oasis': generateDesertOasis,
+  'vintage-rose': generateVintageRose,
+  'editorial': generateEditorial,
+
+  // Tech & functional
+  'glassmorphism': generateGlassmorphism,
+  'retro-terminal': generateRetroTerminal,
+  'accessible-high-contrast': generateAccessibleHighContrast,
+  'brand-identity': generateBrandIdentity,
+  'neubrutalism': generateNeubrutalism,
+  'dark-mode-ui': generateDarkModeUI,
+
+  // More themed
+  'cyber-lime': generateCyberLime,
+  'nordic-scandi': generateNordicScandi,
+  'industrial-concrete': generateIndustrialConcrete,
+  'mediterranean': generateMediterranean,
+  'spring-bloom': generateSpringBloom,
+  'autumn-whimsy': generateAutumnWhimsy,
+  'winter-solstice': generateWinterSolstice,
+  'synthwave-80s': generateSynthwave80s,
+  'kawaii-pastel': generateKawaiiPastel,
+  'renaissance': generateRenaissance,
+  'pop-art': generatePopArt,
+} satisfies Record<string, PaletteGenerator>; // needs TS >= 4.9
+
+export type PaletteName = keyof typeof PALETTE_GENERATORS;
+export type AllPalettes = Record<PaletteName, string[]>;
+
+export const PALETTE_NAMES = Object.keys(PALETTE_GENERATORS) as PaletteName[];
+
+/**
+ * Generate a single palette by name (no need to compute all 90).
+ * `count` is honored by generators that support it; fixed-size generators ignore it.
+ */
+export function generatePalette(hex: string, name: PaletteName, count?: number): string[] {
+  const generator: PaletteGenerator | undefined = PALETTE_GENERATORS[name];
+  if (!generator) {
+    throw new Error(`Palette "${name}" not found`);
+  }
+  return generator(normalizeHex(hex), count);
+}
+
+// ============ CACHING (bounded LRU) ============
+
+const MAX_PALETTE_CACHE_SIZE = 500;
+const paletteCache = new Map<string, AllPalettes>();
+
+export function getCachedPalettes(hex: string): AllPalettes {
+  const normalizedHex = normalizeHex(hex);
+  const cached = paletteCache.get(normalizedHex);
+
+  if (cached) {
+    // refresh recency
+    paletteCache.delete(normalizedHex);
+    paletteCache.set(normalizedHex, cached);
+    return cached;
+  }
+
+  const fresh = generateAllPalettes(normalizedHex);
+  paletteCache.set(normalizedHex, fresh);
+
+  if (paletteCache.size > MAX_PALETTE_CACHE_SIZE) {
+    const oldestKey = paletteCache.keys().next().value;
+    if (oldestKey !== undefined) paletteCache.delete(oldestKey);
+  }
+
+  return fresh;
 }
 
 // ============ GENERATE ALL PALETTES ============
 
-export function generateAllPalettes(hex: string) {
-  const normalizedHex = normalizeHex(hex);
-  if (!isValidHex(normalizedHex)) {
-    throw new Error(`Invalid hex color format: ${hex}. Expected format: #RRGGBB or RRGGBB`);
+export function generateAllPalettes(hex: string): AllPalettes {
+  const normalizedHex = normalizeHex(hex); // throws on invalid input
+
+  const result = {} as AllPalettes;
+  for (const name of PALETTE_NAMES) {
+    result[name] = PALETTE_GENERATORS[name](normalizedHex);
   }
-
-  return {
-    // Basic harmonies
-    shades: generateShades(normalizedHex),
-    complementary: generateComplementary(normalizedHex),
-    analogous: generateAnalogous(normalizedHex),
-    triadic: generateTriadic(normalizedHex),
-    tetradic: generateTetradic(normalizedHex),
-    'split-complementary': generateSplitComplementary(normalizedHex),
-    square: generateSquare(normalizedHex),
-    
-    // Mood-based
-    pastel: generatePastel(normalizedHex),
-    vibrant: generateVibrant(normalizedHex),
-    muted: generateMuted(normalizedHex),
-    dark: generateDark(normalizedHex),
-    light: generateLight(normalizedHex),
-    warm: generateWarmPalette(normalizedHex),
-    cool: generateCoolPalette(normalizedHex),
-
-      // ============ NEW DESIGN PALETTES ============
-    quietLuxury: generateQuietLuxury(normalizedHex),
-    gothicNoir: generateGothicNoir(normalizedHex),
-    cozyCampfire: generateCozyCampfire(normalizedHex),
-    lavenderLullaby: generateLavenderLullaby(normalizedHex),
-    
-    // ============ NEW MAKEUP PALETTES ============
-    softGlam: generateSoftGlam(normalizedHex),
-    berryMartini: generateBerryMartini(normalizedHex),
-    neutrals: generateNeutrals(normalizedHex),
-    
-    // Advanced harmonies
-    monochromatic: generateMonochromatic(normalizedHex),
-    compound: generateCompound(normalizedHex),
-    neutral: generateNeutralPalette(normalizedHex),
-    gradient: generateGradient(normalizedHex),
-    
-    // Thematic
-    neon: generateNeon(normalizedHex),
-    earth: generateEarth(normalizedHex),
-    ocean: generateOcean(normalizedHex),
-    sunset: generateSunset(normalizedHex),
-    forest: generateForest(normalizedHex),
-    vintage: generateVintage(normalizedHex),
-    modern: generateModern(normalizedHex),
-    
-    // Special combinations
-    pastelNeon: generatePastelNeon(normalizedHex),
-    monochromeDark: generateMonochromeDark(normalizedHex),
-    monochromeLight: generateMonochromeLight(normalizedHex),
-    accent: generateAccent(normalizedHex),
-    gradientWarm: generateGradientWarm(normalizedHex),
-    gradientCool: generateGradientCool(normalizedHex),
-    split: generateSplit(normalizedHex),
-    doubleSplit: generateDoubleSplit(normalizedHex),
-    adjacent: generateAdjacent(normalizedHex),
-    alternating: generateAlternating(normalizedHex),
-    rainbow: generateRainbow(normalizedHex),
-
-      tintShadeScale: generateTintShadeScale(normalizedHex),
-    uiPalette: generateUIPalette(normalizedHex),
-    clash: generateClash(normalizedHex),
-    saturationScale: generateSaturationScale(normalizedHex),
-
-        // ============ CAFE & FLAVORS ============
-    vanillaLatte: generateVanillaLatte(normalizedHex),
-    saltedCaramel: generateSaltedCaramel(normalizedHex),
-    matchaLatte: generateMatchaLatte(normalizedHex),
-    berryBlast: generateBerryBlast(normalizedHex),
-    honeyAlmond: generateHoneyAlmond(normalizedHex),
-    mocha: generateMocha(normalizedHex),
-    
-    // ============ COSMIC & DREAMY ============
-    stardust: generateStardust(normalizedHex),
-    cyberpunkNight: generateCyberpunkNight(normalizedHex),
-    moonlitSilver: generateMoonlitSilver(normalizedHex),
-    auroraBorealis: generateAuroraBorealis(normalizedHex),
-    galaxy: generateGalaxy(normalizedHex),
-    dreamscape: generateDreamscape(normalizedHex),
-
-      
-    // ============ VINTAGE & EDITORIAL ============
-    velvetRomance: generateVelvetRomance(normalizedHex),
-    antiqueParchment: generateAntiqueParchment(normalizedHex),
-    retroFunk: generateRetroFunk(normalizedHex),
-    desertOasis: generateDesertOasis(normalizedHex),
-    vintageRose: generateVintageRose(normalizedHex),
-    editorial: generateEditorial(normalizedHex),
-    
-    // ============ TECH & FUNCTIONAL ============
-    glassmorphism: generateGlassmorphism(normalizedHex),
-    retroTerminal: generateRetroTerminal(normalizedHex),
-    accessibleHighContrast: generateAccessibleHighContrast(normalizedHex),
-    brandIdentity: generateBrandIdentity(normalizedHex),
-    neubrutalism: generateNeubrutalism(normalizedHex),
-    darkModeUI: generateDarkModeUI(normalizedHex),
-
-     // ============ NEW PALETTES ============
-    cyberLime: generateCyberLime(normalizedHex),
-    nordicScandi: generateNordicScandi(normalizedHex),
-    industrialConcrete: generateIndustrialConcrete(normalizedHex),
-    mediterranean: generateMediterranean(normalizedHex),
-    springBloom: generateSpringBloom(normalizedHex),
-    autumnWhimsy: generateAutumnWhimsy(normalizedHex),
-    winterSolstice: generateWinterSolstice(normalizedHex),
-    synthwave80s: generateSynthwave80s(normalizedHex),
-    kawaiiPastel: generateKawaiiPastel(normalizedHex),
-    renaissance: generateRenaissance(normalizedHex),
-    popArt: generatePopArt(normalizedHex),
-
- 
-  };
+  return result;
 }
 
 // ============ UTILITY FUNCTIONS ============
 
 export function getPaletteInfo(hex: string) {
   const normalizedHex = normalizeHex(hex);
-  if (!isValidHex(normalizedHex)) {
-    throw new Error(`Invalid hex color format: ${hex}`);
-  }
-
-  const palettes = generateAllPalettes(normalizedHex);
+  const palettes = getCachedPalettes(normalizedHex);
   const colorName = getColorNameFromHex(normalizedHex);
   const color = chroma(normalizedHex);
-  
+
   return {
     hex: normalizedHex,
     colorName,
@@ -1723,25 +1461,15 @@ export function getPaletteInfo(hex: string) {
   };
 }
 
-// ============ EXPORT PALETTE AS VARIOUS FORMATS ============
-
-export function exportPaletteAsCSS(hex: string, paletteName: keyof ReturnType<typeof generateAllPalettes>): string {
-  const normalizedHex = normalizeHex(hex);
-  const palettes = generateAllPalettes(normalizedHex);
-  const colors = palettes[paletteName];
-  if (!Array.isArray(colors)) {
-    throw new Error(`Palette "${paletteName}" not found or not an array`);
-  }
-  return colors.map((color, index) => `  --color-${paletteName}-${index + 1}: ${color};`).join('\n');
+export function exportPaletteAsCSS(hex: string, paletteName: PaletteName, count?: number): string {
+  const colors = generatePalette(hex, paletteName, count);
+  return colors
+    .map((color, index) => `  --color-${paletteName}-${index + 1}: ${color};`)
+    .join('\n');
 }
 
-export function exportPaletteAsTailwind(hex: string, paletteName: keyof ReturnType<typeof generateAllPalettes>): string {
-  const normalizedHex = normalizeHex(hex);
-  const palettes = generateAllPalettes(normalizedHex);
-  const colors = palettes[paletteName];
-  if (!Array.isArray(colors)) {
-    throw new Error(`Palette "${paletteName}" not found or not an array`);
-  }
+export function exportPaletteAsTailwind(hex: string, paletteName: PaletteName, count?: number): string {
+  const colors = generatePalette(hex, paletteName, count);
   const tailwindObj: Record<string, string> = {};
   colors.forEach((color, index) => {
     tailwindObj[`${paletteName}-${index + 1}`] = color;

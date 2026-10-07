@@ -80,15 +80,13 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
     ]);
   }, [baseColor, complementaryColor]);
 
-  // Add a new color stop - FIXED: No duplicate positions
+  // Add a new color stop
   const addStop = useCallback(() => {
     if (colorStops.length >= 5) return;
     const newId = Date.now().toString();
     
-    // Sort stops by position
     const sortedStops = [...colorStops].sort((a, b) => a.position - b.position);
     
-    // Find largest gap between consecutive stops
     let maxGap = 0;
     let insertIndex = 0;
     
@@ -100,12 +98,10 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
       }
     }
     
-    // Calculate new position at the middle of the largest gap
     const pos1 = sortedStops[insertIndex].position;
     const pos2 = sortedStops[insertIndex + 1].position;
     const newPosition = Math.round((pos1 + pos2) / 2);
     
-    // Get colors from the stops around the gap
     const color1 = sortedStops[insertIndex].color;
     const color2 = sortedStops[insertIndex + 1].color;
     const midColor = getMiddleColor(color1, color2);
@@ -140,7 +136,6 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
       return `linear-gradient(to right, ${baseColor}, ${complementaryColor})`;
     }
     
-    // Sort stops by position
     const sortedStops = [...colorStops].sort((a, b) => a.position - b.position);
     const stopsString = sortedStops
       .map((stop) => `${stop.color} ${stop.position}%`)
@@ -226,23 +221,23 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
             ? 'bg-black/40 border-white/10' 
             : 'bg-white/90 border-gray-200'
         }`}>
-          <code className={`text-xs sm:text-sm font-mono truncate mr-3 ${
-            isDark ? 'text-gray-200' : 'text-gray-700'
+          <code className={`text-sm sm:text-base font-mono truncate mr-3 ${
+            isDark ? 'text-gray-200' : 'text-gray-800'
           }`}>
             background: {activeGradientCSS};
           </code>
           <button
             onClick={() => handleCopy(activeGradientCSS, 'active-main')}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-xs font-medium rounded-lg transition active:scale-95 flex-shrink-0"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-medium rounded-lg transition active:scale-95 flex-shrink-0"
           >
             {copiedId === 'active-main' ? (
               <>
-                <Check className="w-3.5 h-3.5 text-green-300" />
+                <Check className="w-4 h-4 text-green-300" />
                 <span>Copied!</span>
               </>
             ) : (
               <>
-                <Copy className="w-3.5 h-3.5" />
+                <Copy className="w-4 h-4" />
                 <span>Copy CSS</span>
               </>
             )}
@@ -258,8 +253,8 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
       }`}>
         {/* Left Column */}
         <div className="space-y-4">
-          <label className={`text-xs font-semibold uppercase tracking-wider ${
-            isDark ? 'text-gray-400' : 'text-gray-700'
+          <label className={`text-sm font-semibold uppercase tracking-wider ${
+            isDark ? 'text-gray-300' : 'text-gray-800'
           }`}>
             Gradient Style
           </label>
@@ -268,12 +263,12 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
               <button
                 key={type}
                 onClick={() => setGradientType(type)}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-lg capitalize border transition ${
+                className={`flex-1 py-2 text-sm font-medium rounded-lg capitalize border transition ${
                   gradientType === type
                     ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
                     : isDark
                       ? 'bg-[#2d2d4a]/50 border-white/10 text-gray-200 hover:text-white hover:bg-[#2d2d4a]'
-                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                      : 'bg-gray-50 border-gray-200 text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
                 {type}
@@ -283,8 +278,8 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
 
           {gradientType === 'linear' && (
             <>
-              <label className={`text-xs font-semibold uppercase tracking-wider block pt-2 ${
-                isDark ? 'text-gray-400' : 'text-gray-700'
+              <label className={`text-sm font-semibold uppercase tracking-wider block pt-2 ${
+                isDark ? 'text-gray-300' : 'text-gray-800'
               }`}>
                 Direction Angle
               </label>
@@ -293,12 +288,12 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
                   <button
                     key={dir.value}
                     onClick={() => setDirection(dir.value)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition ${
+                    className={`px-3 py-2 text-sm font-medium rounded-lg border transition ${
                       direction === dir.value
                         ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
                         : isDark
                           ? 'bg-[#2d2d4a]/50 border-white/10 text-gray-200 hover:text-white hover:bg-[#2d2d4a]'
-                          : 'bg-gray-50 border-gray-200 text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                          : 'bg-gray-50 border-gray-200 text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                     }`}
                   >
                     {dir.label}
@@ -309,24 +304,24 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
           )}
         </div>
 
-        {/* Right Column - Responsive Color Stops */}
+        {/* Right Column - Color Stops */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <label className={`text-xs font-semibold uppercase tracking-wider ${
-              isDark ? 'text-gray-400' : 'text-gray-700'
+            <label className={`text-sm font-semibold uppercase tracking-wider ${
+              isDark ? 'text-gray-300' : 'text-gray-800'
             }`}>
               Color Stops ({colorStops.length}/5)
             </label>
             {colorStops.length < 5 && (
               <button
                 onClick={addStop}
-                className={`flex items-center gap-1 text-xs font-medium transition ${
+                className={`flex items-center gap-1 text-sm font-medium transition ${
                   isDark 
                     ? 'text-[#8b5cf6] hover:text-[#a78bfa]' 
                     : 'text-[#7c3aed] hover:text-[#6d28d9]'
                 }`}
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4" />
                 <span>Add Stop</span>
               </button>
             )}
@@ -336,7 +331,7 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
             {colorStops.map((stop) => (
               <div
                 key={stop.id}
-                className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 rounded-xl border ${
+                className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2.5 rounded-xl border ${
                   isDark 
                     ? 'bg-[#2d2d4a]/40 border-white/5' 
                     : 'bg-gray-50 border-gray-200'
@@ -348,16 +343,16 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
                     type="color"
                     value={stop.color}
                     onChange={(e) => updateStop(stop.id, 'color', e.target.value)}
-                    className="w-7 h-7 rounded-lg border-0 bg-transparent cursor-pointer flex-shrink-0"
+                    className="w-8 h-8 rounded-lg border-0 bg-transparent cursor-pointer flex-shrink-0"
                   />
                   <input
                     type="text"
                     value={stop.color.toUpperCase()}
                     onChange={(e) => updateStop(stop.id, 'color', e.target.value)}
-                    className={`flex-1 sm:w-20 text-xs font-mono text-center py-1 rounded border ${
+                    className={`flex-1 sm:w-24 text-sm font-mono text-center py-1.5 rounded border ${
                       isDark 
                         ? 'bg-[#1a1a2e] border-white/10 text-gray-200' 
-                        : 'bg-white border-gray-200 text-gray-700'
+                        : 'bg-white border-gray-200 text-gray-800'
                     }`}
                   />
                   {colorStops.length > 2 && (
@@ -367,7 +362,7 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
                         isDark ? 'text-gray-500 hover:text-red-400' : 'text-gray-400 hover:text-red-500'
                       }`}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -384,8 +379,8 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
                       isDark ? 'accent-[#8b5cf6]' : 'accent-[#7c3aed]'
                     }`}
                   />
-                  <span className={`text-xs font-mono w-8 text-right flex-shrink-0 ${
-                    isDark ? 'text-gray-400' : 'text-gray-500'
+                  <span className={`text-sm font-mono w-10 text-right flex-shrink-0 ${
+                    isDark ? 'text-gray-300' : 'text-gray-700'
                   }`}>
                     {stop.position}%
                   </span>
@@ -396,7 +391,7 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
                         isDark ? 'text-gray-500 hover:text-red-400' : 'text-gray-400 hover:text-red-500'
                       }`}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -409,7 +404,7 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
       {/* Preset Gradients */}
       {presetGradients.length > 0 && (
         <div className="space-y-3">
-          <h3 className={`text-sm font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+          <h3 className={`text-base font-semibold ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
             Preset Variations
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -429,8 +424,8 @@ export default function GradientGenerator({ hex = '#8B5CF6' }: GradientGenerator
                   style={{ background: css }}
                 />
                 <div className="flex items-center justify-between">
-                  <span className={`text-xs font-medium ${
-                    isDark ? 'text-gray-300' : 'text-gray-600'
+                  <span className={`text-sm font-medium ${
+                    isDark ? 'text-gray-200' : 'text-gray-700'
                   }`}>{name}</span>
                   <button
                     onClick={() => handleCopy(css, id)}

@@ -59,12 +59,12 @@ export default function ColorShades({ hex }: ColorShadesProps) {
       
       {/* Toast Notification */}
       {copiedHex && (
-        <div className={`absolute top-4 right-4 z-20 flex items-center gap-2 text-xs px-3 py-1.5 rounded-full backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-200 ${
+        <div className={`absolute top-4 right-4 z-20 flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-full backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-200 ${
           isDark
             ? 'bg-purple-500/10 border border-purple-500/30 text-purple-300'
             : 'bg-purple-50 border border-purple-200 text-purple-700'
         }`}>
-          <svg className={`w-3.5 h-3.5 ${isDark ? 'text-purple-400' : 'text-purple-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className={`w-4 h-4 ${isDark ? 'text-purple-400' : 'text-purple-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>
           <span>Copied <strong className="font-mono">{copiedHex.toUpperCase()}</strong></span>
@@ -76,10 +76,10 @@ export default function ColorShades({ hex }: ColorShadesProps) {
         isDark ? 'border-white/10' : 'border-gray-200'
       }`}>
         <div>
-          <h3 className={`text-base font-semibold tracking-wide ${
-            isDark ? 'text-white/90' : 'text-gray-800'
+          <h3 className={`text-lg sm:text-xl font-semibold tracking-wide ${
+            isDark ? 'text-white/90' : 'text-gray-900'
           }`}>Color Variations</h3>
-          <p className={`text-xs mt-0.5 ${isDark ? 'text-white' : 'text-gray-500'}`}>
+          <p className={`text-sm mt-0.5 ${isDark ? 'text-white' : 'text-gray-600'}`}>
             Click any swatch to copy value
           </p>
         </div>
@@ -89,11 +89,11 @@ export default function ColorShades({ hex }: ColorShadesProps) {
             : 'bg-gray-50 border-gray-200'
         }`}>
           <div 
-            className="w-4 h-4 rounded-full shadow-inner border border-gray-300 dark:border-white/20" 
+            className="w-5 h-5 rounded-full shadow-inner border border-gray-300 dark:border-white/20" 
             style={{ backgroundColor: cleanHex }}
           />
-          <span className={`text-xs font-mono font-medium uppercase ${
-            isDark ? 'text-white/80' : 'text-gray-700'
+          <span className={`text-sm font-mono font-semibold uppercase ${
+            isDark ? 'text-white/90' : 'text-gray-800'
           }`}>{cleanHex}</span>
         </div>
       </div>
@@ -101,10 +101,10 @@ export default function ColorShades({ hex }: ColorShadesProps) {
       {/* Tints Section (Lighter) */}
       <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <h4 className={`text-xs font-semibold uppercase tracking-wider ${
-            isDark ? 'text-gray-200' : 'text-gray-700'
+          <h4 className={`text-sm font-semibold uppercase tracking-wider ${
+            isDark ? 'text-gray-200' : 'text-gray-800'
           }`}>Tints (Lighter)</h4>
-          <span className={`text-[10px] font-mono ${isDark ? 'text-white' : 'text-black'}`}>
+          <span className={`text-xs font-mono font-semibold ${isDark ? 'text-white' : 'text-black'}`}>
             +White Mix
           </span>
         </div>
@@ -136,13 +136,13 @@ export default function ColorShades({ hex }: ColorShadesProps) {
                       : 'bg-black/0 group-hover:bg-black/5'
                   }`} />
                   {isCopied ? (
-                    <svg className={`w-5 h-5 drop-shadow-md z-10 animate-in zoom-in-50 ${
+                    <svg className={`w-6 h-6 drop-shadow-md z-10 animate-in zoom-in-50 ${
                       isDark ? 'text-white' : 'text-gray-700'
                     }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   ) : (
-                    <span className={`text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 rounded-full shadow-sm ${
+                    <span className={`text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity px-2.5 py-1 rounded-full shadow-sm ${
                       isDark 
                         ? 'text-white bg-white/20 backdrop-blur-sm' 
                         : 'text-gray-700 bg-white/90 backdrop-blur-sm'
@@ -151,10 +151,10 @@ export default function ColorShades({ hex }: ColorShadesProps) {
                     </span>
                   )}
                 </div>
-                <span className={`text-[11px] font-mono uppercase transition-colors mt-2 ${
+                <span className={`text-sm font-mono uppercase transition-colors mt-2 ${
                   isDark 
                     ? 'text-white group-hover:text-[#a78bfa]' 
-                    : 'text-gray-600 group-hover:text-purple-600'
+                    : 'text-gray-700 group-hover:text-purple-600'
                 }`}>
                   {item.hex}
                 </span>
@@ -167,10 +167,10 @@ export default function ColorShades({ hex }: ColorShadesProps) {
       {/* Shades Section (Darker) */}
       <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <h4 className={`text-xs font-semibold uppercase tracking-wider ${
-            isDark ? 'text-gray-200' : 'text-gray-700'
+          <h4 className={`text-sm font-semibold uppercase tracking-wider ${
+            isDark ? 'text-gray-200' : 'text-gray-800'
           }`}>Shades (Darker)</h4>
-          <span className={`text-[10px] font-mono ${isDark ? 'text-white' : 'text-black'}`}>
+          <span className={`text-xs font-mono font-semibold ${isDark ? 'text-white' : 'text-black'}`}>
             +Black Mix
           </span>
         </div>
@@ -202,19 +202,19 @@ export default function ColorShades({ hex }: ColorShadesProps) {
                       : 'bg-white/0 group-hover:bg-white/20'
                   }`} />
                   {isCopied ? (
-                    <svg className="w-5 h-5 text-white drop-shadow-md z-10 animate-in zoom-in-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-6 h-6 text-white drop-shadow-md z-10 animate-in zoom-in-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   ) : (
-                    <span className="text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity text-white bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm">
+                    <span className="text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity text-white bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded-full shadow-sm">
                       +{item.percentage}%
                     </span>
                   )}
                 </div>
-                <span className={`text-[11px] font-mono uppercase transition-colors mt-2 ${
+                <span className={`text-sm font-mono uppercase transition-colors mt-2 ${
                   isDark 
                     ? 'text-white group-hover:text-[#a78bfa]' 
-                    : 'text-gray-600 group-hover:text-purple-600'
+                    : 'text-gray-700 group-hover:text-purple-600'
                 }`}>
                   {item.hex}
                 </span>

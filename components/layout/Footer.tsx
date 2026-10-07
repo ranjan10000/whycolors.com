@@ -94,26 +94,26 @@ export default function Footer() {
             {/* Brand Section */}
             <div className="space-y-4">
               <Link href="/" className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] flex items-center justify-center">
-                  <Palette className="w-5 h-5 text-white" />
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] flex items-center justify-center">
+                  <Palette className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-xl font-bold text-gray-800 dark:text-white">
+                <span className="text-2xl font-bold text-gray-900 dark:text-white">
                   Why<span className="text-[#7c3aed]">Colors</span>
                 </span>
               </Link>
               
-              <p className="text-sm text-gray-600 dark:text-gray-400 max-w-xs">
+              <p className="text-base text-gray-700 dark:text-gray-300 max-w-xs">
                 Explore and create stunning colors with ease.
               </p>
             </div>
 
             {/* Tools Links */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#7c3aed]" />
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#7c3aed]" />
                 Tools
               </h3>
-              <ul className="space-y-2.5">
+              <ul className="space-y-3">
                 {footerLinks.tools.map((link, index) => (
                   <li 
                     key={link.href}
@@ -128,7 +128,7 @@ export default function Footer() {
                   >
                     <Link
                       href={link.href}
-                      className="text-sm text-gray-600 dark:text-gray-400 hover:text-[#7c3aed] dark:hover:text-[#a78bfa] transition-colors"
+                      className="text-base text-gray-700 dark:text-gray-300 hover:text-[#7c3aed] dark:hover:text-[#a78bfa] transition-colors"
                     >
                       {link.label}
                     </Link>
@@ -139,11 +139,11 @@ export default function Footer() {
 
             {/* Company Links */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-[#7c3aed]" />
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-[#7c3aed]" />
                 Company
               </h3>
-              <ul className="space-y-2.5">
+              <ul className="space-y-3">
                 {footerLinks.company.map((link, index) => (
                   <li 
                     key={link.href}
@@ -158,7 +158,7 @@ export default function Footer() {
                   >
                     <Link
                       href={link.href}
-                      className="text-sm text-gray-600 dark:text-gray-400 hover:text-[#7c3aed] dark:hover:text-[#a78bfa] transition-colors"
+                      className="text-base text-gray-700 dark:text-gray-300 hover:text-[#7c3aed] dark:hover:text-[#a78bfa] transition-colors"
                     >
                       {link.label}
                     </Link>
@@ -181,15 +181,15 @@ export default function Footer() {
           >
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <Palette className="w-4 h-4 text-[#7c3aed]" />
-                <span className="text-xs text-gray-500 dark:text-gray-500">
+                <Palette className="w-5 h-5 text-[#7c3aed]" />
+                <span className="text-sm text-gray-700 dark:text-gray-400">
                   &copy; {currentYear} WhyColors. All rights reserved.
                 </span>
               </div>
               
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-500">
-                  <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500 animate-pulse" />
+                <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-400">
+                  <Heart className="w-4 h-4 text-red-500 fill-red-500 animate-pulse" />
                   <span>Made with love</span>
                 </div>
               </div>
@@ -217,7 +217,7 @@ export default function Footer() {
         `}
         aria-label="Back to top"
       >
-        <ChevronUp className="w-5 h-5" />
+        <ChevronUp className="w-6 h-6" />
       </button>
     </>
   );

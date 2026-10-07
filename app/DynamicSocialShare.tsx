@@ -132,7 +132,7 @@ export default function SocialShare({
   }, [url]);
 
   if (!url) {
-    return <div className="flex justify-center items-center gap-2 h-10" />;
+    return <div className="flex justify-center items-center gap-3 h-12" />;
   }
 
   const encodedUrl = encodeURIComponent(url);
@@ -143,29 +143,33 @@ export default function SocialShare({
     ? `https://pinterest.com/pin/create/button/?url=${encodedUrl}&media=${encodeURIComponent(imageUrl)}&description=${encodedDesc}`
     : `https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${encodedDesc}`;
 
+  // Common button class — bigger padding for larger click target
+  const baseBtnClass =
+    "p-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full transition-all hover:scale-110 border border-gray-200 dark:border-gray-700";
+
   return (
-    <div className="flex items-center justify-center gap-2 flex-wrap">
+    <div className="flex items-center justify-center gap-2.5 flex-wrap">
       {/* Native / Copy share */}
       {canNativeShare ? (
         <button
           onClick={handleNativeShare}
-          className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full transition-all hover:scale-110 hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:text-purple-600 dark:hover:text-purple-400 border border-gray-200 dark:border-gray-700"
+          className={`${baseBtnClass} hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:text-purple-600 dark:hover:text-purple-400`}
           aria-label="Share"
           title="Share"
         >
-          <Share2 className="w-4 h-4" />
+          <Share2 className="w-5 h-5" />
         </button>
       ) : (
         <button
           onClick={handleCopyLink}
-          className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full transition-all hover:scale-110 hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:text-purple-600 dark:hover:text-purple-400 border border-gray-200 dark:border-gray-700"
+          className={`${baseBtnClass} hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:text-purple-600 dark:hover:text-purple-400`}
           aria-label={copied ? "Copied!" : "Copy link"}
           title={copied ? "Copied!" : "Copy link"}
         >
           {copied ? (
-            <Check className="w-4 h-4 text-emerald-500" />
+            <Check className="w-5 h-5 text-emerald-500" />
           ) : (
-            <Share2 className="w-4 h-4" />
+            <Share2 className="w-5 h-5" />
           )}
         </button>
       )}
@@ -175,10 +179,10 @@ export default function SocialShare({
         href={`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full transition-all hover:scale-110 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-500 dark:hover:text-blue-400 border border-gray-200 dark:border-gray-700"
+        className={`${baseBtnClass} hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-500 dark:hover:text-blue-400`}
         aria-label="Share on Twitter"
       >
-        <FaTwitter className="w-4 h-4" />
+        <FaTwitter className="w-5 h-5" />
       </a>
 
       {/* Facebook */}
@@ -186,10 +190,10 @@ export default function SocialShare({
         href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full transition-all hover:scale-110 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 border border-gray-200 dark:border-gray-700"
+        className={`${baseBtnClass} hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400`}
         aria-label="Share on Facebook"
       >
-        <FaFacebook className="w-4 h-4" />
+        <FaFacebook className="w-5 h-5" />
       </a>
 
       {/* LinkedIn */}
@@ -197,10 +201,10 @@ export default function SocialShare({
         href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full transition-all hover:scale-110 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-400 border border-gray-200 dark:border-gray-700"
+        className={`${baseBtnClass} hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-400`}
         aria-label="Share on LinkedIn"
       >
-        <FaLinkedin className="w-4 h-4" />
+        <FaLinkedin className="w-5 h-5" />
       </a>
 
       {/* Pinterest */}
@@ -208,10 +212,10 @@ export default function SocialShare({
         href={pinterestHref}
         target="_blank"
         rel="noopener noreferrer"
-        className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full transition-all hover:scale-110 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 border border-gray-200 dark:border-gray-700"
+        className={`${baseBtnClass} hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400`}
         aria-label="Share on Pinterest"
       >
-        <FaPinterest className="w-4 h-4" />
+        <FaPinterest className="w-5 h-5" />
       </a>
 
       {/* WhatsApp */}
@@ -219,10 +223,10 @@ export default function SocialShare({
         href={`https://api.whatsapp.com/send?text=${encodedText}%20${encodedUrl}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full transition-all hover:scale-110 hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-500 dark:hover:text-green-400 border border-gray-200 dark:border-gray-700"
+        className={`${baseBtnClass} hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-500 dark:hover:text-green-400`}
         aria-label="Share on WhatsApp"
       >
-        <FaWhatsapp className="w-4 h-4" />
+        <FaWhatsapp className="w-5 h-5" />
       </a>
     </div>
   );

@@ -29,18 +29,17 @@ interface RawShade {
  * CONSTANTS
  * ============================================================ */
 
-const MIN_LIGHTNESS = 0.18;   // avoid dark brown/maroon
-const MAX_LIGHTNESS = 0.85;   // avoid near-white
-const MIN_SATURATION = 0.15;  // absolute floor (avoid gray)
-const HUE_TOLERANCE = 25;     // base hue ±25°
+// ✅ Expanded lightness range for full spectrum
+const MIN_LIGHTNESS = 0.06;
+const MAX_LIGHTNESS = 0.96;
+const MIN_SATURATION = 0.15;
+const HUE_TOLERANCE = 40;  // was 25 — more forgiving
 
-// ✅ Lightness-aware saturation requirements
-// Dark shades → higher saturation needed (avoid brown)
-// Light shades → lower saturation ok
+// ✅ Saturation requirements adjusted (lower for light, keep dark vibrant)
 const SAT_REQUIREMENT = {
-  dark: 0.30,    // lightness < 0.35
-  medium: 0.22,  // lightness 0.35–0.55
-  light: 0.15,   // lightness > 0.55
+  dark: 0.25,
+  medium: 0.18,
+  light: 0.12,
 };
 
 const DARK_LIGHTNESS_THRESHOLD = 0.35;
@@ -53,7 +52,7 @@ const LIGHT_COUNT = 15;
 const DARK_COUNT = 15;
 
 /* ============================================================
- * LRU CACHE FOR COLOR NAMES
+ * LRU CACHE
  * ============================================================ */
 
 class ColorNameCache {
@@ -224,13 +223,9 @@ function getShadeMetadata(
 }
 
 /* ============================================================
- * HELPER: Lightness-aware minimum saturation
+ * HELPERS
  * ============================================================ */
 
-/**
- * ✅ Dark shades-ல் அதிக saturation தேவை (brown avoid)
- * ✅ Light shades-ல் குறைவான saturation OK
- */
 function getMinSaturationForLightness(lightness: number): number {
   if (lightness < DARK_LIGHTNESS_THRESHOLD) {
     return SAT_REQUIREMENT.dark;
@@ -240,10 +235,6 @@ function getMinSaturationForLightness(lightness: number): number {
   }
   return SAT_REQUIREMENT.light;
 }
-
-/* ============================================================
- * HELPER: Hue difference (with wraparound)
- * ============================================================ */
 
 function getHueDifference(hue1: number, hue2: number): number {
   let diff = Math.abs(hue1 - hue2);
@@ -272,13 +263,13 @@ export function generateShades(hex: string, count: number = 120): Shade[] {
   const isNeutralBase = baseSat < MIN_SATURATION;
   const rawShades: RawShade[] = [];
 
-  /* ---------- 1. TINTS (lighter) ---------- */
+  /* ---------- 1. TINTS (lighter) — gentler saturation drop ---------- */
   for (let i = 0; i < TINT_COUNT; i++) {
     const t = i / (TINT_COUNT - 1);
     const l = baseLum + (MAX_LIGHTNESS - baseLum) * t;
     const s = isNeutralBase
       ? baseSat
-      : Math.max(MIN_SATURATION, baseSat * (1 - t * 0.6));
+      : Math.max(MIN_SATURATION, baseSat * (1 - t * 0.4)); // ✅ was 0.6
 
     const mixedHex = chroma.hsl(baseHue, s, l).hex();
     rawShades.push({
@@ -289,13 +280,13 @@ export function generateShades(hex: string, count: number = 120): Shade[] {
     });
   }
 
-  /* ---------- 2. SHADES (darker) ---------- */
+  /* ---------- 2. SHADES (darker) — keep saturation high ---------- */
   for (let i = 0; i < SHADE_COUNT; i++) {
     const t = i / (SHADE_COUNT - 1);
     const l = baseLum + (MIN_LIGHTNESS - baseLum) * t;
     const s = isNeutralBase
       ? baseSat
-      : Math.max(MIN_SATURATION, baseSat * (1 - t * 0.25));
+      : Math.max(MIN_SATURATION, baseSat * (1 - t * 0.15)); // ✅ was 0.25
 
     const mixedHex = chroma.hsl(baseHue, s, l).hex();
     rawShades.push({
@@ -312,7 +303,7 @@ export function generateShades(hex: string, count: number = 120): Shade[] {
     const l = baseLum + (0.5 - baseLum) * t * 0.4;
     const s = isNeutralBase
       ? baseSat
-      : Math.max(MIN_SATURATION, baseSat * (1 - t * 0.7));
+      : Math.max(MIN_SATURATION, baseSat * (1 - t * 0.6)); // ✅ was 0.7
 
     const mixedHex = chroma.hsl(baseHue, s, l).hex();
     rawShades.push({
@@ -323,13 +314,13 @@ export function generateShades(hex: string, count: number = 120): Shade[] {
     });
   }
 
-  /* ---------- 4. LIGHT variations ---------- */
+  /* ---------- 4. LIGHT variations — wider range ---------- */
   for (let i = 0; i < LIGHT_COUNT; i++) {
     const t = i / (LIGHT_COUNT - 1);
-    const l = Math.min(MAX_LIGHTNESS, baseLum + t * 0.35);
+    const l = Math.min(MAX_LIGHTNESS, baseLum + t * 0.5); // ✅ was 0.35
     const s = isNeutralBase
       ? baseSat
-      : Math.max(MIN_SATURATION, baseSat * (1 - t * 0.4));
+      : Math.max(MIN_SATURATION, baseSat * (1 - t * 0.3)); // ✅ was 0.4
 
     const lightHex = chroma.hsl(baseHue, s, l).hex();
     rawShades.push({
@@ -340,13 +331,13 @@ export function generateShades(hex: string, count: number = 120): Shade[] {
     });
   }
 
-  /* ---------- 5. DARK variations ---------- */
+  /* ---------- 5. DARK variations — wider range ---------- */
   for (let i = 0; i < DARK_COUNT; i++) {
     const t = i / (DARK_COUNT - 1);
-    const l = Math.max(MIN_LIGHTNESS, baseLum - t * 0.35);
+    const l = Math.max(MIN_LIGHTNESS, baseLum - t * 0.5); // ✅ was 0.35
     const s = isNeutralBase
       ? baseSat
-      : Math.max(MIN_SATURATION, baseSat * (1 - t * 0.2));
+      : Math.max(MIN_SATURATION, baseSat * (1 - t * 0.1)); // ✅ was 0.2
 
     const darkHex = chroma.hsl(baseHue, s, l).hex();
     rawShades.push({
@@ -370,33 +361,17 @@ export function generateShades(hex: string, count: number = 120): Shade[] {
     getShadeMetadata(item.hex, item.type, item.originalIndex, item.originalTotal)
   );
 
-  /* ============================================================
-   * ✅ HUE-FAMILY FILTER (with lightness-aware saturation)
-   * ============================================================
-   * Base neutral-ஆ இல்லைனா, base hue-க்கு close-ஆ இருக்கும் shades
-   * மட்டும் வைத்துக்கொள்.
-   *
-   * Filters:
-   * 1. Lightness: MIN_LIGHTNESS ≤ l ≤ MAX_LIGHTNESS
-   * 2. Saturation: lightness-aware requirement
-   *    - Dark shades → high saturation (0.30)
-   *    - Medium → 0.22
-   *    - Light → 0.15
-   * 3. Hue: |baseHue - shadeHue| ≤ HUE_TOLERANCE
-   * ============================================================ */
+  /* ---------- HUE-FAMILY FILTER ---------- */
   if (!isNeutralBase) {
     shades = shades.filter((shade) => {
       const { saturation, lightness, hue } = shade;
 
-      // ❌ Lightness extremes
       if (lightness < MIN_LIGHTNESS) return false;
       if (lightness > MAX_LIGHTNESS) return false;
 
-      // ❌ Lightness-aware saturation requirement
       const minSatRequired = getMinSaturationForLightness(lightness);
       if (saturation < minSatRequired) return false;
 
-      // ❌ Hue check
       const hueDiff = getHueDifference(baseHue, hue);
       if (hueDiff > HUE_TOLERANCE) return false;
 

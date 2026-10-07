@@ -62,7 +62,6 @@ export default function ShadesFAQ({
     const family = getColorFamily(hex);
     const name = getColorName(hex);
 
-    // Parse HSL
     let hsl = { h: 0, s: 0, l: 0 };
     if (hslStr) {
       const match = hslStr.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
@@ -75,7 +74,6 @@ export default function ShadesFAQ({
       }
     }
 
-    // Parse HSV
     let hsv = { h: 0, s: 0, v: 0 };
     if (hsvStr) {
       const match = hsvStr.match(/hsv\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
@@ -88,7 +86,6 @@ export default function ShadesFAQ({
       }
     }
 
-    // Parse CMYK
     let cmyk = { c: 0, m: 0, y: 0, k: 0 };
     if (cmykStr) {
       const match = cmykStr.match(
@@ -142,7 +139,6 @@ export default function ShadesFAQ({
     const baseColor = colorName;
     const data = colorData;
 
-    // Dynamic descriptive words
     const saturationWord =
       data.hsv.s > 70
         ? 'highly saturated'
@@ -168,50 +164,49 @@ export default function ShadesFAQ({
       {
         question: `What color is ${baseColor} (${fullHex})?`,
         answer: (
-          <div className="space-y-2">
-            <p>
+          <div className="space-y-3">
+            <p className="text-[15px] sm:text-base leading-relaxed">
               <strong>{baseColor}</strong> is a{' '}
               <strong>{data.colorDescription}</strong> color.
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
               <div
-                className={`p-2 rounded-lg text-center ${
+                className={`p-2.5 rounded-lg text-center ${
                   isDark ? 'bg-white/5' : 'bg-gray-50'
                 }`}
               >
-                <p className="text-xs">RGB</p>
-                <p className="text-sm font-mono">
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-70">RGB</p>
+                <p className="text-sm font-mono font-medium">
                   {data.rgb.r}, {data.rgb.g}, {data.rgb.b}
                 </p>
               </div>
               <div
-                className={`p-2 rounded-lg text-center ${
+                className={`p-2.5 rounded-lg text-center ${
                   isDark ? 'bg-white/5' : 'bg-gray-50'
                 }`}
               >
-                <p className="text-xs">HSL</p>
-                <p className="text-sm font-mono">
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-70">HSL</p>
+                <p className="text-sm font-mono font-medium">
                   {data.hsl.h}°, {data.hsl.s}%, {data.hsl.l}%
                 </p>
               </div>
               <div
-                className={`p-2 rounded-lg text-center ${
+                className={`p-2.5 rounded-lg text-center ${
                   isDark ? 'bg-white/5' : 'bg-gray-50'
                 }`}
               >
-                <p className="text-xs">CMYK</p>
-                <p className="text-sm font-mono">
-                  {data.cmyk.c}%, {data.cmyk.m}%, {data.cmyk.y}%,{' '}
-                  {data.cmyk.k}%
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-70">CMYK</p>
+                <p className="text-sm font-mono font-medium">
+                  {data.cmyk.c}%, {data.cmyk.m}%, {data.cmyk.y}%, {data.cmyk.k}%
                 </p>
               </div>
               <div
-                className={`p-2 rounded-lg text-center ${
+                className={`p-2.5 rounded-lg text-center ${
                   isDark ? 'bg-white/5' : 'bg-gray-50'
                 }`}
               >
-                <p className="text-xs">HSV</p>
-                <p className="text-sm font-mono">
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-70">HSV</p>
+                <p className="text-sm font-mono font-medium">
                   {data.hsv.h}°, {data.hsv.s}%, {data.hsv.v}%
                 </p>
               </div>
@@ -222,27 +217,29 @@ export default function ShadesFAQ({
       {
         question: `What colors are similar to ${baseColor} (${fullHex})?`,
         answer: (
-          <div className="space-y-2">
-            <p>Colors similar to {baseColor} include:</p>
+          <div className="space-y-3">
+            <p className="text-[15px] sm:text-base leading-relaxed">
+              Colors similar to {baseColor} include:
+            </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
               {data.similarColors.length > 0 ? (
                 data.similarColors.map((color, index) => (
                   <div
                     key={index}
-                    className={`p-2 rounded-lg flex items-center gap-2 ${
+                    className={`p-2.5 rounded-lg flex items-center gap-2.5 ${
                       isDark ? 'bg-white/5' : 'bg-gray-50'
                     }`}
                   >
                     <div
-                      className="w-6 h-6 rounded border"
+                      className="w-8 h-8 rounded border flex-shrink-0"
                       style={{ backgroundColor: color.hex }}
                       aria-hidden="true"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">
+                      <p className="text-sm font-semibold truncate">
                         {color.name}
                       </p>
-                      <p className="text-[12px] font-mono">
+                      <p className="text-sm font-mono opacity-80">
                         {color.hex}
                       </p>
                     </div>
@@ -259,78 +256,78 @@ export default function ShadesFAQ({
         question: `What color palette goes well with ${baseColor}?`,
         answer: (
           <div className="space-y-3">
-            <p>
+            <p className="text-[15px] sm:text-base leading-relaxed">
               Here are some color palettes that work well with {baseColor}:
             </p>
 
             <div
-              className={`p-3 rounded-lg ${
+              className={`p-3.5 rounded-lg ${
                 isDark ? 'bg-white/5' : 'bg-gray-50'
               }`}
             >
-              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                <Palette className="w-4 h-4" aria-hidden="true" />
+              <h4 className="text-base font-semibold mb-2.5 flex items-center gap-2">
+                <Palette className="w-4.5 h-4.5" aria-hidden="true" />
                 Complementary Palette
               </h4>
               <div className="flex gap-2">
                 <div
-                  className="w-10 h-10 rounded-lg border"
+                  className="w-12 h-12 rounded-lg border"
                   style={{ backgroundColor: fullHex }}
                   title={fullHex}
                 />
                 <div
-                  className="w-10 h-10 rounded-lg border"
+                  className="w-12 h-12 rounded-lg border"
                   style={{ backgroundColor: data.complementary }}
                   title={data.complementary}
                 />
                 <div
-                  className="w-10 h-10 rounded-lg border"
+                  className="w-12 h-12 rounded-lg border"
                   style={{ backgroundColor: `#${darkenHex(hex, 0.2)}` }}
                   title={`#${darkenHex(hex, 0.2)}`}
                 />
                 <div
-                  className="w-10 h-10 rounded-lg border"
+                  className="w-12 h-12 rounded-lg border"
                   style={{ backgroundColor: `#${lightenHex(hex, 0.3)}` }}
                   title={`#${lightenHex(hex, 0.3)}`}
                 />
               </div>
-              <p className="text-xs mt-1">
+              <p className="text-sm mt-2 opacity-80">
                 {fullHex} + {data.complementary} + dark/light variations
               </p>
             </div>
 
             <div
-              className={`p-3 rounded-lg ${
+              className={`p-3.5 rounded-lg ${
                 isDark ? 'bg-white/5' : 'bg-gray-50'
               }`}
             >
-              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                <Droplet className="w-4 h-4" aria-hidden="true" />
+              <h4 className="text-base font-semibold mb-2.5 flex items-center gap-2">
+                <Droplet className="w-4.5 h-4.5" aria-hidden="true" />
                 Monochromatic Palette
               </h4>
               <div className="flex gap-2">
                 <div
-                  className="w-10 h-10 rounded-lg border"
+                  className="w-12 h-12 rounded-lg border"
                   style={{ backgroundColor: `#${lightenHex(hex, 0.6)}` }}
                 />
                 <div
-                  className="w-10 h-10 rounded-lg border"
+                  className="w-12 h-12 rounded-lg border"
                   style={{ backgroundColor: `#${lightenHex(hex, 0.3)}` }}
                 />
                 <div
-                  className="w-10 h-10 rounded-lg border"
+                  className="w-12 h-12 rounded-lg border"
                   style={{ backgroundColor: fullHex }}
                 />
                 <div
-                  className="w-10 h-10 rounded-lg border"
+                  className="w-12 h-12 rounded-lg border"
                   style={{ backgroundColor: `#${darkenHex(hex, 0.3)}` }}
                 />
                 <div
-                  className="w-10 h-10 rounded-lg border"
+                  className="w-12 h-12 rounded-lg border"
                   style={{ backgroundColor: `#${darkenHex(hex, 0.6)}` }}
                 />
               </div>
-              <p className="text-xs mt-1">
+              <p className="text-sm mt-2 opacity-80">
                 Various shades of {baseColor}
               </p>
             </div>
@@ -340,11 +337,11 @@ export default function ShadesFAQ({
       {
         question: `How do I use ${baseColor} in my design?`,
         answer: (
-          <div className="space-y-2">
-            <p>
+          <div className="space-y-3">
+            <p className="text-[15px] sm:text-base leading-relaxed">
               Based on its color properties, {baseColor} works well for:
             </p>
-            <ul className="list-disc pl-5 space-y-1">
+            <ul className="list-disc pl-5 space-y-2 text-[15px] sm:text-base leading-relaxed">
               <li>
                 <strong>Call-to-action buttons</strong> -{' '}
                 {parseFloat(data.contrastOnWhite) >= 4.5
@@ -374,15 +371,15 @@ export default function ShadesFAQ({
               </li>
             </ul>
             <div
-              className={`p-3 rounded-lg mt-2 ${
+              className={`p-3.5 rounded-lg mt-2 ${
                 isDark ? 'bg-white/5' : 'bg-gray-50'
               }`}
             >
-              <p className="text-sm font-medium flex items-center gap-2">
-                <Zap className="w-4 h-4" aria-hidden="true" />
+              <p className="text-base font-semibold flex items-center gap-2 mb-1">
+                <Zap className="w-4.5 h-4.5" aria-hidden="true" />
                 Design Tip:
               </p>
-              <p className="text-sm opacity-75">
+              <p className="text-[15px] sm:text-base opacity-80 leading-relaxed">
                 Use {fullHex} as your primary color with neutral backgrounds
                 for maximum impact.
                 {data.hsv.v > 70
@@ -396,38 +393,38 @@ export default function ShadesFAQ({
       {
         question: `What are the accessibility considerations for ${baseColor}?`,
         answer: (
-          <div className="space-y-2">
-            <p>
+          <div className="space-y-3">
+            <p className="text-[15px] sm:text-base leading-relaxed">
               Color accessibility is important. Here's how {baseColor}{' '}
               performs:
             </p>
-            <ul className="list-disc pl-5 space-y-1">
+            <ul className="list-disc pl-5 space-y-2 text-[15px] sm:text-base leading-relaxed">
               <li>
                 <strong>Contrast on white</strong>:{' '}
-                <span className="font-mono">
+                <span className="font-mono font-semibold">
                   {data.contrastOnWhite}:1
                 </span>
                 {parseFloat(data.contrastOnWhite) < 4.5 ? (
-                  <span className="text-red-400 ml-2">
+                  <span className="text-red-500 font-semibold ml-2">
                     ⚠️ Below WCAG AA (4.5:1 minimum)
                   </span>
                 ) : (
-                  <span className="text-emerald-400 ml-2">
+                  <span className="text-emerald-500 font-semibold ml-2">
                     ✅ Passes WCAG AA
                   </span>
                 )}
               </li>
               <li>
                 <strong>Contrast on black</strong>:{' '}
-                <span className="font-mono">
+                <span className="font-mono font-semibold">
                   {data.contrastOnBlack}:1
                 </span>
                 {parseFloat(data.contrastOnBlack) < 4.5 ? (
-                  <span className="text-red-400 ml-2">
+                  <span className="text-red-500 font-semibold ml-2">
                     ⚠️ Below WCAG AA
                   </span>
                 ) : (
-                  <span className="text-emerald-400 ml-2">
+                  <span className="text-emerald-500 font-semibold ml-2">
                     ✅ Passes WCAG AA
                   </span>
                 )}
@@ -446,15 +443,15 @@ export default function ShadesFAQ({
               </li>
             </ul>
             <div
-              className={`p-3 rounded-lg mt-2 ${
+              className={`p-3.5 rounded-lg mt-2 ${
                 isDark ? 'bg-white/5' : 'bg-gray-50'
               }`}
             >
-              <p className="text-sm font-medium flex items-center gap-2">
-                <Accessibility className="w-4 h-4" aria-hidden="true" />
+              <p className="text-base font-semibold flex items-center gap-2 mb-1">
+                <Accessibility className="w-4.5 h-4.5" aria-hidden="true" />
                 Accessibility Tip:
               </p>
-              <p className="text-sm opacity-75">
+              <p className="text-[15px] sm:text-base opacity-80 leading-relaxed">
                 {parseFloat(data.contrastOnWhite) < 4.5
                   ? `For text, use ${fullHex} on dark backgrounds or dark shades on white backgrounds to ensure readable contrast.`
                   : `${fullHex} works well on both light and dark backgrounds. Use lighter tints for backgrounds and darker shades for text.`}
@@ -466,12 +463,12 @@ export default function ShadesFAQ({
       {
         question: `How is ${baseColor} perceived in color psychology?`,
         answer: (
-          <div className="space-y-2">
-            <p>
+          <div className="space-y-3">
+            <p className="text-[15px] sm:text-base leading-relaxed">
               <strong>{baseColor}</strong> evokes these psychological
               associations:
             </p>
-            <ul className="list-disc pl-5 space-y-1">
+            <ul className="list-disc pl-5 space-y-2 text-[15px] sm:text-base leading-relaxed">
               {data.colorPsychology.split(' • ').map((point, i) => {
                 const parts = point.split(':');
                 return (
@@ -489,15 +486,15 @@ export default function ShadesFAQ({
               })}
             </ul>
             <div
-              className={`p-3 rounded-lg mt-2 ${
+              className={`p-3.5 rounded-lg mt-2 ${
                 isDark ? 'bg-white/5' : 'bg-gray-50'
               }`}
             >
-              <p className="text-sm font-medium flex items-center gap-2">
-                <Brain className="w-4 h-4" aria-hidden="true" />
+              <p className="text-base font-semibold flex items-center gap-2 mb-1">
+                <Brain className="w-4.5 h-4.5" aria-hidden="true" />
                 Psychological Insight:
               </p>
-              <p className="text-sm opacity-75">
+              <p className="text-[15px] sm:text-base opacity-80 leading-relaxed">
                 {fullHex} {getColorInsight(hex, colorName)}
               </p>
             </div>
@@ -507,31 +504,31 @@ export default function ShadesFAQ({
       {
         question: `What are the best complementary colors for ${baseColor}?`,
         answer: (
-          <div className="space-y-2">
-            <p>
+          <div className="space-y-3">
+            <p className="text-[15px] sm:text-base leading-relaxed">
               Here are the best complementary colors for {baseColor} based on
               color theory:
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-2">
               <div
                 className={`p-3 rounded-lg ${
                   isDark ? 'bg-white/5' : 'bg-gray-50'
                 }`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <div
-                    className="w-8 h-8 rounded border flex-shrink-0"
+                    className="w-10 h-10 rounded border flex-shrink-0"
                     style={{ backgroundColor: data.complementary }}
                     aria-hidden="true"
                   />
                   <div className="min-w-0">
-                    <p className="text-xs font-medium">Complementary</p>
-                    <p className="text-[12px] font-mono">
+                    <p className="text-sm font-semibold">Complementary</p>
+                    <p className="text-sm font-mono opacity-80">
                       {data.complementary}
                     </p>
                   </div>
                 </div>
-                <p className="text-[12px] mt-1.5">
+                <p className="text-sm mt-2 opacity-75">
                   Direct opposite on color wheel (180°)
                 </p>
               </div>
@@ -541,22 +538,22 @@ export default function ShadesFAQ({
                   isDark ? 'bg-white/5' : 'bg-gray-50'
                 }`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <div
-                    className="w-8 h-8 rounded border flex-shrink-0"
+                    className="w-10 h-10 rounded border flex-shrink-0"
                     style={{
                       backgroundColor: `#${data.splitComplement1}`,
                     }}
                     aria-hidden="true"
                   />
                   <div className="min-w-0">
-                    <p className="text-xs font-medium">Split-Complement</p>
-                    <p className="text-[12px] font-mono">
+                    <p className="text-sm font-semibold">Split-Complement</p>
+                    <p className="text-sm font-mono opacity-80">
                       #{data.splitComplement1}
                     </p>
                   </div>
                 </div>
-                <p className="text-[12px] mt-1.5">
+                <p className="text-sm mt-2 opacity-75">
                   Adjacent to complementary (+150°)
                 </p>
               </div>
@@ -566,22 +563,22 @@ export default function ShadesFAQ({
                   isDark ? 'bg-white/5' : 'bg-gray-50'
                 }`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <div
-                    className="w-8 h-8 rounded border flex-shrink-0"
+                    className="w-10 h-10 rounded border flex-shrink-0"
                     style={{
                       backgroundColor: `#${data.splitComplement2}`,
                     }}
                     aria-hidden="true"
                   />
                   <div className="min-w-0">
-                    <p className="text-xs font-medium">Split-Complement</p>
-                    <p className="text-[12px] font-mono">
+                    <p className="text-sm font-semibold">Split-Complement</p>
+                    <p className="text-sm font-mono opacity-80">
                       #{data.splitComplement2}
                     </p>
                   </div>
                 </div>
-                <p className="text-[12px] mt-1.5">
+                <p className="text-sm mt-2 opacity-75">
                   Adjacent to complementary (−150°)
                 </p>
               </div>
@@ -589,21 +586,17 @@ export default function ShadesFAQ({
           </div>
         ),
       },
-      /* ============================================================
-       * ✅ FIXED: Luminance & brightness section
-       * - Label: "Perceived brightness" (accurate formula name)
-       * - Analysis: dynamic brightness word (matches data)
-       * - Design tip: middle ground for V 50-70
-       * ============================================================ */
       {
         question: `What is the luminance and brightness of ${baseColor}?`,
         answer: (
-          <div className="space-y-2">
-            <p>Technical properties of {baseColor}:</p>
-            <ul className="list-disc pl-5 space-y-1">
+          <div className="space-y-3">
+            <p className="text-[15px] sm:text-base leading-relaxed">
+              Technical properties of {baseColor}:
+            </p>
+            <ul className="list-disc pl-5 space-y-2 text-[15px] sm:text-base leading-relaxed">
               <li>
                 <strong>Perceived brightness</strong>:{' '}
-                <span className="font-mono">
+                <span className="font-mono font-semibold">
                   {data.luminance.toFixed(3)}
                 </span>{' '}
                 (Range: 0 = black, 1 = white)
@@ -642,15 +635,15 @@ export default function ShadesFAQ({
               </li>
             </ul>
             <div
-              className={`p-3 rounded-lg mt-2 ${
+              className={`p-3.5 rounded-lg mt-2 ${
                 isDark ? 'bg-white/5' : 'bg-gray-50'
               }`}
             >
-              <p className="text-sm font-medium flex items-center gap-2">
-                <Eye className="w-4 h-4" aria-hidden="true" />
+              <p className="text-base font-semibold flex items-center gap-2 mb-1">
+                <Eye className="w-4.5 h-4.5" aria-hidden="true" />
                 Analysis:
               </p>
-              <p className="text-sm opacity-75">
+              <p className="text-[15px] sm:text-base opacity-80 leading-relaxed">
                 {baseColor} is a {saturationWord}, {brightnessWord} color with
                 a {data.colorTemperature.toLowerCase()} temperature.
                 {designTipEnd}
@@ -681,25 +674,25 @@ export default function ShadesFAQ({
       <div className="p-5 sm:p-6 border-b border-gray-200 dark:border-white/10">
         <div className="flex items-center gap-3">
           <div
-            className={`p-2.5 rounded-xl ${
+            className={`p-3 rounded-xl ${
               isDark
                 ? 'bg-indigo-500/10 text-indigo-400'
                 : 'bg-indigo-50 text-indigo-600'
             }`}
           >
-            <Eye className="w-5 h-5" aria-hidden="true" />
+            <Eye className="w-6 h-6" aria-hidden="true" />
           </div>
           <div>
             <h2
-              className={`text-lg sm:text-xl font-bold ${
+              className={`text-xl sm:text-2xl font-bold ${
                 isDark ? 'text-white' : 'text-gray-900'
               }`}
             >
               About {colorName} Color
             </h2>
             <p
-              className={`text-sm ${
-                isDark ? 'text-gray-400' : 'text-gray-500'
+              className={`text-sm sm:text-base ${
+                isDark ? 'text-gray-400' : 'text-gray-600'
               }`}
             >
               Color information, palettes, and design tips
@@ -735,14 +728,14 @@ export default function ShadesFAQ({
                 <span
                   role="heading"
                   aria-level={3}
-                  className={`font-medium text-sm sm:text-base ${
-                    isDark ? 'text-gray-200' : 'text-gray-800'
+                  className={`font-semibold text-[15px] sm:text-base leading-snug ${
+                    isDark ? 'text-gray-100' : 'text-gray-900'
                   }`}
                 >
                   {item.question}
                 </span>
                 <span
-                  className={`flex-shrink-0 p-1.5 rounded-lg transition-all ${
+                  className={`flex-shrink-0 p-2 rounded-lg transition-all ${
                     isOpen
                       ? isDark
                         ? 'bg-indigo-500/20 text-indigo-400'
@@ -754,17 +747,17 @@ export default function ShadesFAQ({
                   aria-hidden="true"
                 >
                   {isOpen ? (
-                    <ChevronUp className="w-4 h-4" aria-hidden="true" />
+                    <ChevronUp className="w-5 h-5" aria-hidden="true" />
                   ) : (
-                    <ChevronDown className="w-4 h-4" aria-hidden="true" />
+                    <ChevronDown className="w-5 h-5" aria-hidden="true" />
                   )}
                 </span>
               </button>
 
               {isOpen && (
                 <div
-                  className={`px-4 pb-4 text-sm ${
-                    isDark ? 'text-gray-300' : 'text-gray-600'
+                  className={`px-4 pb-4 text-[15px] sm:text-base leading-relaxed ${
+                    isDark ? 'text-gray-300' : 'text-gray-700'
                   }`}
                 >
                   {item.answer}
@@ -781,24 +774,23 @@ export default function ShadesFAQ({
           isDark ? 'border-white/10' : 'border-gray-200'
         }`}
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <p
-            className={`text-xs ${
-              isDark ? 'text-gray-400' : 'text-gray-500'
+            className={`text-sm ${
+              isDark ? 'text-gray-400' : 'text-gray-600'
             }`}
           >
-            Data from actual color analysis • {faqItems.length} color
-            insights
+            Data from actual color analysis • {faqItems.length} color insights
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <div
-              className="w-4 h-4 rounded-full border"
+              className="w-5 h-5 rounded-full border"
               style={{ backgroundColor: fullHex }}
               aria-hidden="true"
             />
             <span
-              className={`text-xs font-mono ${
-                isDark ? 'text-gray-400' : 'text-gray-500'
+              className={`text-sm font-mono font-medium ${
+                isDark ? 'text-gray-300' : 'text-gray-700'
               }`}
             >
               {fullHex}
@@ -811,7 +803,7 @@ export default function ShadesFAQ({
 }
 
 /* ============================================================
- * DYNAMIC HELPER FUNCTIONS
+ * DYNAMIC HELPER FUNCTIONS — unchanged
  * ============================================================ */
 
 function getSimilarColors(
@@ -900,7 +892,6 @@ function generateDynamicColors(
     colors.push({ name, hex: `#${hexStr}` });
   }
 
-  // Analogous colors
   const hslStr = hexToHsl(hex);
   if (hslStr) {
     const match = hslStr.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
@@ -919,12 +910,10 @@ function generateDynamicColors(
     }
   }
 
-  // Complementary
   const compHex = getComplementaryColor(hex).replace('#', '');
   const compName = getColorName(compHex);
   colors.push({ name: `Complementary - ${compName}`, hex: `#${compHex}` });
 
-  // Dedupe
   const seen = new Set<string>();
   return colors
     .filter((color) => {

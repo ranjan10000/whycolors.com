@@ -76,14 +76,14 @@ export default function ColorConversions({ hex }: ColorConversionsProps) {
         isDark ? 'border-white/10' : 'border-[#e2e8f0]'
       }`}>
         <div className="flex items-center gap-2">
-          <Sparkles className={`w-4 h-4 ${isDark ? 'text-[#a78bfa]' : 'text-purple-600'}`} />
-          <h3 className={`text-base font-semibold tracking-wide ${
+          <Sparkles className={`w-5 h-5 ${isDark ? 'text-[#a78bfa]' : 'text-purple-600'}`} />
+          <h3 className={`text-lg sm:text-xl font-semibold tracking-wide ${
             isDark ? 'text-white/90' : 'text-[#101114]'
           }`}>
             Color Formats
           </h3>
         </div>
-        <span className={`text-xs font-mono ${isDark ? 'text-white' : 'text-[#686b74]'}`}>
+        <span className={`text-sm font-mono font-semibold ${isDark ? 'text-white' : 'text-[#686b74]'}`}>
           5 Formats
         </span>
       </div>
@@ -112,13 +112,13 @@ export default function ColorConversions({ hex }: ColorConversionsProps) {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs font-bold uppercase tracking-wider font-mono ${
+                    <span className={`text-sm font-bold uppercase tracking-wider font-mono ${
                       isDark ? 'text-[#a78bfa]' : 'text-purple-700'
                     }`}>
                       {label}
                     </span>
                   </div>
-                  <p className={`text-[11px] font-normal ${
+                  <p className={`text-sm font-normal ${
                     isDark ? 'text-white' : 'text-[#686b74]'
                   }`}>
                     {subLabel}
@@ -132,7 +132,7 @@ export default function ColorConversions({ hex }: ColorConversionsProps) {
                       e.stopPropagation();
                       handleCopy(value, label);
                     }}
-                    className={`p-1.5 rounded-lg border transition-all duration-200 ${
+                    className={`p-2 rounded-lg border transition-all duration-200 ${
                       isCopied
                         ? isDark
                           ? 'bg-emerald-900/50 border-emerald-500 text-emerald-400 scale-105'
@@ -144,25 +144,25 @@ export default function ColorConversions({ hex }: ColorConversionsProps) {
                     title={`Copy ${label}`}
                   >
                     {isCopied ? (
-                      <Check className="w-3.5 h-3.5" />
+                      <Check className="w-4 h-4" />
                     ) : (
-                      <Copy className="w-3.5 h-3.5" />
+                      <Copy className="w-4 h-4" />
                     )}
                   </button>
                 )}
               </div>
 
               {/* Bottom Row: Value Output */}
-              <div className="flex items-center justify-between mt-1">
-                <p className={`text-sm font-mono font-medium tracking-tight break-all ${
-                  isDark ? 'text-white/80' : 'text-[#101114]'
+              <div className="flex items-center justify-between mt-1 gap-2">
+                <p className={`text-base sm:text-lg font-mono font-medium tracking-tight break-all ${
+                  isDark ? 'text-white/90' : 'text-[#101114]'
                 }`}>
                   {value}
                 </p>
 
                 {/* Micro Toast Feedback */}
                 {isCopied && (
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md animate-in fade-in zoom-in-95 ${
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-md animate-in fade-in zoom-in-95 flex-shrink-0 ${
                     isDark 
                       ? 'text-emerald-400 bg-emerald-900/50 border border-emerald-500/30'
                       : 'text-emerald-700 bg-emerald-100 border border-emerald-300'

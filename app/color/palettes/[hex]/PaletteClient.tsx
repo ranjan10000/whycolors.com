@@ -1285,100 +1285,98 @@ export default function PaletteClient({
               {/* ==================================================
                   STRIP VIEW
               ================================================== */}
-              {viewMode === 'strip' && (
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleCopyAll(
-                        type.colors,
-                        type.label
-                      )
-                    }
-                    className="w-full group relative"
-                    aria-label={`Copy all ${type.label} colors`}
+   {viewMode === 'strip' && (
+  <div className="space-y-3">
+    
+    {/* ===== Copy All Button (Top) ===== */}
+    <div className="flex justify-end">
+      <button
+        type="button"
+        onClick={() => handleCopyAll(type.colors, type.label)}
+        className={`inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[11px] sm:text-xs font-bold transition-all active:scale-95 shadow-sm ${
+          copiedAll === type.label
+            ? 'bg-emerald-500 text-white'
+            : isDark
+            ? 'bg-white/10 hover:bg-white/20 text-gray-200 border border-white/10'
+            : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'
+        }`}
+        aria-label={`Copy all ${type.label} colors`}
+      >
+        {copiedAll === type.label ? (
+          <>
+            <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            Copied All!
+          </>
+        ) : (
+          <>
+            <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            Copy All
+          </>
+        )}
+      </button>
+    </div>
+
+    {/* ===== Gradient Strip ===== */}
+    {/* Mobile-ல் மட்டும் scroll, Desktop-ல் scroll இல்லை */}
+    <div className="w-full overflow-x-auto sm:overflow-visible pb-1 -mx-1 px-1">
+      <div
+        className="relative h-[90px] sm:h-[110px] md:h-[130px] rounded-lg min-w-full"
+        style={{
+          background: `linear-gradient(to right, ${type.colors.join(', ')})`,
+          // Mobile-ல் மட்டும் minWidth, Desktop-ல் full width
+          minWidth: `${type.colors.length * 80}px`,
+        }}
+      >
+        {/* Invisible grid overlay for per-color hover */}
+        <div
+          className="absolute inset-0 grid"
+          style={{
+            gridTemplateColumns: `repeat(${type.colors.length}, 1fr)`,
+          }}
+        >
+          {type.colors.map((color: string, i: number) => {
+            const isBase = color.toLowerCase() === currentColor.toLowerCase();
+            const isCopied = copiedColor === color;
+            const textColor = textColorMap.get(color.toLowerCase()) ?? '#17191D';
+
+            return (
+              <div
+                key={`${type.id}-${color}-${i}`}
+                className="relative group/color flex items-center justify-center cursor-pointer transition-transform duration-200 ease-out hover:scale-110 hover:z-20 origin-center"
+                onClick={() => handleCopy(color)}
+                aria-label={`Copy ${color}`}
+              >
+                {/* HEX label */}
+                <span
+                  className="text-[10px] sm:text-xs md:text-sm font-mono font-bold tracking-wider opacity-0 group-hover/color:opacity-100 transition-opacity duration-200 whitespace-nowrap"
+                  style={{
+                    color: textColor,
+                    textShadow: textColor === '#FFFFFF'
+                      ? '0 1px 2px rgba(0,0,0,0.6)'
+                      : '0 1px 2px rgba(255,255,255,0.6)',
+                  }}
+                >
+                  {isCopied ? '✓' : color.toUpperCase()}
+                </span>
+
+                {/* Base indicator */}
+                {isBase && (
+                  <span
+                    className="absolute top-1 right-1 text-[9px] font-bold opacity-70"
+                    style={{ color: textColor }}
                   >
-                    <div
-                      className={`w-full h-12 sm:h-14 rounded-lg overflow-hidden transition-all group-hover:scale-[1.002] group-hover:shadow-lg ${
-                        isDark
-                          ? 'shadow-black/30'
-                          : 'shadow-gray-200/50'
-                      }`}
-                      style={{
-                        background:
-                          `linear-gradient(to right, ${type.colors.join(
-                            ', '
-                          )})`,
-                      }}
-                    >
-                      <div className="w-full h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm">
-                        <span className="text-white text-xs font-bold px-3 py-1.5 rounded-lg bg-black/50 shadow-lg">
-                          {copiedAll ===
-                          type.label
-                            ? '✓ Copied All!'
-                            : 'Copy All'}
-                        </span>
-                      </div>
-                    </div>
+                    ★
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
 
-                    {copiedAll ===
-                      type.label && (
-                      <span className="absolute -top-1 -right-1 text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full shadow-lg animate-pulse">
-                        ✓ All Copied
-                      </span>
-                    )}
-                  </button>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 px-1">
-                    {type.colors.map(
-                      (
-                        color: string,
-                        i: number
-                      ) => {
-                        const isCopied =
-                          copiedColor ===
-                          color;
-
-                        const isBase =
-                          color.toLowerCase() ===
-                          currentColor.toLowerCase();
-
-                        return (
-                          <button
-                            key={`${type.id}-${color}-${i}`}
-                            type="button"
-                            onClick={() =>
-                              handleCopy(
-                                color
-                              )
-                            }
-                            className={`text-xs font-mono font-medium transition hover:scale-105 text-center ${
-                              isDark
-                                ? 'text-gray-300 hover:text-white'
-                                : 'text-gray-600 hover:text-gray-900'
-                            } ${
-                              isCopied
-                                ? 'text-emerald-500 font-bold'
-                                : ''
-                            } ${
-                              isBase
-                                ? 'font-bold text-purple-500'
-                                : ''
-                            }`}
-                            aria-label={`Copy ${color}`}
-                          >
-                            {color}
-                            {isCopied &&
-                              ' ✓'}
-                            {isBase &&
-                              ' ★'}
-                          </button>
-                        );
-                      }
-                    )}
-                  </div>
-                </div>
-              )}
+  </div>
+)}
             </div>
           );
         })}
